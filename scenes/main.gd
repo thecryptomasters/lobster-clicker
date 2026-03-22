@@ -14,13 +14,15 @@ const UpgradeItemScene := preload("res://scenes/upgrade_item.tscn")
 @onready var offline_label: Label = %OfflineLabel
 @onready var offline_ok_button: Button = %OfflineOkButton
 
-var claw_tween: Tween
-var is_claw_animating := false
+# Manual animation state (no tweens - they break in web export)
+const OPEN_ANGLE := 0.52       # ~30 degrees open (resting)
+const SHUT_ANGLE := 0.087      # ~5 degrees (snap overshoot)
+const SNAP_SPEED := 12.0       # radians/sec for snap shut
+const OPEN_SPEED := 3.0        # radians/sec for open back
 
-# Resting open angle in radians (~30 degrees)
-const OPEN_ANGLE := 0.52
-# Snap shut angle in radians (~5 degrees)
-const SHUT_ANGLE := 0.087
+enum ClawState { IDLE, SNAPPING, OPENING }
+var claw_state: int = ClawState.IDLE
+var claw_progress: float = 0.0  # 0 = start of anim, 1 = end
 
 func _ready() -> void:
 	GameManager.lobsters_changed.connect(_on_lobsters_changed)
@@ -28,12 +30,7 @@ func _ready() -> void:
 	claw_button.gui_input.connect(_on_claw_gui_input)
 	offline_ok_button.pressed.connect(_on_offline_ok)
 
-	# Ensure children inside the button don't intercept mouse events (web export fix)
-	for child in claw_button.get_child(0).get_children():
-		if child is Control:
-			child.mouse_filter = Control.MOUSE_FILTER_IGNORE
-
-	# Verify pincer pivots are found and set initial rotation
+	# Set initial open position
 	if top_pincer_pivot:
 		top_pincer_pivot.rotation = -OPEN_ANGLE
 	if bottom_pincer_pivot:
@@ -65,20 +62,47 @@ func _on_lps_changed(lps: float) -> void:
 	else:
 		lps_label.text = "%s lobsters/sec" % GameManager.format_number(lps)
 
+func _process(delta: float) -> void:
+	# Drive claw animation manually every frame (tweens don't work in web export)
+	match claw_state:
+		ClawState.SNAPPING:
+			claw_progress += delta * SNAP_SPEED
+			if claw_progress >= 1.0:
+				claw_progress = 0.0
+				claw_state = ClawState.OPENING
+				# Set to fully shut position
+				top_pincer_pivot.rotation = SHUT_ANGLE
+				bottom_pincer_pivot.rotation = -SHUT_ANGLE
+			else:
+				# Lerp from open to shut
+				var t := claw_progress
+				top_pincer_pivot.rotation = lerpf(-OPEN_ANGLE, SHUT_ANGLE, t)
+				bottom_pincer_pivot.rotation = lerpf(OPEN_ANGLE, -SHUT_ANGLE, t)
+
+		ClawState.OPENING:
+			claw_progress += delta * OPEN_SPEED
+			if claw_progress >= 1.0:
+				claw_progress = 0.0
+				claw_state = ClawState.IDLE
+				top_pincer_pivot.rotation = -OPEN_ANGLE
+				bottom_pincer_pivot.rotation = OPEN_ANGLE
+			else:
+				# Ease out (decelerate)
+				var t := 1.0 - pow(1.0 - claw_progress, 2.0)
+				top_pincer_pivot.rotation = lerpf(SHUT_ANGLE, -OPEN_ANGLE, t)
+				bottom_pincer_pivot.rotation = lerpf(-SHUT_ANGLE, OPEN_ANGLE, t)
+
 func _on_claw_gui_input(event: InputEvent) -> void:
-	# Handle mouse clicks
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 		claw_button.accept_event()
 		_do_click()
 		return
-	# Handle touch input (mobile/web)
 	if event is InputEventScreenTouch and event.pressed:
 		claw_button.accept_event()
 		_do_click()
 		return
 
 func _unhandled_input(event: InputEvent) -> void:
-	# Fallback: catch touch events that might not reach gui_input on some platforms
 	if event is InputEventScreenTouch and event.pressed:
 		if claw_button and claw_button.get_global_rect().has_point(event.position):
 			get_viewport().set_input_as_handled()
@@ -86,27 +110,12 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func _do_click() -> void:
 	var amount := GameManager.click()
-	_animate_claw()
+	# Start snap animation (interrupts current animation)
+	claw_state = ClawState.SNAPPING
+	claw_progress = 0.0
 	_spawn_float_text(amount)
 	particles.restart()
 	particles.emitting = true
-
-func _animate_claw() -> void:
-	if claw_tween:
-		claw_tween.kill()
-
-	# Snap shut (fast) + scale squeeze — use rotation (radians) directly
-	claw_tween = create_tween()
-	claw_tween.set_parallel(true)
-	claw_tween.tween_property(top_pincer_pivot, "rotation", SHUT_ANGLE, 0.1)
-	claw_tween.tween_property(bottom_pincer_pivot, "rotation", -SHUT_ANGLE, 0.1)
-	claw_tween.tween_property(claw_button, "scale", Vector2(0.95, 0.95), 0.1)
-
-	# Open back (slower, ease out) + scale restore
-	claw_tween.chain().set_parallel(true)
-	claw_tween.tween_property(top_pincer_pivot, "rotation", -OPEN_ANGLE, 0.35).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
-	claw_tween.tween_property(bottom_pincer_pivot, "rotation", OPEN_ANGLE, 0.35).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
-	claw_tween.tween_property(claw_button, "scale", Vector2(1.0, 1.0), 0.35).set_ease(Tween.EASE_OUT)
 
 func _spawn_float_text(amount: float) -> void:
 	var label := Label.new()

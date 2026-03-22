@@ -30,11 +30,11 @@ func _ready() -> void:
 	claw_button.gui_input.connect(_on_claw_gui_input)
 	offline_ok_button.pressed.connect(_on_offline_ok)
 
-	# Set initial open position
+	# Set initial open position (positive = top pincer tilts right/open, negative = bottom tilts left/open)
 	if top_pincer_pivot:
-		top_pincer_pivot.rotation = -OPEN_ANGLE
+		top_pincer_pivot.rotation = OPEN_ANGLE
 	if bottom_pincer_pivot:
-		bottom_pincer_pivot.rotation = OPEN_ANGLE
+		bottom_pincer_pivot.rotation = -OPEN_ANGLE
 
 	# Populate upgrades
 	for i in range(GameManager.upgrade_defs.size()):
@@ -71,26 +71,26 @@ func _process(delta: float) -> void:
 				claw_progress = 0.0
 				claw_state = ClawState.OPENING
 				# Set to fully shut position
-				top_pincer_pivot.rotation = SHUT_ANGLE
-				bottom_pincer_pivot.rotation = -SHUT_ANGLE
+				top_pincer_pivot.rotation = -SHUT_ANGLE
+				bottom_pincer_pivot.rotation = SHUT_ANGLE
 			else:
 				# Lerp from open to shut
 				var t := claw_progress
-				top_pincer_pivot.rotation = lerpf(-OPEN_ANGLE, SHUT_ANGLE, t)
-				bottom_pincer_pivot.rotation = lerpf(OPEN_ANGLE, -SHUT_ANGLE, t)
+				top_pincer_pivot.rotation = lerpf(OPEN_ANGLE, -SHUT_ANGLE, t)
+				bottom_pincer_pivot.rotation = lerpf(-OPEN_ANGLE, SHUT_ANGLE, t)
 
 		ClawState.OPENING:
 			claw_progress += delta * OPEN_SPEED
 			if claw_progress >= 1.0:
 				claw_progress = 0.0
 				claw_state = ClawState.IDLE
-				top_pincer_pivot.rotation = -OPEN_ANGLE
-				bottom_pincer_pivot.rotation = OPEN_ANGLE
+				top_pincer_pivot.rotation = OPEN_ANGLE
+				bottom_pincer_pivot.rotation = -OPEN_ANGLE
 			else:
 				# Ease out (decelerate)
 				var t := 1.0 - pow(1.0 - claw_progress, 2.0)
-				top_pincer_pivot.rotation = lerpf(SHUT_ANGLE, -OPEN_ANGLE, t)
-				bottom_pincer_pivot.rotation = lerpf(-SHUT_ANGLE, OPEN_ANGLE, t)
+				top_pincer_pivot.rotation = lerpf(-SHUT_ANGLE, OPEN_ANGLE, t)
+				bottom_pincer_pivot.rotation = lerpf(SHUT_ANGLE, -OPEN_ANGLE, t)
 
 func _on_claw_gui_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:

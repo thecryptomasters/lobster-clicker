@@ -115,7 +115,7 @@ color = Color(0.545, 0.102, 0.102, 1)
 
 [node name="TopPincerPivot" type="Node2D" parent="VBoxContainer/TopSection/ClawCenter/ClawButton/ClawPivot"]
 unique_name_in_owner = true
-rotation = -0.52
+rotation = 0.52
 position = Vector2(0, 0)
 
 [node name="ClawTop" type="Polygon2D" parent="VBoxContainer/TopSection/ClawCenter/ClawButton/ClawPivot/TopPincerPivot"]
@@ -133,7 +133,7 @@ color = Color(0.906, 0.298, 0.235, 1)
 
 [node name="BottomPincerPivot" type="Node2D" parent="VBoxContainer/TopSection/ClawCenter/ClawButton/ClawPivot"]
 unique_name_in_owner = true
-rotation = 0.52
+rotation = -0.52
 position = Vector2(0, 0)
 
 [node name="ClawBottom" type="Polygon2D" parent="VBoxContainer/TopSection/ClawCenter/ClawButton/ClawPivot/BottomPincerPivot"]

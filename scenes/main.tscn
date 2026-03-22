@@ -1,0 +1,214 @@
+[gd_scene load_steps=3 format=3 uid="uid://b1main_scene_001"]
+
+[ext_resource type="Script" path="res://scenes/main.gd" id="1_script"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel"]
+bg_color = Color(0.06, 0.1, 0.18, 0.9)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.1, 0.29, 0.37, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+content_margin_left = 16.0
+content_margin_top = 16.0
+content_margin_right = 16.0
+content_margin_bottom = 16.0
+
+[node name="Main" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_script")
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0.039, 0.086, 0.157, 1)
+
+[node name="HBoxContainer" type="HBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="LeftPanel" type="VBoxContainer" parent="HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_stretch_ratio = 3.0
+alignment = 1
+
+[node name="Title" type="Label" parent="HBoxContainer/LeftPanel"]
+layout_mode = 2
+text = "LOBSTER CLICKER"
+horizontal_alignment = 1
+theme_override_colors/font_color = Color(0.753, 0.224, 0.169, 1)
+theme_override_font_sizes/font_size = 36
+
+[node name="Spacer1" type="Control" parent="HBoxContainer/LeftPanel"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 10)
+
+[node name="LobsterCountLabel" type="Label" parent="HBoxContainer/LeftPanel"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "0"
+horizontal_alignment = 1
+theme_override_colors/font_color = Color(1, 0.843, 0.4, 1)
+theme_override_font_sizes/font_size = 48
+
+[node name="LobsterWord" type="Label" parent="HBoxContainer/LeftPanel"]
+layout_mode = 2
+text = "lobsters"
+horizontal_alignment = 1
+theme_override_colors/font_color = Color(0.753, 0.882, 0.933, 1)
+theme_override_font_sizes/font_size = 18
+
+[node name="LpsLabel" type="Label" parent="HBoxContainer/LeftPanel"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "0 lobsters/sec"
+horizontal_alignment = 1
+theme_override_colors/font_color = Color(0.5, 0.7, 0.8, 1)
+theme_override_font_sizes/font_size = 16
+
+[node name="Spacer2" type="Control" parent="HBoxContainer/LeftPanel"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 20)
+
+[node name="ClawCenter" type="CenterContainer" parent="HBoxContainer/LeftPanel"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 250)
+
+[node name="ClawButton" type="Button" parent="HBoxContainer/LeftPanel/ClawCenter"]
+unique_name_in_owner = true
+layout_mode = 2
+custom_minimum_size = Vector2(200, 240)
+flat = true
+theme_override_styles/normal = null
+
+[node name="ClawPivot" type="Node2D" parent="HBoxContainer/LeftPanel/ClawCenter/ClawButton"]
+position = Vector2(100, 120)
+
+[node name="ClawTop" type="Polygon2D" parent="HBoxContainer/LeftPanel/ClawCenter/ClawButton/ClawPivot"]
+unique_name_in_owner = true
+position = Vector2(0, -5)
+polygon = PackedVector2Array(-15, 0, -40, -80, -25, -100, 0, -95, 15, -100, 30, -80, 15, -60, 10, -40, 5, 0)
+color = Color(0.753, 0.224, 0.169, 1)
+
+[node name="ClawBottom" type="Polygon2D" parent="HBoxContainer/LeftPanel/ClawCenter/ClawButton/ClawPivot"]
+unique_name_in_owner = true
+position = Vector2(0, 5)
+polygon = PackedVector2Array(-15, 0, -40, 80, -25, 100, 0, 95, 15, 100, 30, 80, 15, 60, 10, 40, 5, 0)
+color = Color(0.851, 0.294, 0.224, 1)
+
+[node name="ClawArm" type="Polygon2D" parent="HBoxContainer/LeftPanel/ClawCenter/ClawButton/ClawPivot"]
+polygon = PackedVector2Array(-12, -5, -12, 5, -20, 60, -15, 80, 15, 80, 20, 60, 12, 5, 12, -5)
+color = Color(0.651, 0.173, 0.125, 1)
+
+[node name="ClickParticles" type="CPUParticles2D" parent="HBoxContainer/LeftPanel/ClawCenter/ClawButton/ClawPivot"]
+unique_name_in_owner = true
+emitting = false
+amount = 12
+lifetime = 0.6
+one_shot = true
+explosiveness = 1.0
+spread = 180.0
+gravity = Vector2(0, 40)
+initial_velocity_min = 60.0
+initial_velocity_max = 120.0
+scale_amount_min = 3.0
+scale_amount_max = 6.0
+color = Color(0.4, 0.8, 1, 0.8)
+
+[node name="FloatTextContainer" type="Node2D" parent="HBoxContainer/LeftPanel/ClawCenter/ClawButton/ClawPivot"]
+unique_name_in_owner = true
+position = Vector2(0, -60)
+
+[node name="Spacer3" type="Control" parent="HBoxContainer/LeftPanel"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 20)
+
+[node name="ClickHint" type="Label" parent="HBoxContainer/LeftPanel"]
+layout_mode = 2
+text = "Click the claw!"
+horizontal_alignment = 1
+theme_override_colors/font_color = Color(0.4, 0.5, 0.6, 1)
+theme_override_font_sizes/font_size = 14
+
+[node name="RightPanel" type="PanelContainer" parent="HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_stretch_ratio = 2.0
+theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
+
+[node name="VBox" type="VBoxContainer" parent="HBoxContainer/RightPanel"]
+layout_mode = 2
+
+[node name="ShopTitle" type="Label" parent="HBoxContainer/RightPanel/VBox"]
+layout_mode = 2
+text = "UPGRADES"
+horizontal_alignment = 1
+theme_override_colors/font_color = Color(1, 0.843, 0.4, 1)
+theme_override_font_sizes/font_size = 22
+
+[node name="Separator" type="HSeparator" parent="HBoxContainer/RightPanel/VBox"]
+layout_mode = 2
+theme_override_colors/separator_color = Color(0.1, 0.29, 0.37, 1)
+
+[node name="ScrollContainer" type="ScrollContainer" parent="HBoxContainer/RightPanel/VBox"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="UpgradeContainer" type="VBoxContainer" parent="HBoxContainer/RightPanel/VBox/ScrollContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 6
+
+[node name="OfflinePopup" type="PanelContainer" parent="."]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -180.0
+offset_top = -80.0
+offset_right = 180.0
+offset_bottom = 80.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
+
+[node name="VBox" type="VBoxContainer" parent="OfflinePopup"]
+layout_mode = 2
+alignment = 1
+
+[node name="OfflineLabel" type="Label" parent="OfflinePopup/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Welcome back!"
+horizontal_alignment = 1
+theme_override_colors/font_color = Color(1, 0.843, 0.4, 1)
+theme_override_font_sizes/font_size = 16
+
+[node name="OfflineOkButton" type="Button" parent="OfflinePopup/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+custom_minimum_size = Vector2(100, 35)
+size_flags_horizontal = 4
+text = "Nice!"
+theme_override_font_sizes/font_size = 16

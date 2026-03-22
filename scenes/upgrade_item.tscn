@@ -1,0 +1,52 @@
+[gd_scene load_steps=2 format=3 uid="uid://cqr8g5k7e2abc"]
+
+[ext_resource type="Script" path="res://scenes/upgrade_item.gd" id="1_script"]
+
+[node name="UpgradeItem" type="PanelContainer"]
+custom_minimum_size = Vector2(280, 80)
+size_flags_horizontal = 3
+script = ExtResource("1_script")
+
+[node name="HBox" type="HBoxContainer" parent="."]
+offset_right = 280.0
+offset_bottom = 80.0
+
+[node name="Info" type="VBoxContainer" parent="HBox"]
+size_flags_horizontal = 3
+size_flags_stretch_ratio = 3.0
+
+[node name="NameLabel" type="Label" parent="HBox/Info"]
+unique_name_in_owner = true
+text = "Upgrade Name"
+theme_override_colors/font_color = Color(0.753, 0.882, 0.933, 1)
+theme_override_font_sizes/font_size = 16
+
+[node name="CostLabel" type="Label" parent="HBox/Info"]
+unique_name_in_owner = true
+text = "Cost: 0"
+theme_override_colors/font_color = Color(0.6, 0.8, 0.6, 1)
+theme_override_font_sizes/font_size = 13
+
+[node name="LpsLabel" type="Label" parent="HBox/Info"]
+unique_name_in_owner = true
+text = "+0/sec"
+theme_override_colors/font_color = Color(0.7, 0.7, 0.7, 1)
+theme_override_font_sizes/font_size = 12
+
+[node name="Right" type="VBoxContainer" parent="HBox"]
+size_flags_horizontal = 3
+size_flags_stretch_ratio = 1.0
+alignment = 1
+
+[node name="CountLabel" type="Label" parent="HBox/Right"]
+unique_name_in_owner = true
+horizontal_alignment = 2
+text = "Owned: 0"
+theme_override_colors/font_color = Color(0.9, 0.9, 0.9, 1)
+theme_override_font_sizes/font_size = 13
+
+[node name="BuyButton" type="Button" parent="HBox/Right"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(70, 30)
+text = "BUY"
+theme_override_font_sizes/font_size = 14

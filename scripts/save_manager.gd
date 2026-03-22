@@ -6,13 +6,32 @@ const SAVE_INTERVAL := 30.0
 var save_timer: float = 0.0
 var offline_earnings: float = 0.0
 
+# Must keep references to prevent GC of JS callbacks
+var _beforeunload_cb: JavaScriptObject
+var _visibility_cb: JavaScriptObject
+
 func _ready() -> void:
 	load_game()
+	if OS.has_feature("web"):
+		_beforeunload_cb = JavaScriptBridge.create_callback(_on_browser_beforeunload)
+		_visibility_cb = JavaScriptBridge.create_callback(_on_browser_visibility_change)
+		var window := JavaScriptBridge.get_interface("window")
+		window.addEventListener("beforeunload", _beforeunload_cb)
+		var document := JavaScriptBridge.get_interface("document")
+		document.addEventListener("visibilitychange", _visibility_cb)
 
 func _process(delta: float) -> void:
 	save_timer += delta
 	if save_timer >= SAVE_INTERVAL:
 		save_timer = 0.0
+		save_game()
+
+func _on_browser_beforeunload(_args: Array) -> void:
+	save_game()
+
+func _on_browser_visibility_change(_args: Array) -> void:
+	var hidden = JavaScriptBridge.eval("document.visibilityState === 'hidden';")
+	if hidden:
 		save_game()
 
 func save_game() -> void:
@@ -59,4 +78,6 @@ func load_game() -> void:
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_CLOSE_REQUEST or what == NOTIFICATION_WM_GO_BACK_REQUEST:
+		save_game()
+	if what == NOTIFICATION_APPLICATION_FOCUS_OUT:
 		save_game()

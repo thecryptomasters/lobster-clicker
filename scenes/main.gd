@@ -5,8 +5,8 @@ const UpgradeItemScene := preload("res://scenes/upgrade_item.tscn")
 @onready var lobster_count_label: Label = %LobsterCountLabel
 @onready var lps_label: Label = %LpsLabel
 @onready var claw_button: Button = %ClawButton
-@onready var claw_top: Polygon2D = %ClawTop
-@onready var claw_bottom: Polygon2D = %ClawBottom
+@onready var top_pincer_pivot: Node2D = %TopPincerPivot
+@onready var bottom_pincer_pivot: Node2D = %BottomPincerPivot
 @onready var upgrade_container: VBoxContainer = %UpgradeContainer
 @onready var particles: CPUParticles2D = %ClickParticles
 @onready var float_text_container: Node2D = %FloatTextContainer
@@ -60,18 +60,21 @@ func _animate_claw() -> void:
 	if claw_tween:
 		claw_tween.kill()
 
-	# Snap shut
+	# Resting open angle: ~13 degrees each side (≈0.227 rad set in scene)
+	var open_angle := 13.0
+
+	# Snap shut (fast) + scale squeeze
 	claw_tween = create_tween()
 	claw_tween.set_parallel(true)
-	claw_top.rotation_degrees = 0
-	claw_bottom.rotation_degrees = 0
-	claw_tween.tween_property(claw_top, "rotation_degrees", -20.0, 0.07)
-	claw_tween.tween_property(claw_bottom, "rotation_degrees", 20.0, 0.07)
+	claw_tween.tween_property(top_pincer_pivot, "rotation_degrees", 0.0, 0.08)
+	claw_tween.tween_property(bottom_pincer_pivot, "rotation_degrees", 0.0, 0.08)
+	claw_tween.tween_property(claw_button, "scale", Vector2(0.95, 0.95), 0.08)
 
-	# Snap open
+	# Open back (slower, ease out) + scale restore
 	claw_tween.chain().set_parallel(true)
-	claw_tween.tween_property(claw_top, "rotation_degrees", 0.0, 0.08).set_ease(Tween.EASE_OUT)
-	claw_tween.tween_property(claw_bottom, "rotation_degrees", 0.0, 0.08).set_ease(Tween.EASE_OUT)
+	claw_tween.tween_property(top_pincer_pivot, "rotation_degrees", -open_angle, 0.25).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
+	claw_tween.tween_property(bottom_pincer_pivot, "rotation_degrees", open_angle, 0.25).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
+	claw_tween.tween_property(claw_button, "scale", Vector2(1.0, 1.0), 0.25).set_ease(Tween.EASE_OUT)
 
 func _spawn_float_text(amount: float) -> void:
 	var label := Label.new()

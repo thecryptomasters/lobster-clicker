@@ -88,33 +88,66 @@ custom_minimum_size = Vector2(0, 20)
 
 [node name="ClawCenter" type="CenterContainer" parent="HBoxContainer/LeftPanel"]
 layout_mode = 2
-custom_minimum_size = Vector2(0, 250)
+custom_minimum_size = Vector2(0, 310)
 
 [node name="ClawButton" type="Button" parent="HBoxContainer/LeftPanel/ClawCenter"]
 unique_name_in_owner = true
 layout_mode = 2
-custom_minimum_size = Vector2(200, 240)
+custom_minimum_size = Vector2(220, 300)
+pivot_offset = Vector2(110, 150)
 flat = true
 theme_override_styles/normal = null
 
 [node name="ClawPivot" type="Node2D" parent="HBoxContainer/LeftPanel/ClawCenter/ClawButton"]
-position = Vector2(100, 120)
-
-[node name="ClawTop" type="Polygon2D" parent="HBoxContainer/LeftPanel/ClawCenter/ClawButton/ClawPivot"]
-unique_name_in_owner = true
-position = Vector2(0, -5)
-polygon = PackedVector2Array(-15, 0, -40, -80, -25, -100, 0, -95, 15, -100, 30, -80, 15, -60, 10, -40, 5, 0)
-color = Color(0.753, 0.224, 0.169, 1)
-
-[node name="ClawBottom" type="Polygon2D" parent="HBoxContainer/LeftPanel/ClawCenter/ClawButton/ClawPivot"]
-unique_name_in_owner = true
-position = Vector2(0, 5)
-polygon = PackedVector2Array(-15, 0, -40, 80, -25, 100, 0, 95, 15, 100, 30, 80, 15, 60, 10, 40, 5, 0)
-color = Color(0.851, 0.294, 0.224, 1)
+position = Vector2(110, 150)
 
 [node name="ClawArm" type="Polygon2D" parent="HBoxContainer/LeftPanel/ClawCenter/ClawButton/ClawPivot"]
-polygon = PackedVector2Array(-12, -5, -12, 5, -20, 60, -15, 80, 15, 80, 20, 60, 12, 5, 12, -5)
-color = Color(0.651, 0.173, 0.125, 1)
+polygon = PackedVector2Array(-22, 10, -26, 40, -30, 70, -28, 100, -22, 120, 22, 120, 28, 100, 30, 70, 26, 40, 22, 10)
+color = Color(0.545, 0.102, 0.102, 1)
+
+[node name="ClawArmHighlight" type="Polygon2D" parent="HBoxContainer/LeftPanel/ClawCenter/ClawButton/ClawPivot"]
+polygon = PackedVector2Array(-14, 15, -18, 40, -20, 70, -18, 95, -14, 110, 6, 110, 10, 95, 12, 70, 10, 40, 6, 15)
+color = Color(0.753, 0.224, 0.169, 1)
+
+[node name="ClawJoint" type="Polygon2D" parent="HBoxContainer/LeftPanel/ClawCenter/ClawButton/ClawPivot"]
+polygon = PackedVector2Array(-30, -5, -32, 5, -28, 18, -18, 22, 18, 22, 28, 18, 32, 5, 30, -5)
+color = Color(0.545, 0.102, 0.102, 1)
+
+[node name="TopPincerPivot" type="Node2D" parent="HBoxContainer/LeftPanel/ClawCenter/ClawButton/ClawPivot"]
+unique_name_in_owner = true
+rotation = -0.227
+position = Vector2(0, 0)
+
+[node name="ClawTop" type="Polygon2D" parent="HBoxContainer/LeftPanel/ClawCenter/ClawButton/ClawPivot/TopPincerPivot"]
+unique_name_in_owner = true
+polygon = PackedVector2Array(18, 0, 20, -10, 22, -25, 20, -45, 16, -65, 10, -85, 6, -100, 2, -112, -2, -118, -6, -112, -8, -100, -6, -90, -2, -80, -6, -72, -10, -65, -6, -55, -2, -48, -6, -40, -10, -30, -8, -18, -10, -8, -18, 0)
+color = Color(0.753, 0.224, 0.169, 1)
+
+[node name="ClawTopShadow" type="Polygon2D" parent="HBoxContainer/LeftPanel/ClawCenter/ClawButton/ClawPivot/TopPincerPivot"]
+polygon = PackedVector2Array(-18, 0, -14, -8, -14, -18, -14, -30, -12, -40, -8, -55, -6, -65, -4, -80, -2, -90, -6, -100, -8, -105, -12, -100, -14, -85, -16, -65, -18, -45, -20, -25, -20, -10, -18, 0)
+color = Color(0.545, 0.102, 0.102, 1)
+
+[node name="ClawTopHighlight" type="Polygon2D" parent="HBoxContainer/LeftPanel/ClawCenter/ClawButton/ClawPivot/TopPincerPivot"]
+polygon = PackedVector2Array(10, -2, 14, -12, 16, -25, 14, -45, 10, -65, 6, -85, 2, -100, -2, -108, -4, -100, -2, -85, 2, -65, 6, -45, 8, -25, 8, -12, 10, -2)
+color = Color(0.906, 0.298, 0.235, 1)
+
+[node name="BottomPincerPivot" type="Node2D" parent="HBoxContainer/LeftPanel/ClawCenter/ClawButton/ClawPivot"]
+unique_name_in_owner = true
+rotation = 0.227
+position = Vector2(0, 0)
+
+[node name="ClawBottom" type="Polygon2D" parent="HBoxContainer/LeftPanel/ClawCenter/ClawButton/ClawPivot/BottomPincerPivot"]
+unique_name_in_owner = true
+polygon = PackedVector2Array(18, 0, 20, 10, 22, 25, 20, 45, 16, 65, 10, 85, 6, 100, 2, 112, -2, 118, -6, 112, -8, 100, -6, 90, -2, 80, -6, 72, -10, 65, -6, 55, -2, 48, -6, 40, -10, 30, -8, 18, -10, 8, -18, 0)
+color = Color(0.753, 0.224, 0.169, 1)
+
+[node name="ClawBottomShadow" type="Polygon2D" parent="HBoxContainer/LeftPanel/ClawCenter/ClawButton/ClawPivot/BottomPincerPivot"]
+polygon = PackedVector2Array(-18, 0, -14, 8, -14, 18, -14, 30, -12, 40, -8, 55, -6, 65, -4, 80, -2, 90, -6, 100, -8, 105, -12, 100, -14, 85, -16, 65, -18, 45, -20, 25, -20, 10, -18, 0)
+color = Color(0.545, 0.102, 0.102, 1)
+
+[node name="ClawBottomHighlight" type="Polygon2D" parent="HBoxContainer/LeftPanel/ClawCenter/ClawButton/ClawPivot/BottomPincerPivot"]
+polygon = PackedVector2Array(10, 2, 14, 12, 16, 25, 14, 45, 10, 65, 6, 85, 2, 100, -2, 108, -4, 100, -2, 85, 2, 65, 6, 45, 8, 25, 8, 12, 10, 2)
+color = Color(0.906, 0.298, 0.235, 1)
 
 [node name="ClickParticles" type="CPUParticles2D" parent="HBoxContainer/LeftPanel/ClawCenter/ClawButton/ClawPivot"]
 unique_name_in_owner = true

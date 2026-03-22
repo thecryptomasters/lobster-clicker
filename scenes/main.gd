@@ -67,21 +67,21 @@ func _animate_claw() -> void:
 	if claw_tween:
 		claw_tween.kill()
 
-	# Resting open angle: ~13 degrees each side (≈0.227 rad set in scene)
-	var open_angle := 13.0
+	# Resting open angle: ~30 degrees each side (≈0.52 rad set in scene)
+	var open_angle := 30.0
 
-	# Snap shut (fast) + scale squeeze
+	# Snap shut (fast) + scale squeeze — pincers cross slightly past center for a satisfying crunch
 	claw_tween = create_tween()
 	claw_tween.set_parallel(true)
-	claw_tween.tween_property(top_pincer_pivot, "rotation_degrees", 0.0, 0.08)
-	claw_tween.tween_property(bottom_pincer_pivot, "rotation_degrees", 0.0, 0.08)
-	claw_tween.tween_property(claw_button, "scale", Vector2(0.95, 0.95), 0.08)
+	claw_tween.tween_property(top_pincer_pivot, "rotation_degrees", 5.0, 0.1)
+	claw_tween.tween_property(bottom_pincer_pivot, "rotation_degrees", -5.0, 0.1)
+	claw_tween.tween_property(claw_button, "scale", Vector2(0.95, 0.95), 0.1)
 
 	# Open back (slower, ease out) + scale restore
 	claw_tween.chain().set_parallel(true)
-	claw_tween.tween_property(top_pincer_pivot, "rotation_degrees", -open_angle, 0.25).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
-	claw_tween.tween_property(bottom_pincer_pivot, "rotation_degrees", open_angle, 0.25).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
-	claw_tween.tween_property(claw_button, "scale", Vector2(1.0, 1.0), 0.25).set_ease(Tween.EASE_OUT)
+	claw_tween.tween_property(top_pincer_pivot, "rotation_degrees", -open_angle, 0.35).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
+	claw_tween.tween_property(bottom_pincer_pivot, "rotation_degrees", open_angle, 0.35).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
+	claw_tween.tween_property(claw_button, "scale", Vector2(1.0, 1.0), 0.35).set_ease(Tween.EASE_OUT)
 
 func _spawn_float_text(amount: float) -> void:
 	var label := Label.new()

@@ -3,7 +3,7 @@
 [ext_resource type="Script" path="res://scenes/upgrade_item.gd" id="1_script"]
 
 [node name="UpgradeItem" type="PanelContainer"]
-custom_minimum_size = Vector2(280, 80)
+custom_minimum_size = Vector2(280, 100)
 size_flags_horizontal = 3
 script = ExtResource("1_script")
 
@@ -19,19 +19,19 @@ size_flags_stretch_ratio = 3.0
 unique_name_in_owner = true
 text = "Upgrade Name"
 theme_override_colors/font_color = Color(0.753, 0.882, 0.933, 1)
-theme_override_font_sizes/font_size = 16
+theme_override_font_sizes/font_size = 20
 
 [node name="CostLabel" type="Label" parent="HBox/Info"]
 unique_name_in_owner = true
 text = "Cost: 0"
 theme_override_colors/font_color = Color(0.6, 0.8, 0.6, 1)
-theme_override_font_sizes/font_size = 13
+theme_override_font_sizes/font_size = 16
 
 [node name="LpsLabel" type="Label" parent="HBox/Info"]
 unique_name_in_owner = true
 text = "+0/sec"
 theme_override_colors/font_color = Color(0.7, 0.7, 0.7, 1)
-theme_override_font_sizes/font_size = 12
+theme_override_font_sizes/font_size = 15
 
 [node name="Right" type="VBoxContainer" parent="HBox"]
 size_flags_horizontal = 3
@@ -43,10 +43,10 @@ unique_name_in_owner = true
 horizontal_alignment = 2
 text = "Owned: 0"
 theme_override_colors/font_color = Color(0.9, 0.9, 0.9, 1)
-theme_override_font_sizes/font_size = 13
+theme_override_font_sizes/font_size = 16
 
 [node name="BuyButton" type="Button" parent="HBox/Right"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(70, 30)
+custom_minimum_size = Vector2(90, 50)
 text = "BUY"
-theme_override_font_sizes/font_size = 14
+theme_override_font_sizes/font_size = 18

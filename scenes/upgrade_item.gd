@@ -8,10 +8,37 @@ var upgrade_index: int = 0
 @onready var lps_label: Label = %LpsLabel
 @onready var buy_button: Button = %BuyButton
 
+var _affordable_style: StyleBoxFlat
+var _unaffordable_style: StyleBoxFlat
+
 func _ready() -> void:
 	buy_button.pressed.connect(_on_buy)
 	GameManager.lobsters_changed.connect(_on_lobsters_changed)
 	GameManager.upgrade_purchased.connect(_on_upgrade_purchased)
+
+	# Create styled backgrounds for the BUY button
+	_affordable_style = StyleBoxFlat.new()
+	_affordable_style.bg_color = Color("#2d6b4f")
+	_affordable_style.corner_radius_top_left = 6
+	_affordable_style.corner_radius_top_right = 6
+	_affordable_style.corner_radius_bottom_left = 6
+	_affordable_style.corner_radius_bottom_right = 6
+	_affordable_style.content_margin_left = 8.0
+	_affordable_style.content_margin_right = 8.0
+	_affordable_style.content_margin_top = 4.0
+	_affordable_style.content_margin_bottom = 4.0
+
+	_unaffordable_style = StyleBoxFlat.new()
+	_unaffordable_style.bg_color = Color("#333333")
+	_unaffordable_style.corner_radius_top_left = 6
+	_unaffordable_style.corner_radius_top_right = 6
+	_unaffordable_style.corner_radius_bottom_left = 6
+	_unaffordable_style.corner_radius_bottom_right = 6
+	_unaffordable_style.content_margin_left = 8.0
+	_unaffordable_style.content_margin_right = 8.0
+	_unaffordable_style.content_margin_top = 4.0
+	_unaffordable_style.content_margin_bottom = 4.0
+
 	_refresh()
 
 func setup(index: int) -> void:
@@ -26,24 +53,29 @@ func _refresh() -> void:
 	cost_label.text = "Cost: %s" % GameManager.format_number(cost)
 	count_label.text = "Owned: %d" % GameManager.upgrade_counts[upgrade_index]
 	lps_label.text = "+%s/sec" % str(def["lps"])
-	buy_button.disabled = not GameManager.can_afford_upgrade(upgrade_index)
+	_update_buy_button_style()
 
-	# Visual feedback for affordability
-	if GameManager.can_afford_upgrade(upgrade_index):
+func _update_buy_button_style() -> void:
+	var affordable := GameManager.can_afford_upgrade(upgrade_index)
+	buy_button.disabled = not affordable
+	if affordable:
 		buy_button.modulate = Color(1, 1, 1, 1)
+		buy_button.add_theme_stylebox_override("normal", _affordable_style)
+		buy_button.add_theme_stylebox_override("hover", _affordable_style)
+		buy_button.add_theme_stylebox_override("pressed", _affordable_style)
 	else:
-		buy_button.modulate = Color(0.6, 0.6, 0.6, 1)
+		buy_button.modulate = Color(0.7, 0.7, 0.7, 1)
+		buy_button.add_theme_stylebox_override("normal", _unaffordable_style)
+		buy_button.add_theme_stylebox_override("hover", _unaffordable_style)
+		buy_button.add_theme_stylebox_override("pressed", _unaffordable_style)
+		buy_button.add_theme_stylebox_override("disabled", _unaffordable_style)
 
 func _on_buy() -> void:
 	GameManager.buy_upgrade(upgrade_index)
 
 func _on_lobsters_changed(_total: float) -> void:
 	if is_node_ready():
-		buy_button.disabled = not GameManager.can_afford_upgrade(upgrade_index)
-		if GameManager.can_afford_upgrade(upgrade_index):
-			buy_button.modulate = Color(1, 1, 1, 1)
-		else:
-			buy_button.modulate = Color(0.6, 0.6, 0.6, 1)
+		_update_buy_button_style()
 		cost_label.text = "Cost: %s" % GameManager.format_number(GameManager.get_upgrade_cost(upgrade_index))
 
 func _on_upgrade_purchased(index: int) -> void:

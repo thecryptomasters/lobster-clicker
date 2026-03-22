@@ -17,6 +17,11 @@ const UpgradeItemScene := preload("res://scenes/upgrade_item.tscn")
 var claw_tween: Tween
 var is_claw_animating := false
 
+# Resting open angle in radians (~30 degrees)
+const OPEN_ANGLE := 0.52
+# Snap shut angle in radians (~5 degrees)
+const SHUT_ANGLE := 0.087
+
 func _ready() -> void:
 	GameManager.lobsters_changed.connect(_on_lobsters_changed)
 	GameManager.lps_changed.connect(_on_lps_changed)
@@ -27,6 +32,12 @@ func _ready() -> void:
 	for child in claw_button.get_child(0).get_children():
 		if child is Control:
 			child.mouse_filter = Control.MOUSE_FILTER_IGNORE
+
+	# Verify pincer pivots are found and set initial rotation
+	if top_pincer_pivot:
+		top_pincer_pivot.rotation = -OPEN_ANGLE
+	if bottom_pincer_pivot:
+		bottom_pincer_pivot.rotation = OPEN_ANGLE
 
 	# Populate upgrades
 	for i in range(GameManager.upgrade_defs.size()):
@@ -55,32 +66,46 @@ func _on_lps_changed(lps: float) -> void:
 		lps_label.text = "%s lobsters/sec" % GameManager.format_number(lps)
 
 func _on_claw_gui_input(event: InputEvent) -> void:
+	# Handle mouse clicks
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 		claw_button.accept_event()
-		var amount := GameManager.click()
-		_animate_claw()
-		_spawn_float_text(amount)
-		particles.restart()
-		particles.emitting = true
+		_do_click()
+		return
+	# Handle touch input (mobile/web)
+	if event is InputEventScreenTouch and event.pressed:
+		claw_button.accept_event()
+		_do_click()
+		return
+
+func _unhandled_input(event: InputEvent) -> void:
+	# Fallback: catch touch events that might not reach gui_input on some platforms
+	if event is InputEventScreenTouch and event.pressed:
+		if claw_button and claw_button.get_global_rect().has_point(event.position):
+			get_viewport().set_input_as_handled()
+			_do_click()
+
+func _do_click() -> void:
+	var amount := GameManager.click()
+	_animate_claw()
+	_spawn_float_text(amount)
+	particles.restart()
+	particles.emitting = true
 
 func _animate_claw() -> void:
 	if claw_tween:
 		claw_tween.kill()
 
-	# Resting open angle: ~30 degrees each side (≈0.52 rad set in scene)
-	var open_angle := 30.0
-
-	# Snap shut (fast) + scale squeeze — pincers cross slightly past center for a satisfying crunch
+	# Snap shut (fast) + scale squeeze — use rotation (radians) directly
 	claw_tween = create_tween()
 	claw_tween.set_parallel(true)
-	claw_tween.tween_property(top_pincer_pivot, "rotation_degrees", 5.0, 0.1)
-	claw_tween.tween_property(bottom_pincer_pivot, "rotation_degrees", -5.0, 0.1)
+	claw_tween.tween_property(top_pincer_pivot, "rotation", SHUT_ANGLE, 0.1)
+	claw_tween.tween_property(bottom_pincer_pivot, "rotation", -SHUT_ANGLE, 0.1)
 	claw_tween.tween_property(claw_button, "scale", Vector2(0.95, 0.95), 0.1)
 
 	# Open back (slower, ease out) + scale restore
 	claw_tween.chain().set_parallel(true)
-	claw_tween.tween_property(top_pincer_pivot, "rotation_degrees", -open_angle, 0.35).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
-	claw_tween.tween_property(bottom_pincer_pivot, "rotation_degrees", open_angle, 0.35).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
+	claw_tween.tween_property(top_pincer_pivot, "rotation", -OPEN_ANGLE, 0.35).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
+	claw_tween.tween_property(bottom_pincer_pivot, "rotation", OPEN_ANGLE, 0.35).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
 	claw_tween.tween_property(claw_button, "scale", Vector2(1.0, 1.0), 0.35).set_ease(Tween.EASE_OUT)
 
 func _spawn_float_text(amount: float) -> void:

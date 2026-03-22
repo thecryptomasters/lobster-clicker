@@ -20,8 +20,13 @@ var is_claw_animating := false
 func _ready() -> void:
 	GameManager.lobsters_changed.connect(_on_lobsters_changed)
 	GameManager.lps_changed.connect(_on_lps_changed)
-	claw_button.pressed.connect(_on_claw_clicked)
+	claw_button.gui_input.connect(_on_claw_gui_input)
 	offline_ok_button.pressed.connect(_on_offline_ok)
+
+	# Ensure children inside the button don't intercept mouse events (web export fix)
+	for child in claw_button.get_child(0).get_children():
+		if child is Control:
+			child.mouse_filter = Control.MOUSE_FILTER_IGNORE
 
 	# Populate upgrades
 	for i in range(GameManager.upgrade_defs.size()):
@@ -49,12 +54,14 @@ func _on_lps_changed(lps: float) -> void:
 	else:
 		lps_label.text = "%s lobsters/sec" % GameManager.format_number(lps)
 
-func _on_claw_clicked() -> void:
-	var amount := GameManager.click()
-	_animate_claw()
-	_spawn_float_text(amount)
-	particles.restart()
-	particles.emitting = true
+func _on_claw_gui_input(event: InputEvent) -> void:
+	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+		claw_button.accept_event()
+		var amount := GameManager.click()
+		_animate_claw()
+		_spawn_float_text(amount)
+		particles.restart()
+		particles.emitting = true
 
 func _animate_claw() -> void:
 	if claw_tween:

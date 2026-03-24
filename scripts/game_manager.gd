@@ -48,6 +48,54 @@ var cps_click_upgrade_defs: Array = [
 ]
 var cps_click_upgrades_purchased: Array[bool] = [false, false, false]
 
+# Hold-to-click: unlocks continuous clicking while holding, with speed upgrades
+# Base rate = 3 clicks/sec, each speed upgrade increases it
+var hold_click_defs: Array = [
+	{"threshold": 5000, "cost": 2500, "name": "Steady Grip", "desc": "Hold to auto-click! (3 clicks/sec). 5,000 lifetime lobsters.", "cps": 3.0},
+	{"threshold": 25000, "cost": 12000, "name": "Rapid Grip", "desc": "Hold auto-click speed: 6/sec. 25,000 lifetime lobsters.", "cps": 6.0},
+	{"threshold": 150000, "cost": 75000, "name": "Turbo Grip", "desc": "Hold auto-click speed: 10/sec. 150,000 lifetime lobsters.", "cps": 10.0},
+	{"threshold": 750000, "cost": 400000, "name": "Machine Grip", "desc": "Hold auto-click speed: 16/sec. 750,000 lifetime lobsters.", "cps": 16.0},
+]
+var hold_click_purchased: Array[bool] = [false, false, false, false]
+
+func is_hold_click_unlocked() -> bool:
+	return hold_click_purchased[0]
+
+func get_hold_click_rate() -> float:
+	# Return the highest unlocked rate
+	var rate := 0.0
+	for i in range(hold_click_defs.size()):
+		if hold_click_purchased[i]:
+			rate = hold_click_defs[i]["cps"]
+	return rate
+
+func get_available_hold_click_upgrades() -> Array:
+	var result: Array = []
+	for i in range(hold_click_defs.size()):
+		if lifetime_lobsters >= hold_click_defs[i]["threshold"]:
+			result.append({
+				"index": i,
+				"name": hold_click_defs[i]["name"],
+				"desc": hold_click_defs[i]["desc"],
+				"cost": hold_click_defs[i]["cost"],
+				"purchased": hold_click_purchased[i],
+			})
+	return result
+
+func can_afford_hold_click_upgrade(index: int) -> bool:
+	return total_lobsters >= hold_click_defs[index]["cost"]
+
+func buy_hold_click_upgrade(index: int) -> bool:
+	if hold_click_purchased[index]:
+		return false
+	var cost: float = hold_click_defs[index]["cost"]
+	if total_lobsters < cost:
+		return false
+	total_lobsters -= cost
+	hold_click_purchased[index] = true
+	lobsters_changed.emit(total_lobsters)
+	return true
+
 func _ready() -> void:
 	building_counts.resize(building_defs.size())
 	building_counts.fill(0)
@@ -256,6 +304,7 @@ func get_save_data() -> Dictionary:
 		"building_upgrades": upgrades_data,
 		"click_upgrades": click_data,
 		"cps_click_upgrades": cps_click_data,
+		"hold_click_upgrades": Array(hold_click_purchased),
 		"farm_name": farm_name,
 		"last_save_time": Time.get_unix_time_from_system(),
 	}
@@ -282,6 +331,9 @@ func load_save_data(data: Dictionary) -> void:
 	var cps_click_data = data.get("cps_click_upgrades", [])
 	for i in range(mini(cps_click_data.size(), cps_click_upgrades_purchased.size())):
 		cps_click_upgrades_purchased[i] = cps_click_data[i]
+	var hold_data = data.get("hold_click_upgrades", [])
+	for i in range(mini(hold_data.size(), hold_click_purchased.size())):
+		hold_click_purchased[i] = hold_data[i]
 	farm_name = data.get("farm_name", "My Lobster Farm")
 	_recalculate_lps()
 	_recalculate_click_power()

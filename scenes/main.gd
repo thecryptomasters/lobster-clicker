@@ -89,6 +89,16 @@ func _ready() -> void:
 		offline_popup.visible = false
 
 func _process(delta: float) -> void:
+	# Hold-to-click: auto-fire clicks while holding
+	if _is_holding and GameManager.is_hold_click_unlocked():
+		_hold_timer += delta
+		if _hold_timer > 0.3:  # 300ms grace period before auto-click starts
+			var rate := GameManager.get_hold_click_rate()
+			_hold_click_accumulator += delta * rate
+			while _hold_click_accumulator >= 1.0:
+				_hold_click_accumulator -= 1.0
+				_do_click()
+
 	# Check for new click upgrades (throttle)
 	if Engine.get_process_frames() % 60 == 0:
 		_check_click_upgrades()
@@ -185,28 +195,51 @@ func _on_lps_changed(lps: float) -> void:
 		lps_label.text = "%s lobsters/sec" % GameManager.format_number(lps)
 
 var _click_debounce: float = 0.0
-const CLICK_DEBOUNCE_TIME := 0.05  # 50ms debounce to prevent double-fire
+const CLICK_DEBOUNCE_TIME := 0.05
+
+# Hold-to-click state
+var _is_holding: bool = false
+var _hold_timer: float = 0.0
+var _hold_click_accumulator: float = 0.0
 
 func _on_claw_gui_input(event: InputEvent) -> void:
-	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
-		claw_button.accept_event()
-		_try_click()
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
+		if event.pressed:
+			claw_button.accept_event()
+			_try_click()
+			_is_holding = true
+			_hold_timer = 0.0
+			_hold_click_accumulator = 0.0
+		else:
+			_is_holding = false
 		return
-	if event is InputEventScreenTouch and event.pressed:
-		claw_button.accept_event()
-		_try_click()
+	if event is InputEventScreenTouch:
+		if event.pressed:
+			claw_button.accept_event()
+			_try_click()
+			_is_holding = true
+			_hold_timer = 0.0
+			_hold_click_accumulator = 0.0
+		else:
+			_is_holding = false
 		return
 
 func _unhandled_input(event: InputEvent) -> void:
-	if event is InputEventScreenTouch and event.pressed:
-		if claw_button and claw_button.get_global_rect().has_point(event.position):
-			get_viewport().set_input_as_handled()
-			_try_click()
+	if event is InputEventScreenTouch:
+		if event.pressed:
+			if claw_button and claw_button.get_global_rect().has_point(event.position):
+				get_viewport().set_input_as_handled()
+				_try_click()
+				_is_holding = true
+				_hold_timer = 0.0
+				_hold_click_accumulator = 0.0
+		else:
+			_is_holding = false
 
 func _try_click() -> void:
 	var now := Time.get_ticks_msec() / 1000.0
 	if now - _click_debounce < CLICK_DEBOUNCE_TIME:
-		return  # Ignore duplicate within debounce window
+		return
 	_click_debounce = now
 	_do_click()
 
@@ -554,6 +587,12 @@ func _refresh_upgrades() -> void:
 			var item := BuildingUpgradeItemScene.instantiate()
 			upgrade_container.add_child(item)
 			item.setup_cps_click_upgrade(upg["index"], upg["purchased"])
+		# Hold-to-click upgrades
+		var hold_upgrades := GameManager.get_available_hold_click_upgrades()
+		for upg in hold_upgrades:
+			var item := BuildingUpgradeItemScene.instantiate()
+			upgrade_container.add_child(item)
+			item.setup_hold_click_upgrade(upg["index"], upg["purchased"])
 
 	# Building upgrades
 	var building_upgrades := GameManager.get_available_upgrades()

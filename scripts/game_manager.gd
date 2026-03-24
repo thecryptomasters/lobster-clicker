@@ -28,6 +28,7 @@ var building_counts: Array[int] = []
 const COST_MULTIPLIER: float = 1.15
 const UPGRADE_THRESHOLDS := [10, 25, 50, 100]
 const TIER_NAMES := ["I", "II", "III", "IV"]
+const TIER_MULTIPLIERS := [2, 3, 5, 10]  # Tier I=2x, II=3x, III=5x, IV=10x
 
 # Track which upgrades are purchased per building: building_upgrades[building_idx][tier] = bool
 var building_upgrades: Array = []
@@ -142,7 +143,7 @@ func get_building_multiplier(index: int) -> float:
 	if index < building_upgrades.size():
 		for tier in range(building_upgrades[index].size()):
 			if building_upgrades[index][tier]:
-				mult *= 2.0
+				mult *= TIER_MULTIPLIERS[tier]
 	return mult
 
 func get_click_value() -> float:
@@ -268,7 +269,7 @@ func get_available_upgrades() -> Array:
 					"cost": cost,
 					"purchased": purchased,
 					"name": "%s Tier %s" % [building_defs[bi]["name"], TIER_NAMES[tier]],
-					"desc": "Doubles %s production. (Requires %d %ss)" % [building_defs[bi]["name"], UPGRADE_THRESHOLDS[tier], building_defs[bi]["name"]],
+					"desc": "%dx %s production. (Requires %d %ss)" % [TIER_MULTIPLIERS[tier], building_defs[bi]["name"], UPGRADE_THRESHOLDS[tier], building_defs[bi]["name"]],
 				})
 	return result
 

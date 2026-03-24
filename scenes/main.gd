@@ -80,6 +80,10 @@ func _ready() -> void:
 		offline_popup.visible = false
 
 func _process(delta: float) -> void:
+	# Check for new click upgrades (throttle)
+	if Engine.get_process_frames() % 60 == 0:
+		_check_click_upgrades()
+
 	# Check for viewport resize (throttle to every 30 frames to avoid JS overhead)
 	if Engine.get_process_frames() % 30 == 0:
 		var real_width := _get_real_width()
@@ -170,21 +174,31 @@ func _on_lps_changed(lps: float) -> void:
 	else:
 		lps_label.text = "%s lobsters/sec" % GameManager.format_number(lps)
 
+var _click_debounce: float = 0.0
+const CLICK_DEBOUNCE_TIME := 0.05  # 50ms debounce to prevent double-fire
+
 func _on_claw_gui_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 		claw_button.accept_event()
-		_do_click()
+		_try_click()
 		return
 	if event is InputEventScreenTouch and event.pressed:
 		claw_button.accept_event()
-		_do_click()
+		_try_click()
 		return
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventScreenTouch and event.pressed:
 		if claw_button and claw_button.get_global_rect().has_point(event.position):
 			get_viewport().set_input_as_handled()
-			_do_click()
+			_try_click()
+
+func _try_click() -> void:
+	var now := Time.get_ticks_msec() / 1000.0
+	if now - _click_debounce < CLICK_DEBOUNCE_TIME:
+		return  # Ignore duplicate within debounce window
+	_click_debounce = now
+	_do_click()
 
 func _do_click() -> void:
 	var amount := GameManager.click()
@@ -247,21 +261,57 @@ func _on_building_purchased(_index: int) -> void:
 	if current_tab == Tab.UPGRADES:
 		_refresh_upgrades()
 
+# Periodically check if new click upgrades unlocked (every 60 frames)
+var _last_click_upgrade_count: int = 0
+func _check_click_upgrades() -> void:
+	var count := GameManager.get_available_click_upgrades().size()
+	if count > _last_click_upgrade_count:
+		_last_click_upgrade_count = count
+		_flash_active = true
+		_flash_timer = 0.0
+		if current_tab == Tab.UPGRADES:
+			_refresh_upgrades()
+
 func _refresh_upgrades() -> void:
 	for child in upgrade_container.get_children():
 		child.queue_free()
 
-	var available := GameManager.get_available_upgrades()
-	if available.is_empty():
+	var has_any := false
+
+	# Click upgrades first
+	var click_upgrades := GameManager.get_available_click_upgrades()
+	if not click_upgrades.is_empty():
+		has_any = true
+		var header := Label.new()
+		header.text = "🦞 CLICK POWER"
+		header.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		header.add_theme_color_override("font_color", Color("#ff6b6b"))
+		header.add_theme_font_size_override("font_size", 18)
+		upgrade_container.add_child(header)
+		for upg in click_upgrades:
+			var item := BuildingUpgradeItemScene.instantiate()
+			upgrade_container.add_child(item)
+			item.setup_click_upgrade(upg["index"], upg["purchased"])
+
+	# Building upgrades
+	var building_upgrades := GameManager.get_available_upgrades()
+	if not building_upgrades.is_empty():
+		has_any = true
+		var header := Label.new()
+		header.text = "🏗️ BUILDING UPGRADES"
+		header.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		header.add_theme_color_override("font_color", Color("#ffd766"))
+		header.add_theme_font_size_override("font_size", 18)
+		upgrade_container.add_child(header)
+		for upg in building_upgrades:
+			var item := BuildingUpgradeItemScene.instantiate()
+			upgrade_container.add_child(item)
+			item.setup(upg["building_index"], upg["tier"], upg["purchased"])
+
+	if not has_any:
 		var empty_label := Label.new()
 		empty_label.text = "No upgrades available yet.\nBuy more buildings to unlock!"
 		empty_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		empty_label.add_theme_color_override("font_color", Color("#667788"))
 		empty_label.add_theme_font_size_override("font_size", 18)
 		upgrade_container.add_child(empty_label)
-		return
-
-	for upg in available:
-		var item := BuildingUpgradeItemScene.instantiate()
-		upgrade_container.add_child(item)
-		item.setup(upg["building_index"], upg["tier"], upg["purchased"])

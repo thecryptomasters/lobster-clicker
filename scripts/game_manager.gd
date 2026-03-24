@@ -29,6 +29,16 @@ const TIER_NAMES := ["I", "II", "III", "IV"]
 # Track which upgrades are purchased per building: building_upgrades[building_idx][tier] = bool
 var building_upgrades: Array = []
 
+# Click upgrades: unlock at lifetime lobster thresholds, each doubles click power
+# {threshold, cost, name, desc}
+var click_upgrade_defs: Array = [
+	{"threshold": 10000, "cost": 5000, "name": "Iron Claws", "desc": "Doubles lobsters per click. (10,000 total lobsters)"},
+	{"threshold": 100000, "cost": 50000, "name": "Steel Claws", "desc": "Doubles lobsters per click. (100,000 total lobsters)"},
+	{"threshold": 1000000, "cost": 500000, "name": "Diamond Claws", "desc": "Doubles lobsters per click. (1,000,000 total lobsters)"},
+]
+var click_upgrades_purchased: Array[bool] = [false, false, false]
+var lifetime_lobsters: float = 0.0  # Total lobsters ever generated (never decreases)
+
 func _ready() -> void:
 	building_counts.resize(building_defs.size())
 	building_counts.fill(0)
@@ -52,13 +62,52 @@ func get_building_multiplier(index: int) -> float:
 
 func click() -> float:
 	total_lobsters += lobsters_per_click
+	lifetime_lobsters += lobsters_per_click
 	lobsters_changed.emit(total_lobsters)
 	return lobsters_per_click
 
 func _process(delta: float) -> void:
 	if lobsters_per_second > 0:
-		total_lobsters += lobsters_per_second * delta
+		var earned := lobsters_per_second * delta
+		total_lobsters += earned
+		lifetime_lobsters += earned
 		lobsters_changed.emit(total_lobsters)
+
+func _recalculate_click_power() -> void:
+	lobsters_per_click = 1.0
+	for i in range(click_upgrades_purchased.size()):
+		if click_upgrades_purchased[i]:
+			lobsters_per_click *= 2.0
+
+# --- Click Upgrades ---
+
+func get_available_click_upgrades() -> Array:
+	var result: Array = []
+	for i in range(click_upgrade_defs.size()):
+		if lifetime_lobsters >= click_upgrade_defs[i]["threshold"]:
+			result.append({
+				"index": i,
+				"name": click_upgrade_defs[i]["name"],
+				"desc": click_upgrade_defs[i]["desc"],
+				"cost": click_upgrade_defs[i]["cost"],
+				"purchased": click_upgrades_purchased[i],
+			})
+	return result
+
+func can_afford_click_upgrade(index: int) -> bool:
+	return total_lobsters >= click_upgrade_defs[index]["cost"]
+
+func buy_click_upgrade(index: int) -> bool:
+	if click_upgrades_purchased[index]:
+		return false
+	var cost: float = click_upgrade_defs[index]["cost"]
+	if total_lobsters < cost:
+		return false
+	total_lobsters -= cost
+	click_upgrades_purchased[index] = true
+	_recalculate_click_power()
+	lobsters_changed.emit(total_lobsters)
+	return true
 
 func get_building_cost(index: int) -> float:
 	var base: float = building_defs[index]["base_cost"]
@@ -147,10 +196,15 @@ func get_save_data() -> Dictionary:
 		for tier in range(building_upgrades[bi].size()):
 			tiers.append(building_upgrades[bi][tier])
 		upgrades_data.append(tiers)
+	var click_data: Array = []
+	for i in range(click_upgrades_purchased.size()):
+		click_data.append(click_upgrades_purchased[i])
 	return {
 		"total_lobsters": total_lobsters,
+		"lifetime_lobsters": lifetime_lobsters,
 		"building_counts": building_counts,
 		"building_upgrades": upgrades_data,
+		"click_upgrades": click_data,
 		"last_save_time": Time.get_unix_time_from_system(),
 	}
 
@@ -168,6 +222,12 @@ func load_save_data(data: Dictionary) -> void:
 			for tier in range(building_upgrades[bi].size()):
 				if tier < tiers.size():
 					building_upgrades[bi][tier] = tiers[tier]
+	# Load click upgrades
+	lifetime_lobsters = data.get("lifetime_lobsters", total_lobsters)  # backward compat: assume lifetime = total
+	var click_data = data.get("click_upgrades", [])
+	for i in range(mini(click_data.size(), click_upgrades_purchased.size())):
+		click_upgrades_purchased[i] = click_data[i]
 	_recalculate_lps()
+	_recalculate_click_power()
 	lobsters_changed.emit(total_lobsters)
 	last_save_time = data.get("last_save_time", 0)

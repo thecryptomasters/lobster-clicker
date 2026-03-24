@@ -3,55 +3,54 @@
 [ext_resource type="Script" path="res://scenes/building_item.gd" id="1_script"]
 
 [node name="BuildingItem" type="PanelContainer"]
-custom_minimum_size = Vector2(0, 90)
+custom_minimum_size = Vector2(0, 70)
 size_flags_horizontal = 3
 script = ExtResource("1_script")
 
-[node name="HBox" type="HBoxContainer" parent="."]
+[node name="VBox" type="VBoxContainer" parent="."]
 layout_mode = 2
-theme_override_constants/separation = 8
+theme_override_constants/separation = 2
 
-[node name="Info" type="VBoxContainer" parent="HBox"]
+[node name="TopRow" type="HBoxContainer" parent="VBox"]
 layout_mode = 2
-size_flags_horizontal = 3
-alignment = 1
 
-[node name="NameLabel" type="Label" parent="HBox/Info"]
+[node name="NameLabel" type="Label" parent="VBox/TopRow"]
 unique_name_in_owner = true
 layout_mode = 2
-text = "Building Name"
+size_flags_horizontal = 3
+text = "Lobster Trap"
 theme_override_colors/font_color = Color(0.753, 0.882, 0.933, 1)
 theme_override_font_sizes/font_size = 20
 
-[node name="DetailRow" type="HBoxContainer" parent="HBox/Info"]
-layout_mode = 2
-theme_override_constants/separation = 12
-
-[node name="CostLabel" type="Label" parent="HBox/Info/DetailRow"]
-unique_name_in_owner = true
-layout_mode = 2
-text = "Cost: 0"
-theme_override_colors/font_color = Color(0.6, 0.8, 0.6, 1)
-theme_override_font_sizes/font_size = 16
-
-[node name="LpsLabel" type="Label" parent="HBox/Info/DetailRow"]
-unique_name_in_owner = true
-layout_mode = 2
-text = "+0/sec"
-theme_override_colors/font_color = Color(0.7, 0.7, 0.7, 1)
-theme_override_font_sizes/font_size = 16
-
-[node name="CountLabel" type="Label" parent="HBox/Info/DetailRow"]
+[node name="CountLabel" type="Label" parent="VBox/TopRow"]
 unique_name_in_owner = true
 layout_mode = 2
 text = "x0"
-theme_override_colors/font_color = Color(0.9, 0.9, 0.9, 1)
-theme_override_font_sizes/font_size = 16
+theme_override_colors/font_color = Color(1, 0.843, 0.4, 1)
+theme_override_font_sizes/font_size = 20
 
-[node name="BuyButton" type="Button" parent="HBox"]
+[node name="BuyButton" type="Button" parent="VBox/TopRow"]
 unique_name_in_owner = true
 layout_mode = 2
-custom_minimum_size = Vector2(80, 50)
-size_flags_vertical = 4
+custom_minimum_size = Vector2(70, 40)
 text = "BUY"
-theme_override_font_sizes/font_size = 20
+theme_override_font_sizes/font_size = 18
+
+[node name="BottomRow" type="HBoxContainer" parent="VBox"]
+layout_mode = 2
+
+[node name="CostLabel" type="Label" parent="VBox/BottomRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Cost: 0"
+theme_override_colors/font_color = Color(0.6, 0.8, 0.6, 1)
+theme_override_font_sizes/font_size = 15
+
+[node name="LpsLabel" type="Label" parent="VBox/BottomRow"]
+unique_name_in_owner = true
+layout_mode = 2
+horizontal_alignment = 2
+text = "+0/sec"
+theme_override_colors/font_color = Color(0.7, 0.7, 0.7, 1)
+theme_override_font_sizes/font_size = 15

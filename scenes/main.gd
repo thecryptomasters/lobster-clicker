@@ -17,12 +17,15 @@ const BuildingUpgradeItemScene := preload("res://scenes/building_upgrade_item.ts
 @onready var offline_ok_button: Button = %OfflineOkButton
 @onready var buildings_tab: Button = %BuildingsTab
 @onready var upgrades_tab: Button = %UpgradesTab
+@onready var root_container: BoxContainer = %RootContainer
+@onready var left_section: VBoxContainer = %LeftSection
+@onready var right_panel: PanelContainer = %RightPanel
 
 # Animation: move pincers via X position (no rotation!)
-const OPEN_X := 22.0    # How far apart pincers sit when open
-const SHUT_X := 3.0     # How close they get when snapped shut
-const SNAP_SPEED := 14.0  # Speed of snap shut
-const OPEN_SPEED := 3.5   # Speed of ease open
+const OPEN_X := 22.0
+const SHUT_X := 3.0
+const SNAP_SPEED := 14.0
+const OPEN_SPEED := 3.5
 
 enum ClawState { IDLE, SNAPPING, OPENING }
 var claw_state: int = ClawState.IDLE
@@ -34,6 +37,11 @@ var current_tab: int = Tab.BUILDINGS
 # Flash state for upgrades tab
 var _flash_timer: float = 0.0
 var _flash_active: bool = false
+
+# Responsive layout
+const MOBILE_BREAKPOINT := 700  # Below this width = mobile (vertical stack)
+var _is_desktop: bool = true
+var _last_width: int = 0
 
 func _ready() -> void:
 	GameManager.lobsters_changed.connect(_on_lobsters_changed)
@@ -61,6 +69,9 @@ func _ready() -> void:
 	_switch_tab(Tab.BUILDINGS)
 	_refresh_upgrades()
 
+	# Apply responsive layout
+	_apply_layout()
+
 	# Show offline popup if needed
 	if SaveManager.offline_earnings > 0:
 		offline_label.text = "Welcome back!\nYou earned %s lobsters\nwhile you were away!" % GameManager.format_number(SaveManager.offline_earnings)
@@ -69,7 +80,13 @@ func _ready() -> void:
 		offline_popup.visible = false
 
 func _process(delta: float) -> void:
-	# Drive claw animation every frame via position (not rotation)
+	# Check for viewport resize
+	var vp_width := int(get_viewport_rect().size.x)
+	if vp_width != _last_width:
+		_last_width = vp_width
+		_apply_layout()
+
+	# Drive claw animation every frame via position
 	match claw_state:
 		ClawState.SNAPPING:
 			claw_progress += delta * SNAP_SPEED
@@ -91,12 +108,11 @@ func _process(delta: float) -> void:
 				left_pincer.position.x = -OPEN_X
 				right_pincer.position.x = OPEN_X
 			else:
-				# Ease out
 				var t := 1.0 - pow(1.0 - claw_progress, 2.0)
 				left_pincer.position.x = lerpf(-SHUT_X, -OPEN_X, t)
 				right_pincer.position.x = lerpf(SHUT_X, OPEN_X, t)
 
-	# Flash upgrades tab when new upgrade available
+	# Flash upgrades tab
 	if _flash_active:
 		_flash_timer += delta
 		if _flash_timer > 2.0:
@@ -104,10 +120,35 @@ func _process(delta: float) -> void:
 			_flash_timer = 0.0
 			_update_tab_styles()
 		elif current_tab != Tab.UPGRADES:
-			# Pulse between gold and dim
 			var pulse := (sin(_flash_timer * 8.0) + 1.0) / 2.0
 			var col := Color("#667788").lerp(Color("#ffd766"), pulse)
 			upgrades_tab.add_theme_color_override("font_color", col)
+
+# --- Responsive Layout ---
+
+func _apply_layout() -> void:
+	var vp_width := int(get_viewport_rect().size.x)
+	var should_be_desktop := vp_width >= MOBILE_BREAKPOINT
+
+	if should_be_desktop == _is_desktop and _last_width != 0:
+		return  # No change needed
+
+	_is_desktop = should_be_desktop
+
+	if _is_desktop:
+		# Desktop: side-by-side (HBox), claw left, buildings/upgrades right
+		root_container.vertical = false
+		left_section.size_flags_stretch_ratio = 1.0
+		right_panel.size_flags_stretch_ratio = 1.2
+		left_section.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		right_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	else:
+		# Mobile: stacked vertically (VBox), claw on top, buildings below
+		root_container.vertical = true
+		left_section.size_flags_stretch_ratio = 1.0
+		right_panel.size_flags_stretch_ratio = 1.0
+		left_section.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		right_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
 
 func _on_lobsters_changed(total: float) -> void:
 	lobster_count_label.text = GameManager.format_number(total)
@@ -196,7 +237,6 @@ func _on_building_purchased(_index: int) -> void:
 		_refresh_upgrades()
 
 func _refresh_upgrades() -> void:
-	# Clear existing upgrade items
 	for child in upgrade_container.get_children():
 		child.queue_free()
 

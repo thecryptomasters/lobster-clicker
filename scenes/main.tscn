@@ -34,32 +34,35 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 color = Color(0.039, 0.086, 0.157, 1)
 
-[node name="VBoxContainer" type="VBoxContainer" parent="."]
+[node name="RootContainer" type="BoxContainer" parent="."]
+unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+vertical = false
 
-[node name="TopSection" type="VBoxContainer" parent="VBoxContainer"]
+[node name="LeftSection" type="VBoxContainer" parent="RootContainer"]
+unique_name_in_owner = true
 layout_mode = 2
-size_flags_vertical = 3
+size_flags_horizontal = 3
 size_flags_stretch_ratio = 1.0
 alignment = 1
 
-[node name="Title" type="Label" parent="VBoxContainer/TopSection"]
+[node name="Title" type="Label" parent="RootContainer/LeftSection"]
 layout_mode = 2
 text = "🦞 LOBSTER CLICKER"
 horizontal_alignment = 1
 theme_override_colors/font_color = Color(0.753, 0.224, 0.169, 1)
 theme_override_font_sizes/font_size = 36
 
-[node name="Spacer1" type="Control" parent="VBoxContainer/TopSection"]
+[node name="Spacer1" type="Control" parent="RootContainer/LeftSection"]
 layout_mode = 2
 custom_minimum_size = Vector2(0, 8)
 
-[node name="LobsterCountLabel" type="Label" parent="VBoxContainer/TopSection"]
+[node name="LobsterCountLabel" type="Label" parent="RootContainer/LeftSection"]
 unique_name_in_owner = true
 layout_mode = 2
 text = "0"
@@ -67,14 +70,14 @@ horizontal_alignment = 1
 theme_override_colors/font_color = Color(1, 0.843, 0.4, 1)
 theme_override_font_sizes/font_size = 56
 
-[node name="LobsterWord" type="Label" parent="VBoxContainer/TopSection"]
+[node name="LobsterWord" type="Label" parent="RootContainer/LeftSection"]
 layout_mode = 2
 text = "lobsters"
 horizontal_alignment = 1
 theme_override_colors/font_color = Color(0.753, 0.882, 0.933, 1)
 theme_override_font_sizes/font_size = 22
 
-[node name="LpsLabel" type="Label" parent="VBoxContainer/TopSection"]
+[node name="LpsLabel" type="Label" parent="RootContainer/LeftSection"]
 unique_name_in_owner = true
 layout_mode = 2
 text = "0 lobsters/sec"
@@ -82,78 +85,78 @@ horizontal_alignment = 1
 theme_override_colors/font_color = Color(0.5, 0.7, 0.8, 1)
 theme_override_font_sizes/font_size = 18
 
-[node name="Spacer2" type="Control" parent="VBoxContainer/TopSection"]
+[node name="Spacer2" type="Control" parent="RootContainer/LeftSection"]
 layout_mode = 2
 custom_minimum_size = Vector2(0, 12)
 
-[node name="ClawCenter" type="CenterContainer" parent="VBoxContainer/TopSection"]
+[node name="ClawCenter" type="CenterContainer" parent="RootContainer/LeftSection"]
 layout_mode = 2
-custom_minimum_size = Vector2(0, 280)
+size_flags_vertical = 3
 
-[node name="ClawButton" type="Button" parent="VBoxContainer/TopSection/ClawCenter"]
+[node name="ClawButton" type="Button" parent="RootContainer/LeftSection/ClawCenter"]
 unique_name_in_owner = true
 layout_mode = 2
 custom_minimum_size = Vector2(260, 280)
 pivot_offset = Vector2(130, 140)
 flat = true
 
-[node name="ClawPivot" type="Node2D" parent="VBoxContainer/TopSection/ClawCenter/ClawButton"]
+[node name="ClawPivot" type="Node2D" parent="RootContainer/LeftSection/ClawCenter/ClawButton"]
 position = Vector2(130, 160)
 scale = Vector2(1.6, 1.6)
 
-[node name="ClawArm" type="Polygon2D" parent="VBoxContainer/TopSection/ClawCenter/ClawButton/ClawPivot"]
+[node name="ClawArm" type="Polygon2D" parent="RootContainer/LeftSection/ClawCenter/ClawButton/ClawPivot"]
 polygon = PackedVector2Array(-20, 15, -24, 40, -28, 65, -26, 90, -20, 110, 20, 110, 26, 90, 28, 65, 24, 40, 20, 15)
 color = Color(0.545, 0.102, 0.102, 1)
 
-[node name="ClawArmHighlight" type="Polygon2D" parent="VBoxContainer/TopSection/ClawCenter/ClawButton/ClawPivot"]
+[node name="ClawArmHighlight" type="Polygon2D" parent="RootContainer/LeftSection/ClawCenter/ClawButton/ClawPivot"]
 polygon = PackedVector2Array(-12, 20, -16, 40, -18, 65, -16, 85, -12, 100, 6, 100, 10, 85, 12, 65, 10, 40, 6, 20)
 color = Color(0.753, 0.224, 0.169, 1)
 
-[node name="ClawJoint" type="Polygon2D" parent="VBoxContainer/TopSection/ClawCenter/ClawButton/ClawPivot"]
+[node name="ClawJoint" type="Polygon2D" parent="RootContainer/LeftSection/ClawCenter/ClawButton/ClawPivot"]
 polygon = PackedVector2Array(-28, 5, -30, 15, -26, 22, -18, 25, 18, 25, 26, 22, 30, 15, 28, 5)
 color = Color(0.545, 0.102, 0.102, 1)
 
-[node name="LeftPincer" type="Node2D" parent="VBoxContainer/TopSection/ClawCenter/ClawButton/ClawPivot"]
+[node name="LeftPincer" type="Node2D" parent="RootContainer/LeftSection/ClawCenter/ClawButton/ClawPivot"]
 unique_name_in_owner = true
 position = Vector2(-22, 0)
 
-[node name="PincerBody" type="Polygon2D" parent="VBoxContainer/TopSection/ClawCenter/ClawButton/ClawPivot/LeftPincer"]
+[node name="PincerBody" type="Polygon2D" parent="RootContainer/LeftSection/ClawCenter/ClawButton/ClawPivot/LeftPincer"]
 polygon = PackedVector2Array(-8, 5, -14, -10, -18, -30, -16, -50, -12, -65, -6, -78, -2, -88, 2, -92, 6, -88, 8, -78, 6, -65, 3, -50, 0, -40, 2, -30, 5, -20, 3, -10, 5, 0, 8, 5)
 color = Color(0.753, 0.224, 0.169, 1)
 
-[node name="PincerShadow" type="Polygon2D" parent="VBoxContainer/TopSection/ClawCenter/ClawButton/ClawPivot/LeftPincer"]
+[node name="PincerShadow" type="Polygon2D" parent="RootContainer/LeftSection/ClawCenter/ClawButton/ClawPivot/LeftPincer"]
 polygon = PackedVector2Array(-8, 5, -14, -10, -18, -30, -16, -50, -12, -65, -8, -75, -4, -82, -2, -78, -4, -65, -6, -50, -8, -30, -8, -10, -8, 5)
 color = Color(0.545, 0.102, 0.102, 1)
 
-[node name="PincerHighlight" type="Polygon2D" parent="VBoxContainer/TopSection/ClawCenter/ClawButton/ClawPivot/LeftPincer"]
+[node name="PincerHighlight" type="Polygon2D" parent="RootContainer/LeftSection/ClawCenter/ClawButton/ClawPivot/LeftPincer"]
 polygon = PackedVector2Array(0, 2, -4, -10, -8, -30, -6, -50, -4, -65, 0, -78, 2, -85, 4, -78, 4, -65, 2, -50, 0, -30, 2, -10, 0, 2)
 color = Color(0.906, 0.298, 0.235, 1)
 
-[node name="InnerEdge" type="Polygon2D" parent="VBoxContainer/TopSection/ClawCenter/ClawButton/ClawPivot/LeftPincer"]
+[node name="InnerEdge" type="Polygon2D" parent="RootContainer/LeftSection/ClawCenter/ClawButton/ClawPivot/LeftPincer"]
 polygon = PackedVector2Array(5, 5, 8, 0, 6, -8, 8, -15, 6, -22, 8, -30, 5, -38, 7, -45, 5, -52, 6, -60, 4, -65, 6, -70, 5, -75, 3, -70, 4, -60, 3, -52, 5, -45, 3, -38, 5, -30, 3, -22, 5, -15, 3, -8, 5, 0, 5, 5)
 color = Color(0.65, 0.18, 0.14, 1)
 
-[node name="RightPincer" type="Node2D" parent="VBoxContainer/TopSection/ClawCenter/ClawButton/ClawPivot"]
+[node name="RightPincer" type="Node2D" parent="RootContainer/LeftSection/ClawCenter/ClawButton/ClawPivot"]
 unique_name_in_owner = true
 position = Vector2(22, 0)
 
-[node name="PincerBody" type="Polygon2D" parent="VBoxContainer/TopSection/ClawCenter/ClawButton/ClawPivot/RightPincer"]
+[node name="PincerBody" type="Polygon2D" parent="RootContainer/LeftSection/ClawCenter/ClawButton/ClawPivot/RightPincer"]
 polygon = PackedVector2Array(8, 5, 14, -10, 18, -30, 16, -50, 12, -65, 6, -78, 2, -88, -2, -92, -6, -88, -8, -78, -6, -65, -3, -50, 0, -40, -2, -30, -5, -20, -3, -10, -5, 0, -8, 5)
 color = Color(0.753, 0.224, 0.169, 1)
 
-[node name="PincerShadow" type="Polygon2D" parent="VBoxContainer/TopSection/ClawCenter/ClawButton/ClawPivot/RightPincer"]
+[node name="PincerShadow" type="Polygon2D" parent="RootContainer/LeftSection/ClawCenter/ClawButton/ClawPivot/RightPincer"]
 polygon = PackedVector2Array(8, 5, 14, -10, 18, -30, 16, -50, 12, -65, 8, -75, 4, -82, 2, -78, 4, -65, 6, -50, 8, -30, 8, -10, 8, 5)
 color = Color(0.545, 0.102, 0.102, 1)
 
-[node name="PincerHighlight" type="Polygon2D" parent="VBoxContainer/TopSection/ClawCenter/ClawButton/ClawPivot/RightPincer"]
+[node name="PincerHighlight" type="Polygon2D" parent="RootContainer/LeftSection/ClawCenter/ClawButton/ClawPivot/RightPincer"]
 polygon = PackedVector2Array(0, 2, 4, -10, 8, -30, 6, -50, 4, -65, 0, -78, -2, -85, -4, -78, -4, -65, -2, -50, 0, -30, -2, -10, 0, 2)
 color = Color(0.906, 0.298, 0.235, 1)
 
-[node name="InnerEdge" type="Polygon2D" parent="VBoxContainer/TopSection/ClawCenter/ClawButton/ClawPivot/RightPincer"]
+[node name="InnerEdge" type="Polygon2D" parent="RootContainer/LeftSection/ClawCenter/ClawButton/ClawPivot/RightPincer"]
 polygon = PackedVector2Array(-5, 5, -8, 0, -6, -8, -8, -15, -6, -22, -8, -30, -5, -38, -7, -45, -5, -52, -6, -60, -4, -65, -6, -70, -5, -75, -3, -70, -4, -60, -3, -52, -5, -45, -3, -38, -5, -30, -3, -22, -5, -15, -3, -8, -5, 0, -5, 5)
 color = Color(0.65, 0.18, 0.14, 1)
 
-[node name="ClickParticles" type="CPUParticles2D" parent="VBoxContainer/TopSection/ClawCenter/ClawButton/ClawPivot"]
+[node name="ClickParticles" type="CPUParticles2D" parent="RootContainer/LeftSection/ClawCenter/ClawButton/ClawPivot"]
 unique_name_in_owner = true
 emitting = false
 amount = 15
@@ -168,32 +171,33 @@ scale_amount_min = 4.0
 scale_amount_max = 8.0
 color = Color(0.4, 0.8, 1, 0.8)
 
-[node name="FloatTextContainer" type="Node2D" parent="VBoxContainer/TopSection/ClawCenter/ClawButton/ClawPivot"]
+[node name="FloatTextContainer" type="Node2D" parent="RootContainer/LeftSection/ClawCenter/ClawButton/ClawPivot"]
 unique_name_in_owner = true
 position = Vector2(0, -70)
 
-[node name="ClickHint" type="Label" parent="VBoxContainer/TopSection"]
+[node name="ClickHint" type="Label" parent="RootContainer/LeftSection"]
 layout_mode = 2
 text = "Tap the claw!"
 horizontal_alignment = 1
 theme_override_colors/font_color = Color(0.4, 0.5, 0.6, 1)
 theme_override_font_sizes/font_size = 18
 
-[node name="BottomPanel" type="PanelContainer" parent="VBoxContainer"]
+[node name="RightPanel" type="PanelContainer" parent="RootContainer"]
+unique_name_in_owner = true
 layout_mode = 2
-size_flags_vertical = 3
+size_flags_horizontal = 3
 size_flags_stretch_ratio = 1.0
 theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
 
-[node name="VBox" type="VBoxContainer" parent="VBoxContainer/BottomPanel"]
+[node name="VBox" type="VBoxContainer" parent="RootContainer/RightPanel"]
 layout_mode = 2
 
-[node name="TabBar" type="HBoxContainer" parent="VBoxContainer/BottomPanel/VBox"]
+[node name="TabBar" type="HBoxContainer" parent="RootContainer/RightPanel/VBox"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_constants/separation = 0
 
-[node name="BuildingsTab" type="Button" parent="VBoxContainer/BottomPanel/VBox/TabBar"]
+[node name="BuildingsTab" type="Button" parent="RootContainer/RightPanel/VBox/TabBar"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
@@ -203,7 +207,7 @@ flat = true
 theme_override_colors/font_color = Color(1, 0.843, 0.4, 1)
 theme_override_font_sizes/font_size = 22
 
-[node name="UpgradesTab" type="Button" parent="VBoxContainer/BottomPanel/VBox/TabBar"]
+[node name="UpgradesTab" type="Button" parent="RootContainer/RightPanel/VBox/TabBar"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
@@ -213,21 +217,21 @@ flat = true
 theme_override_colors/font_color = Color(0.4, 0.467, 0.533, 1)
 theme_override_font_sizes/font_size = 22
 
-[node name="Separator" type="HSeparator" parent="VBoxContainer/BottomPanel/VBox"]
+[node name="Separator" type="HSeparator" parent="RootContainer/RightPanel/VBox"]
 layout_mode = 2
 theme_override_colors/separator_color = Color(0.1, 0.29, 0.37, 1)
 
-[node name="ScrollContainer" type="ScrollContainer" parent="VBoxContainer/BottomPanel/VBox"]
+[node name="ScrollContainer" type="ScrollContainer" parent="RootContainer/RightPanel/VBox"]
 layout_mode = 2
 size_flags_vertical = 3
 
-[node name="BuildingContainer" type="VBoxContainer" parent="VBoxContainer/BottomPanel/VBox/ScrollContainer"]
+[node name="BuildingContainer" type="VBoxContainer" parent="RootContainer/RightPanel/VBox/ScrollContainer"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 10
 
-[node name="UpgradeContainer" type="VBoxContainer" parent="VBoxContainer/BottomPanel/VBox/ScrollContainer"]
+[node name="UpgradeContainer" type="VBoxContainer" parent="RootContainer/RightPanel/VBox/ScrollContainer"]
 unique_name_in_owner = true
 visible = false
 layout_mode = 2

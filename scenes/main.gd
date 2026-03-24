@@ -31,6 +31,8 @@ const BuildingUpgradeItemScene := preload("res://scenes/building_upgrade_item.ts
 @onready var boost_desc_label: Label = %BoostDescLabel
 @onready var timer_label: Label = %TimerLabel
 @onready var boost_hud_label: Label = %BoostHudLabel
+@onready var scroll_up_btn: Button = %ScrollUpButton
+@onready var scroll_down_btn: Button = %ScrollDownButton
 @onready var root_container: BoxContainer = %RootContainer
 @onready var left_section: VBoxContainer = %LeftSection
 @onready var right_panel: PanelContainer = %RightPanel
@@ -79,6 +81,11 @@ func _ready() -> void:
 	GameManager.boost_expired.connect(_on_boost_expired)
 	_style_buy_capsule_button()
 	consumables_tab.visible = GameManager.lifetime_lobsters >= 500
+
+	# Scroll buttons
+	var sc: ScrollContainer = %RightPanel.get_node("VBox/ScrollContainer")
+	scroll_up_btn.pressed.connect(func(): sc.scroll_vertical = max(0, sc.scroll_vertical - 150))
+	scroll_down_btn.pressed.connect(func(): sc.scroll_vertical += 150)
 
 	# Load farm name
 	farm_name_button.text = GameManager.farm_name
@@ -215,6 +222,8 @@ func _apply_layout() -> void:
 		right_panel.size_flags_stretch_ratio = 1.2
 		left_section.size_flags_vertical = Control.SIZE_EXPAND_FILL
 		right_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		scroll_up_btn.visible = false
+		scroll_down_btn.visible = false
 	else:
 		# Mobile: stacked vertically (VBox), claw compact on top, buildings get more space
 		root_container.vertical = true
@@ -222,6 +231,8 @@ func _apply_layout() -> void:
 		right_panel.size_flags_stretch_ratio = 1.2
 		left_section.size_flags_vertical = Control.SIZE_EXPAND_FILL
 		right_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		scroll_up_btn.visible = true
+		scroll_down_btn.visible = true
 
 func _on_lobsters_changed(total: float) -> void:
 	lobster_count_label.text = GameManager.format_number(total)

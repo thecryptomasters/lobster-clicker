@@ -285,6 +285,16 @@ theme_override_font_sizes/font_size = 22
 layout_mode = 2
 theme_override_colors/separator_color = Color(0.1, 0.29, 0.37, 1)
 
+[node name="ScrollUpButton" type="Button" parent="RootContainer/RightPanel/VBox"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+custom_minimum_size = Vector2(0, 36)
+text = "▲"
+flat = true
+theme_override_colors/font_color = Color(0.5, 0.65, 0.75, 1)
+theme_override_font_sizes/font_size = 20
+
 [node name="ScrollContainer" type="ScrollContainer" parent="RootContainer/RightPanel/VBox"]
 layout_mode = 2
 size_flags_vertical = 3
@@ -377,6 +387,16 @@ text = "14.3s remaining"
 horizontal_alignment = 1
 theme_override_colors/font_color = Color(1, 0.843, 0.4, 1)
 theme_override_font_sizes/font_size = 18
+
+[node name="ScrollDownButton" type="Button" parent="RootContainer/RightPanel/VBox"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+custom_minimum_size = Vector2(0, 36)
+text = "▼"
+flat = true
+theme_override_colors/font_color = Color(0.5, 0.65, 0.75, 1)
+theme_override_font_sizes/font_size = 20
 
 [node name="OfflinePopup" type="PanelContainer" parent="."]
 unique_name_in_owner = true

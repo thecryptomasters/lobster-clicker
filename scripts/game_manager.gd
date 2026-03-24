@@ -45,19 +45,19 @@ var lifetime_lobsters: float = 0.0  # Total lobsters ever generated (never decre
 
 # Offline production rate upgrades (base 5%)
 var offline_rate_defs: Array = [
-	{"threshold": 5000, "cost": 2500, "rate": 0.10, "name": "Lobster Lookout", "desc": "Offline production: 10%. (5,000 lifetime lobsters)"},
-	{"threshold": 50000, "cost": 25000, "rate": 0.225, "name": "Night Shift", "desc": "Offline production: 22.5%. (50,000 lifetime lobsters)"},
-	{"threshold": 500000, "cost": 250000, "rate": 0.50, "name": "Automated Traps", "desc": "Offline production: 50%. (500,000 lifetime lobsters)"},
-	{"threshold": 5000000, "cost": 2500000, "rate": 0.85, "name": "Deep Sea Drones", "desc": "Offline production: 85%. (5,000,000 lifetime lobsters)"},
+	{"threshold": 25000, "cost": 15000, "rate": 0.10, "name": "Lobster Lookout", "desc": "Offline production: 10%. (25,000 lifetime lobsters)"},
+	{"threshold": 500000, "cost": 300000, "rate": 0.225, "name": "Night Shift", "desc": "Offline production: 22.5%. (500,000 lifetime lobsters)"},
+	{"threshold": 5000000, "cost": 3000000, "rate": 0.50, "name": "Automated Traps", "desc": "Offline production: 50%. (5,000,000 lifetime lobsters)"},
+	{"threshold": 50000000, "cost": 30000000, "rate": 0.85, "name": "Deep Sea Drones", "desc": "Offline production: 85%. (50,000,000 lifetime lobsters)"},
 ]
 var offline_rate_purchased: Array[bool] = [false, false, false, false]
 
 # Offline duration cap upgrades (base 1 hour)
 var offline_duration_defs: Array = [
-	{"threshold": 10000, "cost": 5000, "hours": 3, "name": "Extended Nets", "desc": "Offline cap: 3 hours. (10,000 lifetime lobsters)"},
-	{"threshold": 100000, "cost": 50000, "hours": 8, "name": "Overnight Crew", "desc": "Offline cap: 8 hours. (100,000 lifetime lobsters)"},
-	{"threshold": 1000000, "cost": 500000, "hours": 16, "name": "Double Shift", "desc": "Offline cap: 16 hours. (1,000,000 lifetime lobsters)"},
-	{"threshold": 10000000, "cost": 5000000, "hours": 24, "name": "24/7 Operations", "desc": "Offline cap: 24 hours. (10,000,000 lifetime lobsters)"},
+	{"threshold": 50000, "cost": 30000, "hours": 3, "name": "Extended Nets", "desc": "Offline cap: 3 hours. (50,000 lifetime lobsters)"},
+	{"threshold": 1000000, "cost": 600000, "hours": 8, "name": "Overnight Crew", "desc": "Offline cap: 8 hours. (1,000,000 lifetime lobsters)"},
+	{"threshold": 10000000, "cost": 6000000, "hours": 16, "name": "Double Shift", "desc": "Offline cap: 16 hours. (10,000,000 lifetime lobsters)"},
+	{"threshold": 100000000, "cost": 60000000, "hours": 24, "name": "24/7 Operations", "desc": "Offline cap: 24 hours. (100,000,000 lifetime lobsters)"},
 ]
 var offline_duration_purchased: Array[bool] = [false, false, false, false]
 

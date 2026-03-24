@@ -523,6 +523,8 @@ func _show_dev_menu() -> void:
 		GameManager.lobsters_changed.emit(0.0)
 		GameManager.lps_changed.emit(0.0)
 		farm_name_button.text = "My Lobster Farm"
+		consumables_tab.visible = false
+		_switch_tab(Tab.BUILDINGS)
 		SaveManager.save_game()
 		for child in building_container.get_children():
 			if child.has_method("_refresh"):

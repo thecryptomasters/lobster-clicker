@@ -628,104 +628,110 @@ func _check_click_upgrades() -> void:
 		if current_tab == Tab.UPGRADES:
 			_refresh_upgrades()
 
+var _hide_purchased: bool = false
+var _collapsed_sections: Dictionary = {}  # section_name -> bool
+
 func _refresh_upgrades() -> void:
 	for child in upgrade_container.get_children():
 		child.queue_free()
 
+	# Hide purchased toggle
+	var toggle_btn := Button.new()
+	toggle_btn.text = "✓ Hide Purchased" if _hide_purchased else "○ Show All"
+	toggle_btn.flat = true
+	toggle_btn.add_theme_color_override("font_color", Color("#88aacc") if _hide_purchased else Color("#667788"))
+	toggle_btn.add_theme_font_size_override("font_size", 16)
+	toggle_btn.pressed.connect(func():
+		_hide_purchased = not _hide_purchased
+		_refresh_upgrades())
+	upgrade_container.add_child(toggle_btn)
+
 	var has_any := false
 
-	# Click upgrades first (flat multipliers + CPS-based)
-	var click_upgrades := GameManager.get_available_click_upgrades()
-	var cps_click_upgrades := GameManager.get_available_cps_click_upgrades()
-	if not click_upgrades.is_empty() or not cps_click_upgrades.is_empty():
+	# Click upgrades
+	var click_items: Array = []
+	for upg in GameManager.get_available_click_upgrades():
+		if not _hide_purchased or not upg["purchased"]:
+			click_items.append(func(item): item.setup_click_upgrade(upg["index"], upg["purchased"]))
+	for upg in GameManager.get_available_cps_click_upgrades():
+		if not _hide_purchased or not upg["purchased"]:
+			click_items.append(func(item): item.setup_cps_click_upgrade(upg["index"], upg["purchased"]))
+	for upg in GameManager.get_available_hold_click_upgrades():
+		if not _hide_purchased or not upg["purchased"]:
+			click_items.append(func(item): item.setup_hold_click_upgrade(upg["index"], upg["purchased"]))
+	if not click_items.is_empty():
 		has_any = true
-		var header := Label.new()
-		header.text = "🦞 CLICK POWER"
-		header.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		header.add_theme_color_override("font_color", Color("#ff6b6b"))
-		header.add_theme_font_size_override("font_size", 18)
-		upgrade_container.add_child(header)
-		for upg in click_upgrades:
-			var item := BuildingUpgradeItemScene.instantiate()
-			upgrade_container.add_child(item)
-			item.setup_click_upgrade(upg["index"], upg["purchased"])
-		for upg in cps_click_upgrades:
-			var item := BuildingUpgradeItemScene.instantiate()
-			upgrade_container.add_child(item)
-			item.setup_cps_click_upgrade(upg["index"], upg["purchased"])
-		# Hold-to-click upgrades
-		var hold_upgrades := GameManager.get_available_hold_click_upgrades()
-		for upg in hold_upgrades:
-			var item := BuildingUpgradeItemScene.instantiate()
-			upgrade_container.add_child(item)
-			item.setup_hold_click_upgrade(upg["index"], upg["purchased"])
+		_add_collapsible_section("🦞 CLICK POWER", "click_power", Color("#ff6b6b"), click_items)
 
 	# Building upgrades
-	var building_upgrades := GameManager.get_available_upgrades()
-	if not building_upgrades.is_empty():
+	var bldg_items: Array = []
+	for upg in GameManager.get_available_upgrades():
+		if not _hide_purchased or not upg["purchased"]:
+			bldg_items.append(func(item): item.setup(upg["building_index"], upg["tier"], upg["purchased"]))
+	if not bldg_items.is_empty():
 		has_any = true
-		var header := Label.new()
-		header.text = "🏗️ BUILDING UPGRADES"
-		header.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		header.add_theme_color_override("font_color", Color("#ffd766"))
-		header.add_theme_font_size_override("font_size", 18)
-		upgrade_container.add_child(header)
-		for upg in building_upgrades:
-			var item := BuildingUpgradeItemScene.instantiate()
-			upgrade_container.add_child(item)
-			item.setup(upg["building_index"], upg["tier"], upg["purchased"])
+		_add_collapsible_section("🏗️ BUILDING UPGRADES", "building_upgrades", Color("#ffd766"), bldg_items)
 
-	# Offline rate upgrades
-	var offline_upgrades := GameManager.get_available_offline_rate_upgrades()
-	if not offline_upgrades.is_empty():
+	# Offline upgrades (rate + duration combined)
+	var offline_items: Array = []
+	for upg in GameManager.get_available_offline_rate_upgrades():
+		if not _hide_purchased or not upg["purchased"]:
+			offline_items.append(func(item): item.setup_offline_rate_upgrade(upg["index"], upg["purchased"]))
+	for upg in GameManager.get_available_offline_duration_upgrades():
+		if not _hide_purchased or not upg["purchased"]:
+			offline_items.append(func(item): item.setup_offline_duration_upgrade(upg["index"], upg["purchased"]))
+	if not offline_items.is_empty():
 		has_any = true
-		var header := Label.new()
-		header.text = "🌙 OFFLINE PRODUCTION"
-		header.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		header.add_theme_color_override("font_color", Color("#5dade2"))
-		header.add_theme_font_size_override("font_size", 18)
-		upgrade_container.add_child(header)
-		for upg in offline_upgrades:
-			var item := BuildingUpgradeItemScene.instantiate()
-			upgrade_container.add_child(item)
-			item.setup_offline_rate_upgrade(upg["index"], upg["purchased"])
-	var offline_dur_upgrades := GameManager.get_available_offline_duration_upgrades()
-	if not offline_dur_upgrades.is_empty():
-		if offline_upgrades.is_empty():
-			has_any = true
-			var header := Label.new()
-			header.text = "🌙 OFFLINE PRODUCTION"
-			header.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-			header.add_theme_color_override("font_color", Color("#5dade2"))
-			header.add_theme_font_size_override("font_size", 18)
-			upgrade_container.add_child(header)
-		for upg in offline_dur_upgrades:
-			var item := BuildingUpgradeItemScene.instantiate()
-			upgrade_container.add_child(item)
-			item.setup_offline_duration_upgrade(upg["index"], upg["purchased"])
+		_add_collapsible_section("🌙 OFFLINE PRODUCTION", "offline", Color("#5dade2"), offline_items)
 
 	# Gacha cooldown upgrades
-	var gacha_cd_upgrades := GameManager.get_available_gacha_cooldown_upgrades()
-	if not gacha_cd_upgrades.is_empty():
+	var gacha_items: Array = []
+	for upg in GameManager.get_available_gacha_cooldown_upgrades():
+		if not _hide_purchased or not upg["purchased"]:
+			gacha_items.append(func(item): item.setup_gacha_cd_upgrade(upg["index"], upg["purchased"]))
+	if not gacha_items.is_empty():
 		has_any = true
-		var header := Label.new()
-		header.text = "🎰 GACHA UPGRADES"
-		header.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		header.add_theme_color_override("font_color", Color("#e67e22"))
-		header.add_theme_font_size_override("font_size", 18)
-		upgrade_container.add_child(header)
-		for upg in gacha_cd_upgrades:
-			var item := BuildingUpgradeItemScene.instantiate()
-			upgrade_container.add_child(item)
-			item.setup_gacha_cd_upgrade(upg["index"], upg["purchased"])
+		_add_collapsible_section("🎰 GACHA UPGRADES", "gacha", Color("#e67e22"), gacha_items)
 
 	if not has_any:
 		var empty_label := Label.new()
-		empty_label.text = "No upgrades available yet.\nBuy more buildings to unlock!"
+		if _hide_purchased:
+			empty_label.text = "All available upgrades purchased! 🎉"
+		else:
+			empty_label.text = "No upgrades available yet.\nBuy more buildings to unlock!"
 		empty_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		empty_label.add_theme_color_override("font_color", Color("#667788"))
 		empty_label.add_theme_font_size_override("font_size", 18)
 		upgrade_container.add_child(empty_label)
+
+func _add_collapsible_section(title: String, key: String, color: Color, items: Array) -> void:
+	var is_collapsed: bool = _collapsed_sections.get(key, false)
+
+	# Header button
+	var header_btn := Button.new()
+	header_btn.text = ("▶ " if is_collapsed else "▼ ") + title
+	header_btn.flat = true
+	header_btn.add_theme_color_override("font_color", color)
+	header_btn.add_theme_font_size_override("font_size", 18)
+	header_btn.alignment = HORIZONTAL_ALIGNMENT_LEFT
+
+	# Items container
+	var items_box := VBoxContainer.new()
+	items_box.add_theme_constant_override("separation", 6)
+	items_box.visible = not is_collapsed
+
+	header_btn.pressed.connect(func():
+		_collapsed_sections[key] = not _collapsed_sections.get(key, false)
+		items_box.visible = not _collapsed_sections[key]
+		header_btn.text = ("▶ " if _collapsed_sections[key] else "▼ ") + title)
+
+	upgrade_container.add_child(header_btn)
+	upgrade_container.add_child(items_box)
+
+	for setup_fn in items:
+		var item := BuildingUpgradeItemScene.instantiate()
+		items_box.add_child(item)
+		setup_fn.call(item)
 
 # --- Consumables / Gacha ---
 

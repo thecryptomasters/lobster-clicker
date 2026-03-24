@@ -63,12 +63,22 @@ func setup(b_index: int, t: int, purchased: bool) -> void:
 	if is_node_ready():
 		_refresh()
 
+var is_cps_click_upgrade: bool = false
+var cps_click_upgrade_index: int = 0
+
 func setup_click_upgrade(index: int, purchased: bool) -> void:
 	click_upgrade_index = index
 	is_click_upgrade = true
 	is_purchased = purchased
 	if is_node_ready():
 		_refresh_click_upgrade()
+
+func setup_cps_click_upgrade(index: int, purchased: bool) -> void:
+	cps_click_upgrade_index = index
+	is_cps_click_upgrade = true
+	is_purchased = purchased
+	if is_node_ready():
+		_refresh_cps_click_upgrade()
 
 func _refresh() -> void:
 	var tier_names := ["I", "II", "III", "IV"]
@@ -127,8 +137,47 @@ func _refresh_click_upgrade() -> void:
 		buy_button.text = "BUY"
 		_update_buy_button_style()
 
+func _refresh_cps_click_upgrade() -> void:
+	var def: Dictionary = GameManager.cps_click_upgrade_defs[cps_click_upgrade_index]
+	name_label.text = def["name"]
+	desc_label.text = def["desc"]
+	if is_purchased:
+		cost_label.text = "OWNED"
+		cost_label.add_theme_color_override("font_color", Color("#66cc88"))
+		buy_button.text = "OWNED ✓"
+		buy_button.disabled = true
+		buy_button.add_theme_stylebox_override("normal", _owned_style)
+		buy_button.add_theme_stylebox_override("disabled", _owned_style)
+		buy_button.modulate = Color(0.8, 1.0, 0.8, 1)
+	else:
+		cost_label.text = "Cost: %s" % GameManager.format_number(def["cost"])
+		cost_label.add_theme_color_override("font_color", Color(0.6, 0.8, 0.6, 1))
+		buy_button.text = "BUY"
+		_update_cps_click_button_style()
+
+func _update_cps_click_button_style() -> void:
+	if is_purchased:
+		return
+	var affordable := GameManager.can_afford_cps_click_upgrade(cps_click_upgrade_index)
+	buy_button.disabled = not affordable
+	if affordable:
+		buy_button.modulate = Color(1, 1, 1, 1)
+		buy_button.add_theme_stylebox_override("normal", _affordable_style)
+		buy_button.add_theme_stylebox_override("hover", _affordable_style)
+		buy_button.add_theme_stylebox_override("pressed", _affordable_style)
+	else:
+		buy_button.modulate = Color(0.7, 0.7, 0.7, 1)
+		buy_button.add_theme_stylebox_override("normal", _unaffordable_style)
+		buy_button.add_theme_stylebox_override("hover", _unaffordable_style)
+		buy_button.add_theme_stylebox_override("pressed", _unaffordable_style)
+		buy_button.add_theme_stylebox_override("disabled", _unaffordable_style)
+
 func _on_buy() -> void:
-	if is_click_upgrade:
+	if is_cps_click_upgrade:
+		if GameManager.buy_cps_click_upgrade(cps_click_upgrade_index):
+			is_purchased = true
+			_refresh_cps_click_upgrade()
+	elif is_click_upgrade:
 		if GameManager.buy_click_upgrade(click_upgrade_index):
 			is_purchased = true
 			_refresh_click_upgrade()
@@ -139,7 +188,9 @@ func _on_buy() -> void:
 
 func _on_lobsters_changed(_total: float) -> void:
 	if is_node_ready() and not is_purchased:
-		if is_click_upgrade:
+		if is_cps_click_upgrade:
+			_update_cps_click_button_style()
+		elif is_click_upgrade:
 			_update_buy_button_style_click()
 		else:
 			_update_buy_button_style()

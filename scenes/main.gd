@@ -280,9 +280,10 @@ func _refresh_upgrades() -> void:
 
 	var has_any := false
 
-	# Click upgrades first
+	# Click upgrades first (flat multipliers + CPS-based)
 	var click_upgrades := GameManager.get_available_click_upgrades()
-	if not click_upgrades.is_empty():
+	var cps_click_upgrades := GameManager.get_available_cps_click_upgrades()
+	if not click_upgrades.is_empty() or not cps_click_upgrades.is_empty():
 		has_any = true
 		var header := Label.new()
 		header.text = "🦞 CLICK POWER"
@@ -294,6 +295,10 @@ func _refresh_upgrades() -> void:
 			var item := BuildingUpgradeItemScene.instantiate()
 			upgrade_container.add_child(item)
 			item.setup_click_upgrade(upg["index"], upg["purchased"])
+		for upg in cps_click_upgrades:
+			var item := BuildingUpgradeItemScene.instantiate()
+			upgrade_container.add_child(item)
+			item.setup_cps_click_upgrade(upg["index"], upg["purchased"])
 
 	# Building upgrades
 	var building_upgrades := GameManager.get_available_upgrades()

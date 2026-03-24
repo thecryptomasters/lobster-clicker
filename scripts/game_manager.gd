@@ -39,6 +39,14 @@ var click_upgrade_defs: Array = [
 var click_upgrades_purchased: Array[bool] = [false, false, false]
 var lifetime_lobsters: float = 0.0  # Total lobsters ever generated (never decreases)
 
+# CPS-to-click upgrades: add a percentage of LPS to each click
+var cps_click_upgrade_defs: Array = [
+	{"threshold": 50000, "cost": 25000, "percent": 1, "name": "Reinforced Grip", "desc": "+1% of LPS added per click. (50,000 lifetime lobsters)"},
+	{"threshold": 250000, "cost": 125000, "percent": 2, "name": "Vice Grip", "desc": "+2% of LPS added per click. (250,000 lifetime lobsters)"},
+	{"threshold": 2000000, "cost": 1000000, "percent": 5, "name": "Hydraulic Crusher", "desc": "+5% of LPS added per click. (2,000,000 lifetime lobsters)"},
+]
+var cps_click_upgrades_purchased: Array[bool] = [false, false, false]
+
 func _ready() -> void:
 	building_counts.resize(building_defs.size())
 	building_counts.fill(0)
@@ -60,11 +68,22 @@ func get_building_multiplier(index: int) -> float:
 				mult *= 2.0
 	return mult
 
+func get_click_value() -> float:
+	var base := lobsters_per_click
+	var cps_bonus_percent := 0.0
+	for i in range(cps_click_upgrades_purchased.size()):
+		if cps_click_upgrades_purchased[i]:
+			cps_bonus_percent += cps_click_upgrade_defs[i]["percent"]
+	if cps_bonus_percent > 0 and lobsters_per_second > 0:
+		base += lobsters_per_second * (cps_bonus_percent / 100.0)
+	return base
+
 func click() -> float:
-	total_lobsters += lobsters_per_click
-	lifetime_lobsters += lobsters_per_click
+	var value := get_click_value()
+	total_lobsters += value
+	lifetime_lobsters += value
 	lobsters_changed.emit(total_lobsters)
-	return lobsters_per_click
+	return value
 
 func _process(delta: float) -> void:
 	if lobsters_per_second > 0:
@@ -176,6 +195,33 @@ func buy_building_upgrade(building_index: int, tier: int) -> bool:
 	lobsters_changed.emit(total_lobsters)
 	return true
 
+func get_available_cps_click_upgrades() -> Array:
+	var result: Array = []
+	for i in range(cps_click_upgrade_defs.size()):
+		if lifetime_lobsters >= cps_click_upgrade_defs[i]["threshold"]:
+			result.append({
+				"index": i,
+				"name": cps_click_upgrade_defs[i]["name"],
+				"desc": cps_click_upgrade_defs[i]["desc"],
+				"cost": cps_click_upgrade_defs[i]["cost"],
+				"purchased": cps_click_upgrades_purchased[i],
+			})
+	return result
+
+func can_afford_cps_click_upgrade(index: int) -> bool:
+	return total_lobsters >= cps_click_upgrade_defs[index]["cost"]
+
+func buy_cps_click_upgrade(index: int) -> bool:
+	if cps_click_upgrades_purchased[index]:
+		return false
+	var cost: float = cps_click_upgrade_defs[index]["cost"]
+	if total_lobsters < cost:
+		return false
+	total_lobsters -= cost
+	cps_click_upgrades_purchased[index] = true
+	lobsters_changed.emit(total_lobsters)
+	return true
+
 func format_number(n: float) -> String:
 	var num := int(floor(n))
 	var s := str(num)
@@ -199,12 +245,16 @@ func get_save_data() -> Dictionary:
 	var click_data: Array = []
 	for i in range(click_upgrades_purchased.size()):
 		click_data.append(click_upgrades_purchased[i])
+	var cps_click_data: Array = []
+	for i in range(cps_click_upgrades_purchased.size()):
+		cps_click_data.append(cps_click_upgrades_purchased[i])
 	return {
 		"total_lobsters": total_lobsters,
 		"lifetime_lobsters": lifetime_lobsters,
 		"building_counts": building_counts,
 		"building_upgrades": upgrades_data,
 		"click_upgrades": click_data,
+		"cps_click_upgrades": cps_click_data,
 		"last_save_time": Time.get_unix_time_from_system(),
 	}
 
@@ -223,10 +273,13 @@ func load_save_data(data: Dictionary) -> void:
 				if tier < tiers.size():
 					building_upgrades[bi][tier] = tiers[tier]
 	# Load click upgrades
-	lifetime_lobsters = data.get("lifetime_lobsters", total_lobsters)  # backward compat: assume lifetime = total
+	lifetime_lobsters = data.get("lifetime_lobsters", total_lobsters)
 	var click_data = data.get("click_upgrades", [])
 	for i in range(mini(click_data.size(), click_upgrades_purchased.size())):
 		click_upgrades_purchased[i] = click_data[i]
+	var cps_click_data = data.get("cps_click_upgrades", [])
+	for i in range(mini(cps_click_data.size(), cps_click_upgrades_purchased.size())):
+		cps_click_upgrades_purchased[i] = cps_click_data[i]
 	_recalculate_lps()
 	_recalculate_click_power()
 	lobsters_changed.emit(total_lobsters)

@@ -11,6 +11,7 @@ const BuildingUpgradeItemScene := preload("res://scenes/building_upgrade_item.ts
 @onready var claw_button: Button = %ClawButton
 @onready var left_pincer: Node2D = %LeftPincer
 @onready var right_pincer: Node2D = %RightPincer
+@onready var boost_aura: CPUParticles2D = %BoostAura
 @onready var building_container: VBoxContainer = %BuildingContainer
 @onready var upgrade_container: VBoxContainer = %UpgradeContainer
 @onready var particles: CPUParticles2D = %ClickParticles
@@ -764,13 +765,42 @@ func _finish_gacha_roll() -> void:
 	boost_desc_label.text = "%s for %ds" % [result["desc"], int(result["duration"])]
 	_update_gacha_cost()
 
-func _on_boost_activated(_boost: Dictionary) -> void:
+const RARITY_COLORS := {
+	"common": Color(0.85, 0.85, 0.85, 0.5),
+	"uncommon": Color(0.2, 0.6, 0.86, 0.5),
+	"rare": Color(0.61, 0.35, 0.71, 0.5),
+	"legendary": Color(0.95, 0.61, 0.07, 0.6),
+}
+
+func _on_boost_activated(boost: Dictionary) -> void:
 	_update_boost_hud_display()
 	_update_lps_display()
+	# Activate aura
+	var rarity: String = boost.get("rarity", "common")
+	var aura_color: Color = RARITY_COLORS.get(rarity, RARITY_COLORS["common"])
+	boost_aura.color = aura_color
+	# Legendary gets more particles and bigger
+	if rarity == "legendary":
+		boost_aura.amount = 50
+		boost_aura.scale_amount_min = 4.0
+		boost_aura.scale_amount_max = 10.0
+		boost_aura.initial_velocity_max = 60.0
+	elif rarity == "rare":
+		boost_aura.amount = 40
+		boost_aura.scale_amount_min = 3.5
+		boost_aura.scale_amount_max = 8.0
+		boost_aura.initial_velocity_max = 50.0
+	else:
+		boost_aura.amount = 30
+		boost_aura.scale_amount_min = 3.0
+		boost_aura.scale_amount_max = 7.0
+		boost_aura.initial_velocity_max = 40.0
+	boost_aura.emitting = true
 
 func _on_boost_expired() -> void:
 	boost_hud_label.visible = false
 	_update_lps_display()
+	boost_aura.emitting = false
 	if result_panel.visible:
 		timer_label.text = "Expired!"
 		timer_label.add_theme_color_override("font_color", Color("#667788"))

@@ -156,8 +156,8 @@ func _apply_layout() -> void:
 	else:
 		# Mobile: stacked vertically (VBox), claw compact on top, buildings get more space
 		root_container.vertical = true
-		left_section.size_flags_stretch_ratio = 0.6
-		right_panel.size_flags_stretch_ratio = 1.0
+		left_section.size_flags_stretch_ratio = 0.5
+		right_panel.size_flags_stretch_ratio = 1.2
 		left_section.size_flags_vertical = Control.SIZE_EXPAND_FILL
 		right_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
 

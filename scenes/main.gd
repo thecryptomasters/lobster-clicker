@@ -226,11 +226,21 @@ func _on_lobsters_changed(total: float) -> void:
 	lobster_count_label.text = GameManager.format_number(total)
 	lifetime_label.text = "%s lifetime" % GameManager.format_number(GameManager.lifetime_lobsters)
 
-func _on_lps_changed(lps: float) -> void:
-	if lps < 1.0 and lps > 0:
-		lps_label.text = "%.1f lobsters/sec" % lps
+func _on_lps_changed(_lps: float) -> void:
+	_update_lps_display()
+
+func _update_lps_display() -> void:
+	var base_lps := GameManager.lobsters_per_second
+	var boost_mult := GameManager.get_gacha_boost_multiplier("building_mult")
+	var effective_lps := base_lps * boost_mult
+	if effective_lps < 1.0 and effective_lps > 0:
+		lps_label.text = "%.1f lobsters/sec" % effective_lps
 	else:
-		lps_label.text = "%s lobsters/sec" % GameManager.format_number(lps)
+		lps_label.text = "%s lobsters/sec" % GameManager.format_number(effective_lps)
+	if boost_mult > 1.0:
+		lps_label.add_theme_color_override("font_color", Color("#f39c12"))
+	else:
+		lps_label.add_theme_color_override("font_color", Color(0.5, 0.7, 0.8, 1))
 
 var _click_debounce: float = 0.0
 const CLICK_DEBOUNCE_TIME := 0.05
@@ -756,9 +766,11 @@ func _finish_gacha_roll() -> void:
 
 func _on_boost_activated(_boost: Dictionary) -> void:
 	_update_boost_hud_display()
+	_update_lps_display()
 
 func _on_boost_expired() -> void:
 	boost_hud_label.visible = false
+	_update_lps_display()
 	if result_panel.visible:
 		timer_label.text = "Expired!"
 		timer_label.add_theme_color_override("font_color", Color("#667788"))

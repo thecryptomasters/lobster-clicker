@@ -5,6 +5,7 @@ const BuildingUpgradeItemScene := preload("res://scenes/building_upgrade_item.ts
 
 @onready var lobster_count_label: Label = %LobsterCountLabel
 @onready var lps_label: Label = %LpsLabel
+@onready var lifetime_label: Label = %LifetimeLabel
 @onready var claw_button: Button = %ClawButton
 @onready var left_pincer: Node2D = %LeftPincer
 @onready var right_pincer: Node2D = %RightPincer
@@ -167,6 +168,7 @@ func _apply_layout() -> void:
 
 func _on_lobsters_changed(total: float) -> void:
 	lobster_count_label.text = GameManager.format_number(total)
+	lifetime_label.text = "%s lifetime" % GameManager.format_number(GameManager.lifetime_lobsters)
 
 func _on_lps_changed(lps: float) -> void:
 	if lps < 1.0 and lps > 0:

@@ -85,6 +85,14 @@ horizontal_alignment = 1
 theme_override_colors/font_color = Color(0.5, 0.7, 0.8, 1)
 theme_override_font_sizes/font_size = 18
 
+[node name="LifetimeLabel" type="Label" parent="RootContainer/LeftSection"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "0 lifetime"
+horizontal_alignment = 1
+theme_override_colors/font_color = Color(0.35, 0.45, 0.55, 1)
+theme_override_font_sizes/font_size = 14
+
 [node name="Spacer2" type="Control" parent="RootContainer/LeftSection"]
 layout_mode = 2
 custom_minimum_size = Vector2(0, 12)

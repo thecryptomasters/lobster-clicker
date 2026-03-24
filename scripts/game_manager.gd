@@ -323,7 +323,10 @@ func get_gacha_cost() -> float:
 	return maxf(50.0, floor(lobsters_per_second * 30.0))
 
 func is_gacha_on_cooldown() -> bool:
-	return gacha_cooldown_remaining > 0.0
+	return gacha_cooldown_remaining > 0.0 or boost_time_remaining > 0.0
+
+func get_gacha_wait_time() -> float:
+	return maxf(gacha_cooldown_remaining, boost_time_remaining)
 
 func get_gacha_boost_multiplier(type: String) -> float:
 	if not active_boost.is_empty() and boost_time_remaining > 0 and active_boost["type"] == type:
@@ -331,7 +334,7 @@ func get_gacha_boost_multiplier(type: String) -> float:
 	return 1.0
 
 func roll_gacha() -> Dictionary:
-	if gacha_cooldown_remaining > 0:
+	if gacha_cooldown_remaining > 0 or boost_time_remaining > 0:
 		return {}
 	var cost := get_gacha_cost()
 	if total_lobsters < cost:

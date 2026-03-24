@@ -735,7 +735,7 @@ func _update_capsule_button_affordability() -> void:
 	var on_cooldown := GameManager.is_gacha_on_cooldown()
 	buy_capsule_button.disabled = not can_afford or _gacha_opening or on_cooldown
 	if on_cooldown and not _gacha_opening:
-		buy_capsule_button.text = "⏳ %ds" % ceili(GameManager.gacha_cooldown_remaining)
+		buy_capsule_button.text = "⏳ %ds" % ceili(GameManager.get_gacha_wait_time())
 	elif not _gacha_opening:
 		buy_capsule_button.text = "🎲 BUY CAPSULE"
 

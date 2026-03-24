@@ -15,6 +15,7 @@ func _ready() -> void:
 	buy_button.pressed.connect(_on_buy)
 	GameManager.lobsters_changed.connect(_on_lobsters_changed)
 	GameManager.building_purchased.connect(_on_building_purchased)
+	GameManager.lps_changed.connect(_on_lps_changed)
 
 	_affordable_style = StyleBoxFlat.new()
 	_affordable_style.bg_color = Color("#2d6b4f")
@@ -85,4 +86,8 @@ func _on_lobsters_changed(_total: float) -> void:
 
 func _on_building_purchased(index: int) -> void:
 	if index == building_index:
+		_refresh()
+
+func _on_lps_changed(_lps: float) -> void:
+	if is_node_ready():
 		_refresh()

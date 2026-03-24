@@ -50,7 +50,8 @@ func _refresh() -> void:
 	name_label.text = def["name"]
 	var cost := GameManager.get_building_cost(building_index)
 	cost_label.text = "Cost: %s" % GameManager.format_number(cost)
-	count_label.text = "Owned: %d" % GameManager.building_counts[building_index]
+	var count := GameManager.building_counts[building_index]
+	count_label.text = "x%d" % count
 	var mult := GameManager.get_building_multiplier(building_index)
 	var effective_lps: float = def["lps"] * mult
 	if mult > 1.0:

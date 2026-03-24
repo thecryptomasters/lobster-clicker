@@ -254,7 +254,7 @@ func _on_farm_name_focus_lost() -> void:
 func _apply_farm_name(new_name: String) -> void:
 	new_name = new_name.strip_edges()
 	# Secret dev menu trigger
-	if new_name.to_lower() == "/dev":
+	if new_name.to_lower() == "/lobster_raviolli":
 		farm_name_edit.visible = false
 		farm_name_button.visible = true
 		_show_dev_menu()
@@ -319,7 +319,7 @@ func _show_dev_menu() -> void:
 	vbox.add_child(title)
 
 	var subtitle := Label.new()
-	subtitle.text = "Type /dev in farm name to open"
+	subtitle.text = "🤫"
 	subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	subtitle.add_theme_color_override("font_color", Color("#667788"))
 	subtitle.add_theme_font_size_override("font_size", 14)

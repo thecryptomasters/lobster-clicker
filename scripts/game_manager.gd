@@ -7,6 +7,7 @@ signal upgrade_unlocked(building_index: int, tier: int)
 
 var total_lobsters: float = 0.0
 var lobsters_per_click: float = 1.0
+var farm_name: String = "My Lobster Farm"
 var lobsters_per_second: float = 0.0
 var last_save_time: int = 0
 
@@ -255,6 +256,7 @@ func get_save_data() -> Dictionary:
 		"building_upgrades": upgrades_data,
 		"click_upgrades": click_data,
 		"cps_click_upgrades": cps_click_data,
+		"farm_name": farm_name,
 		"last_save_time": Time.get_unix_time_from_system(),
 	}
 
@@ -280,6 +282,7 @@ func load_save_data(data: Dictionary) -> void:
 	var cps_click_data = data.get("cps_click_upgrades", [])
 	for i in range(mini(cps_click_data.size(), cps_click_upgrades_purchased.size())):
 		cps_click_upgrades_purchased[i] = cps_click_data[i]
+	farm_name = data.get("farm_name", "My Lobster Farm")
 	_recalculate_lps()
 	_recalculate_click_power()
 	lobsters_changed.emit(total_lobsters)

@@ -3,6 +3,8 @@ extends Control
 const BuildingItemScene := preload("res://scenes/building_item.tscn")
 const BuildingUpgradeItemScene := preload("res://scenes/building_upgrade_item.tscn")
 
+@onready var farm_name_button: Button = %FarmNameButton
+@onready var farm_name_edit: LineEdit = %FarmNameEdit
 @onready var lobster_count_label: Label = %LobsterCountLabel
 @onready var lps_label: Label = %LpsLabel
 @onready var lifetime_label: Label = %LifetimeLabel
@@ -51,8 +53,14 @@ func _ready() -> void:
 	GameManager.building_purchased.connect(_on_building_purchased)
 	claw_button.gui_input.connect(_on_claw_gui_input)
 	offline_ok_button.pressed.connect(_on_offline_ok)
+	farm_name_button.pressed.connect(_on_farm_name_clicked)
+	farm_name_edit.text_submitted.connect(_on_farm_name_submitted)
+	farm_name_edit.focus_exited.connect(_on_farm_name_focus_lost)
 	buildings_tab.pressed.connect(_on_buildings_tab)
 	upgrades_tab.pressed.connect(_on_upgrades_tab)
+
+	# Load farm name
+	farm_name_button.text = GameManager.farm_name
 
 	# Set initial open position
 	left_pincer.position.x = -OPEN_X
@@ -227,6 +235,30 @@ func _spawn_float_text(amount: float) -> void:
 
 func _on_offline_ok() -> void:
 	offline_popup.visible = false
+
+# --- Farm Name ---
+
+func _on_farm_name_clicked() -> void:
+	farm_name_button.visible = false
+	farm_name_edit.visible = true
+	farm_name_edit.text = GameManager.farm_name
+	farm_name_edit.grab_focus()
+	farm_name_edit.select_all()
+
+func _on_farm_name_submitted(new_name: String) -> void:
+	_apply_farm_name(new_name)
+
+func _on_farm_name_focus_lost() -> void:
+	_apply_farm_name(farm_name_edit.text)
+
+func _apply_farm_name(new_name: String) -> void:
+	new_name = new_name.strip_edges()
+	if new_name.is_empty():
+		new_name = "My Lobster Farm"
+	GameManager.farm_name = new_name
+	farm_name_button.text = new_name
+	farm_name_edit.visible = false
+	farm_name_button.visible = true
 
 # --- Tab Management ---
 

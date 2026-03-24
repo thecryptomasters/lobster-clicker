@@ -16,14 +16,14 @@ var last_save_time: int = 0
 # Building definitions (formerly "upgrades")
 var building_defs: Array = [
 	{"name": "Coin Collecting", "base_cost": 15, "lps": 0.1, "desc": "Every entrepreneur starts somewhere!"},
-	{"name": "Fishing Net", "base_cost": 100, "lps": 1.0, "desc": "Cast a wide net for more lobsters."},
-	{"name": "Fishing Boat", "base_cost": 1100, "lps": 8.0, "desc": "A sturdy boat for deep-sea lobstering."},
-	{"name": "Seafood Restaurant", "base_cost": 12000, "lps": 47.0, "desc": "Lobsters come to you!"},
-	{"name": "Fish Market", "base_cost": 130000, "lps": 260.0, "desc": "Control the lobster supply chain."},
-	{"name": "Ocean Farm", "base_cost": 1400000, "lps": 1400.0, "desc": "Industrial-scale lobster farming."},
-	{"name": "Research Lab", "base_cost": 20000000, "lps": 7800.0, "desc": "Genetically engineer the ultimate lobster."},
-	{"name": "Lobster Portal", "base_cost": 330000000, "lps": 44000.0, "desc": "Opens a rift to the Lobster Dimension."},
-	{"name": "Time Machine", "base_cost": 5100000000, "lps": 260000.0, "desc": "Harvest lobsters from every era in history."},
+	{"name": "Lobster Memes", "base_cost": 100, "lps": 1.0, "desc": "Only Gigachads and Galaxy Brains understand."},
+	{"name": "Fishcord Server", "base_cost": 1100, "lps": 8.0, "desc": "Data breaches now tri-monthly."},
+	{"name": "Seafood Restaurant", "base_cost": 12000, "lps": 47.0, "desc": "\"What? I was hungry!\""},
+	{"name": "Lobster Anime", "base_cost": 130000, "lps": 260.0, "desc": "wHatS ThE SaUcE?!?"},
+	{"name": "Bitclaw", "base_cost": 1400000, "lps": 1400.0, "desc": "Like money, but useless."},
+	{"name": "Clamazon", "base_cost": 20000000, "lps": 7800.0, "desc": "One-day delivery from Pacific to Atlantic."},
+	{"name": "Lobster AI", "base_cost": 330000000, "lps": 44000.0, "desc": "LLM = Lots of Lobster Money!"},
+	{"name": "Immortality", "base_cost": 5100000000, "lps": 260000.0, "desc": "Because who can afford healthcare?"},
 ]
 
 var building_counts: Array[int] = []

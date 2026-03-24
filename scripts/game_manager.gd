@@ -4,6 +4,8 @@ signal lobsters_changed(total: float)
 signal lps_changed(lps: float)
 signal building_purchased(index: int)
 signal upgrade_unlocked(building_index: int, tier: int)
+signal boost_activated(boost: Dictionary)
+signal boost_expired()
 
 var total_lobsters: float = 0.0
 var lobsters_per_click: float = 1.0
@@ -39,6 +41,32 @@ var click_upgrade_defs: Array = [
 ]
 var click_upgrades_purchased: Array[bool] = [false, false, false]
 var lifetime_lobsters: float = 0.0  # Total lobsters ever generated (never decreases)
+
+# Gacha boost system
+const GACHA_BOOSTS := [
+	# Common (50% total)
+	{"name": "Tiny Tide", "desc": "2x building production", "type": "building_mult", "mult": 2.0, "duration": 30.0, "rarity": "common", "weight": 25},
+	{"name": "Quick Pinch", "desc": "3x clicking power", "type": "click_mult", "mult": 3.0, "duration": 20.0, "rarity": "common", "weight": 25},
+	# Uncommon (30% total)
+	{"name": "Rising Tide", "desc": "5x building production", "type": "building_mult", "mult": 5.0, "duration": 30.0, "rarity": "uncommon", "weight": 15},
+	{"name": "Power Pinch", "desc": "10x clicking power", "type": "click_mult", "mult": 10.0, "duration": 15.0, "rarity": "uncommon", "weight": 15},
+	# Rare (15% total)
+	{"name": "Tidal Wave", "desc": "10x building production", "type": "building_mult", "mult": 10.0, "duration": 20.0, "rarity": "rare", "weight": 8},
+	{"name": "Mega Pinch", "desc": "50x clicking power", "type": "click_mult", "mult": 50.0, "duration": 10.0, "rarity": "rare", "weight": 7},
+	# Legendary (5% total)
+	{"name": "TSUNAMI", "desc": "25x building production", "type": "building_mult", "mult": 25.0, "duration": 15.0, "rarity": "legendary", "weight": 2},
+	{"name": "LOBSTER FRENZY", "desc": "100x clicking power", "type": "click_mult", "mult": 100.0, "duration": 10.0, "rarity": "legendary", "weight": 3},
+]
+
+const RARITY_COLORS := {
+	"common": "#aaaaaa",
+	"uncommon": "#3498db",
+	"rare": "#9b59b6",
+	"legendary": "#f39c12",
+}
+
+var active_boost: Dictionary = {}
+var boost_time_remaining: float = 0.0
 
 # CPS-to-click upgrades: add a percentage of LPS to each click
 var cps_click_upgrade_defs: Array = [
@@ -125,6 +153,7 @@ func get_click_value() -> float:
 			cps_bonus_percent += cps_click_upgrade_defs[i]["percent"]
 	if cps_bonus_percent > 0 and lobsters_per_second > 0:
 		base += lobsters_per_second * (cps_bonus_percent / 100.0)
+	base *= get_gacha_boost_multiplier("click_mult")
 	return base
 
 func click() -> float:
@@ -135,8 +164,16 @@ func click() -> float:
 	return value
 
 func _process(delta: float) -> void:
+	# Tick boost timer
+	if boost_time_remaining > 0:
+		boost_time_remaining -= delta
+		if boost_time_remaining <= 0:
+			boost_time_remaining = 0.0
+			active_boost = {}
+			boost_expired.emit()
+
 	if lobsters_per_second > 0:
-		var earned := lobsters_per_second * delta
+		var earned := lobsters_per_second * get_gacha_boost_multiplier("building_mult") * delta
 		total_lobsters += earned
 		lifetime_lobsters += earned
 		lobsters_changed.emit(total_lobsters)
@@ -270,6 +307,42 @@ func buy_cps_click_upgrade(index: int) -> bool:
 	cps_click_upgrades_purchased[index] = true
 	lobsters_changed.emit(total_lobsters)
 	return true
+
+# --- Gacha Boost System ---
+
+func get_gacha_cost() -> float:
+	return maxf(50.0, floor(lobsters_per_second * 10.0))
+
+func get_gacha_boost_multiplier(type: String) -> float:
+	if not active_boost.is_empty() and boost_time_remaining > 0 and active_boost["type"] == type:
+		return active_boost["mult"]
+	return 1.0
+
+func roll_gacha() -> Dictionary:
+	var cost := get_gacha_cost()
+	if total_lobsters < cost:
+		return {}
+	total_lobsters -= cost
+	# Weighted random selection
+	var total_weight := 0
+	for b in GACHA_BOOSTS:
+		total_weight += b["weight"]
+	var roll := randi() % total_weight
+	var cumulative := 0
+	for b in GACHA_BOOSTS:
+		cumulative += b["weight"]
+		if roll < cumulative:
+			active_boost = b.duplicate()
+			boost_time_remaining = b["duration"]
+			boost_activated.emit(active_boost)
+			lobsters_changed.emit(total_lobsters)
+			return active_boost
+	# Fallback
+	active_boost = GACHA_BOOSTS[0].duplicate()
+	boost_time_remaining = GACHA_BOOSTS[0]["duration"]
+	boost_activated.emit(active_boost)
+	lobsters_changed.emit(total_lobsters)
+	return active_boost
 
 func format_number(n: float) -> String:
 	var num := int(floor(n))

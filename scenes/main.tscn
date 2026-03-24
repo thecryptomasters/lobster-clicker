@@ -104,6 +104,14 @@ horizontal_alignment = 1
 theme_override_colors/font_color = Color(0.5, 0.7, 0.8, 1)
 theme_override_font_sizes/font_size = 18
 
+[node name="BoostHudLabel" type="Label" parent="RootContainer/LeftSection"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+text = ""
+horizontal_alignment = 1
+theme_override_font_sizes/font_size = 14
+
 [node name="LifetimeLabel" type="Label" parent="RootContainer/LeftSection"]
 unique_name_in_owner = true
 layout_mode = 2
@@ -244,6 +252,16 @@ flat = true
 theme_override_colors/font_color = Color(0.4, 0.467, 0.533, 1)
 theme_override_font_sizes/font_size = 22
 
+[node name="ConsumablesTab" type="Button" parent="RootContainer/RightPanel/VBox/TabBar"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+custom_minimum_size = Vector2(0, 50)
+text = "GACHA"
+flat = true
+theme_override_colors/font_color = Color(0.4, 0.467, 0.533, 1)
+theme_override_font_sizes/font_size = 22
+
 [node name="Separator" type="HSeparator" parent="RootContainer/RightPanel/VBox"]
 layout_mode = 2
 theme_override_colors/separator_color = Color(0.1, 0.29, 0.37, 1)
@@ -264,6 +282,79 @@ visible = false
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 10
+
+[node name="ConsumablesContainer" type="VBoxContainer" parent="RootContainer/RightPanel/VBox/ScrollContainer"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 12
+
+[node name="GachaTitle" type="Label" parent="RootContainer/RightPanel/VBox/ScrollContainer/ConsumablesContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "🎰 LOBSTER GACHA"
+horizontal_alignment = 1
+theme_override_colors/font_color = Color(0.902, 0.494, 0.133, 1)
+theme_override_font_sizes/font_size = 26
+
+[node name="GachaDesc" type="Label" parent="RootContainer/RightPanel/VBox/ScrollContainer/ConsumablesContainer"]
+layout_mode = 2
+text = "Buy capsules for random temporary boosts!"
+horizontal_alignment = 1
+theme_override_colors/font_color = Color(0.5, 0.65, 0.75, 1)
+theme_override_font_sizes/font_size = 14
+
+[node name="GachaCostLabel" type="Label" parent="RootContainer/RightPanel/VBox/ScrollContainer/ConsumablesContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Capsule Cost: 50"
+horizontal_alignment = 1
+theme_override_colors/font_color = Color(0.6, 0.8, 0.6, 1)
+theme_override_font_sizes/font_size = 18
+
+[node name="BuyCapsuleButton" type="Button" parent="RootContainer/RightPanel/VBox/ScrollContainer/ConsumablesContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+custom_minimum_size = Vector2(0, 60)
+text = "🎲 BUY CAPSULE"
+theme_override_font_sizes/font_size = 24
+
+[node name="ResultPanel" type="VBoxContainer" parent="RootContainer/RightPanel/VBox/ScrollContainer/ConsumablesContainer"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="RarityLabel" type="Label" parent="RootContainer/RightPanel/VBox/ScrollContainer/ConsumablesContainer/ResultPanel"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "★ LEGENDARY ★"
+horizontal_alignment = 1
+theme_override_font_sizes/font_size = 16
+
+[node name="BoostNameLabel" type="Label" parent="RootContainer/RightPanel/VBox/ScrollContainer/ConsumablesContainer/ResultPanel"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "TSUNAMI"
+horizontal_alignment = 1
+theme_override_font_sizes/font_size = 24
+
+[node name="BoostDescLabel" type="Label" parent="RootContainer/RightPanel/VBox/ScrollContainer/ConsumablesContainer/ResultPanel"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "25x building production for 15s"
+horizontal_alignment = 1
+theme_override_colors/font_color = Color(0.7, 0.7, 0.7, 1)
+theme_override_font_sizes/font_size = 15
+
+[node name="TimerLabel" type="Label" parent="RootContainer/RightPanel/VBox/ScrollContainer/ConsumablesContainer/ResultPanel"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "14.3s remaining"
+horizontal_alignment = 1
+theme_override_colors/font_color = Color(1, 0.843, 0.4, 1)
+theme_override_font_sizes/font_size = 18
 
 [node name="OfflinePopup" type="PanelContainer" parent="."]
 unique_name_in_owner = true

@@ -20,6 +20,16 @@ const BuildingUpgradeItemScene := preload("res://scenes/building_upgrade_item.ts
 @onready var offline_ok_button: Button = %OfflineOkButton
 @onready var buildings_tab: Button = %BuildingsTab
 @onready var upgrades_tab: Button = %UpgradesTab
+@onready var consumables_tab: Button = %ConsumablesTab
+@onready var consumables_container: VBoxContainer = %ConsumablesContainer
+@onready var gacha_cost_label: Label = %GachaCostLabel
+@onready var buy_capsule_button: Button = %BuyCapsuleButton
+@onready var result_panel: VBoxContainer = %ResultPanel
+@onready var rarity_label: Label = %RarityLabel
+@onready var boost_name_label: Label = %BoostNameLabel
+@onready var boost_desc_label: Label = %BoostDescLabel
+@onready var timer_label: Label = %TimerLabel
+@onready var boost_hud_label: Label = %BoostHudLabel
 @onready var root_container: BoxContainer = %RootContainer
 @onready var left_section: VBoxContainer = %LeftSection
 @onready var right_panel: PanelContainer = %RightPanel
@@ -34,8 +44,12 @@ enum ClawState { IDLE, SNAPPING, OPENING }
 var claw_state: int = ClawState.IDLE
 var claw_progress: float = 0.0
 
-enum Tab { BUILDINGS, UPGRADES }
+enum Tab { BUILDINGS, UPGRADES, CONSUMABLES }
 var current_tab: int = Tab.BUILDINGS
+
+# Gacha animation state
+var _gacha_opening: bool = false
+var _gacha_opening_timer: float = 0.0
 
 # Flash state for upgrades tab
 var _flash_timer: float = 0.0
@@ -58,6 +72,12 @@ func _ready() -> void:
 	farm_name_edit.focus_exited.connect(_on_farm_name_focus_lost)
 	buildings_tab.pressed.connect(_on_buildings_tab)
 	upgrades_tab.pressed.connect(_on_upgrades_tab)
+	consumables_tab.pressed.connect(_on_consumables_tab)
+	buy_capsule_button.pressed.connect(_on_buy_capsule)
+	GameManager.boost_activated.connect(_on_boost_activated)
+	GameManager.boost_expired.connect(_on_boost_expired)
+	_style_buy_capsule_button()
+	consumables_tab.visible = GameManager.lifetime_lobsters >= 500
 
 	# Load farm name
 	farm_name_button.text = GameManager.farm_name
@@ -98,6 +118,24 @@ func _process(delta: float) -> void:
 			while _hold_click_accumulator >= 1.0:
 				_hold_click_accumulator -= 1.0
 				_do_click()
+
+	# Update boost HUD and consumables timer
+	_update_boost_hud(delta)
+
+	# Gacha opening animation
+	if _gacha_opening:
+		_gacha_opening_timer -= delta
+		if _gacha_opening_timer <= 0:
+			_gacha_opening = false
+			_finish_gacha_roll()
+
+	# Check consumables tab visibility
+	if not consumables_tab.visible and GameManager.lifetime_lobsters >= 500:
+		consumables_tab.visible = true
+
+	# Update gacha cost display when on consumables tab
+	if current_tab == Tab.CONSUMABLES and Engine.get_process_frames() % 30 == 0:
+		_update_gacha_cost()
 
 	# Check for new click upgrades (throttle)
 	if Engine.get_process_frames() % 60 == 0:
@@ -450,6 +488,9 @@ func _show_dev_menu() -> void:
 		GameManager.building_counts.fill(0)
 		GameManager.click_upgrades_purchased.fill(false)
 		GameManager.cps_click_upgrades_purchased.fill(false)
+		GameManager.active_boost = {}
+		GameManager.boost_time_remaining = 0.0
+		GameManager.hold_click_purchased.fill(false)
 		GameManager._init_building_upgrades()
 		GameManager._recalculate_lps()
 		GameManager._recalculate_click_power()
@@ -531,15 +572,18 @@ func _switch_tab(tab: int) -> void:
 	current_tab = tab
 	building_container.visible = (tab == Tab.BUILDINGS)
 	upgrade_container.visible = (tab == Tab.UPGRADES)
+	consumables_container.visible = (tab == Tab.CONSUMABLES)
 	_update_tab_styles()
+	if tab == Tab.CONSUMABLES:
+		_update_gacha_cost()
+		_update_capsule_button_affordability()
 
 func _update_tab_styles() -> void:
-	if current_tab == Tab.BUILDINGS:
-		buildings_tab.add_theme_color_override("font_color", Color("#ffd766"))
-		upgrades_tab.add_theme_color_override("font_color", Color("#667788"))
-	else:
-		buildings_tab.add_theme_color_override("font_color", Color("#667788"))
-		upgrades_tab.add_theme_color_override("font_color", Color("#ffd766"))
+	var active_color := Color("#ffd766")
+	var inactive_color := Color("#667788")
+	buildings_tab.add_theme_color_override("font_color", active_color if current_tab == Tab.BUILDINGS else inactive_color)
+	upgrades_tab.add_theme_color_override("font_color", active_color if current_tab == Tab.UPGRADES else inactive_color)
+	consumables_tab.add_theme_color_override("font_color", active_color if current_tab == Tab.CONSUMABLES else inactive_color)
 
 func _on_upgrade_unlocked(_building_index: int, _tier: int) -> void:
 	_flash_active = true
@@ -616,3 +660,126 @@ func _refresh_upgrades() -> void:
 		empty_label.add_theme_color_override("font_color", Color("#667788"))
 		empty_label.add_theme_font_size_override("font_size", 18)
 		upgrade_container.add_child(empty_label)
+
+# --- Consumables / Gacha ---
+
+func _on_consumables_tab() -> void:
+	_switch_tab(Tab.CONSUMABLES)
+
+func _style_buy_capsule_button() -> void:
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color("#e67e22")
+	style.corner_radius_top_left = 8
+	style.corner_radius_top_right = 8
+	style.corner_radius_bottom_left = 8
+	style.corner_radius_bottom_right = 8
+	style.content_margin_left = 12.0
+	style.content_margin_right = 12.0
+	style.content_margin_top = 8.0
+	style.content_margin_bottom = 8.0
+	buy_capsule_button.add_theme_stylebox_override("normal", style)
+	var hover := StyleBoxFlat.new()
+	hover.bg_color = Color("#d35400")
+	hover.corner_radius_top_left = 8
+	hover.corner_radius_top_right = 8
+	hover.corner_radius_bottom_left = 8
+	hover.corner_radius_bottom_right = 8
+	hover.content_margin_left = 12.0
+	hover.content_margin_right = 12.0
+	hover.content_margin_top = 8.0
+	hover.content_margin_bottom = 8.0
+	buy_capsule_button.add_theme_stylebox_override("hover", hover)
+	buy_capsule_button.add_theme_stylebox_override("pressed", hover)
+	var disabled := StyleBoxFlat.new()
+	disabled.bg_color = Color("#555555")
+	disabled.corner_radius_top_left = 8
+	disabled.corner_radius_top_right = 8
+	disabled.corner_radius_bottom_left = 8
+	disabled.corner_radius_bottom_right = 8
+	disabled.content_margin_left = 12.0
+	disabled.content_margin_right = 12.0
+	disabled.content_margin_top = 8.0
+	disabled.content_margin_bottom = 8.0
+	buy_capsule_button.add_theme_stylebox_override("disabled", disabled)
+
+func _update_gacha_cost() -> void:
+	var cost := GameManager.get_gacha_cost()
+	gacha_cost_label.text = "Capsule Cost: %s" % GameManager.format_number(cost)
+	_update_capsule_button_affordability()
+
+func _update_capsule_button_affordability() -> void:
+	var cost := GameManager.get_gacha_cost()
+	var can_afford := GameManager.total_lobsters >= cost
+	buy_capsule_button.disabled = not can_afford or _gacha_opening
+
+var _pending_gacha_result: Dictionary = {}
+
+func _on_buy_capsule() -> void:
+	if _gacha_opening:
+		return
+	var result := GameManager.roll_gacha()
+	if result.is_empty():
+		return
+	_pending_gacha_result = result
+	# Show opening animation
+	_gacha_opening = true
+	_gacha_opening_timer = 0.6
+	result_panel.visible = true
+	rarity_label.text = "Opening..."
+	rarity_label.add_theme_color_override("font_color", Color("#ffffff"))
+	boost_name_label.text = "🎲 🎲 🎲"
+	boost_name_label.add_theme_color_override("font_color", Color("#ffffff"))
+	boost_desc_label.text = ""
+	timer_label.text = ""
+	_update_gacha_cost()
+
+func _finish_gacha_roll() -> void:
+	var result := _pending_gacha_result
+	if result.is_empty():
+		return
+	var rarity: String = result["rarity"]
+	var color := Color(GameManager.RARITY_COLORS[rarity])
+	var rarity_display := rarity.to_upper()
+	if rarity == "legendary":
+		rarity_label.text = "★ %s ★" % rarity_display
+	elif rarity == "rare":
+		rarity_label.text = "◆ %s ◆" % rarity_display
+	elif rarity == "uncommon":
+		rarity_label.text = "● %s ●" % rarity_display
+	else:
+		rarity_label.text = rarity_display
+	rarity_label.add_theme_color_override("font_color", color)
+	boost_name_label.text = result["name"]
+	boost_name_label.add_theme_color_override("font_color", color)
+	boost_desc_label.text = "%s for %ds" % [result["desc"], int(result["duration"])]
+	_update_gacha_cost()
+
+func _on_boost_activated(_boost: Dictionary) -> void:
+	_update_boost_hud_display()
+
+func _on_boost_expired() -> void:
+	boost_hud_label.visible = false
+	if result_panel.visible:
+		timer_label.text = "Expired!"
+		timer_label.add_theme_color_override("font_color", Color("#667788"))
+
+func _update_boost_hud(delta: float) -> void:
+	if GameManager.boost_time_remaining > 0 and not GameManager.active_boost.is_empty():
+		_update_boost_hud_display()
+		# Update timer in result panel
+		if result_panel.visible:
+			timer_label.text = "%.1fs remaining" % GameManager.boost_time_remaining
+			timer_label.add_theme_color_override("font_color", Color("#ffd766"))
+	# Update capsule button affordability periodically
+	if current_tab == Tab.CONSUMABLES:
+		_update_capsule_button_affordability()
+
+func _update_boost_hud_display() -> void:
+	if GameManager.active_boost.is_empty() or GameManager.boost_time_remaining <= 0:
+		boost_hud_label.visible = false
+		return
+	boost_hud_label.visible = true
+	var b := GameManager.active_boost
+	var color := Color(GameManager.RARITY_COLORS[b["rarity"]])
+	boost_hud_label.text = "%s — %sx %s (%.0fs)" % [b["name"], str(b["mult"]), "buildings" if b["type"] == "building_mult" else "clicks", GameManager.boost_time_remaining]
+	boost_hud_label.add_theme_color_override("font_color", color)

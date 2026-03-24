@@ -675,6 +675,21 @@ func _refresh_upgrades() -> void:
 			upgrade_container.add_child(item)
 			item.setup(upg["building_index"], upg["tier"], upg["purchased"])
 
+	# Offline rate upgrades
+	var offline_upgrades := GameManager.get_available_offline_rate_upgrades()
+	if not offline_upgrades.is_empty():
+		has_any = true
+		var header := Label.new()
+		header.text = "🌙 OFFLINE PRODUCTION"
+		header.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		header.add_theme_color_override("font_color", Color("#5dade2"))
+		header.add_theme_font_size_override("font_size", 18)
+		upgrade_container.add_child(header)
+		for upg in offline_upgrades:
+			var item := BuildingUpgradeItemScene.instantiate()
+			upgrade_container.add_child(item)
+			item.setup_offline_rate_upgrade(upg["index"], upg["purchased"])
+
 	# Gacha cooldown upgrades
 	var gacha_cd_upgrades := GameManager.get_available_gacha_cooldown_upgrades()
 	if not gacha_cd_upgrades.is_empty():

@@ -71,8 +71,9 @@ func _calculate_offline_bonus() -> void:
 		var now := int(Time.get_unix_time_from_system())
 		var elapsed := now - saved_time
 		if elapsed > 5:
-			var earned := GameManager.lobsters_per_second * elapsed
+			var earned := GameManager.lobsters_per_second * elapsed * GameManager.get_offline_rate()
 			GameManager.total_lobsters += earned
+			GameManager.lifetime_lobsters += earned
 			GameManager.lobsters_changed.emit(GameManager.total_lobsters)
 			# Save the updated total immediately
 			save_game()
@@ -115,8 +116,9 @@ func load_game() -> void:
 		var now := int(Time.get_unix_time_from_system())
 		var elapsed := now - saved_time
 		if elapsed > 5 and GameManager.lobsters_per_second > 0:
-			offline_earnings = GameManager.lobsters_per_second * elapsed
+			offline_earnings = GameManager.lobsters_per_second * elapsed * GameManager.get_offline_rate()
 			GameManager.total_lobsters += offline_earnings
+			GameManager.lifetime_lobsters += offline_earnings
 			GameManager.lobsters_changed.emit(GameManager.total_lobsters)
 
 func _notification(what: int) -> void:

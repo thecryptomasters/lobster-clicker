@@ -43,6 +43,50 @@ var click_upgrade_defs: Array = [
 var click_upgrades_purchased: Array[bool] = [false, false, false]
 var lifetime_lobsters: float = 0.0  # Total lobsters ever generated (never decreases)
 
+# Offline production rate upgrades (base 5%)
+var offline_rate_defs: Array = [
+	{"threshold": 5000, "cost": 2500, "rate": 0.10, "name": "Lobster Lookout", "desc": "Offline production: 10%. (5,000 lifetime lobsters)"},
+	{"threshold": 50000, "cost": 25000, "rate": 0.225, "name": "Night Shift", "desc": "Offline production: 22.5%. (50,000 lifetime lobsters)"},
+	{"threshold": 500000, "cost": 250000, "rate": 0.50, "name": "Automated Traps", "desc": "Offline production: 50%. (500,000 lifetime lobsters)"},
+	{"threshold": 5000000, "cost": 2500000, "rate": 0.85, "name": "Deep Sea Drones", "desc": "Offline production: 85%. (5,000,000 lifetime lobsters)"},
+]
+var offline_rate_purchased: Array[bool] = [false, false, false, false]
+
+func get_offline_rate() -> float:
+	# Return highest unlocked rate, or base 5%
+	var rate := 0.05
+	for i in range(offline_rate_purchased.size()):
+		if offline_rate_purchased[i]:
+			rate = offline_rate_defs[i]["rate"]
+	return rate
+
+func get_available_offline_rate_upgrades() -> Array:
+	var result: Array = []
+	for i in range(offline_rate_defs.size()):
+		if lifetime_lobsters >= offline_rate_defs[i]["threshold"]:
+			result.append({
+				"index": i,
+				"name": offline_rate_defs[i]["name"],
+				"desc": offline_rate_defs[i]["desc"],
+				"cost": offline_rate_defs[i]["cost"],
+				"purchased": offline_rate_purchased[i],
+			})
+	return result
+
+func can_afford_offline_rate_upgrade(index: int) -> bool:
+	return total_lobsters >= offline_rate_defs[index]["cost"]
+
+func buy_offline_rate_upgrade(index: int) -> bool:
+	if offline_rate_purchased[index]:
+		return false
+	var cost: float = offline_rate_defs[index]["cost"]
+	if total_lobsters < cost:
+		return false
+	total_lobsters -= cost
+	offline_rate_purchased[index] = true
+	lobsters_changed.emit(total_lobsters)
+	return true
+
 # Gacha boost system
 const GACHA_BOOSTS := [
 	# Common (50% total)
@@ -440,6 +484,7 @@ func get_save_data() -> Dictionary:
 		"cps_click_upgrades": cps_click_data,
 		"hold_click_upgrades": Array(hold_click_purchased),
 		"gacha_cooldown_upgrades": Array(gacha_cooldown_upgrades_purchased),
+		"offline_rate_upgrades": Array(offline_rate_purchased),
 		"farm_name": farm_name,
 		"last_save_time": Time.get_unix_time_from_system(),
 	}
@@ -472,6 +517,9 @@ func load_save_data(data: Dictionary) -> void:
 	var gacha_cd_data = data.get("gacha_cooldown_upgrades", [])
 	for i in range(mini(gacha_cd_data.size(), gacha_cooldown_upgrades_purchased.size())):
 		gacha_cooldown_upgrades_purchased[i] = gacha_cd_data[i]
+	var offline_data = data.get("offline_rate_upgrades", [])
+	for i in range(mini(offline_data.size(), offline_rate_purchased.size())):
+		offline_rate_purchased[i] = offline_data[i]
 	farm_name = data.get("farm_name", "My Lobster Farm")
 	_recalculate_lps()
 	_recalculate_click_power()

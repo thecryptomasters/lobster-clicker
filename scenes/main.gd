@@ -513,6 +513,10 @@ func _show_dev_menu() -> void:
 		GameManager.active_boost = {}
 		GameManager.boost_time_remaining = 0.0
 		GameManager.hold_click_purchased.fill(false)
+		GameManager.gacha_cooldown_upgrades_purchased.fill(false)
+		GameManager.offline_rate_purchased.fill(false)
+		GameManager.offline_duration_purchased.fill(false)
+		GameManager.gacha_cooldown_remaining = 0.0
 		GameManager._init_building_upgrades()
 		GameManager._recalculate_lps()
 		GameManager._recalculate_click_power()

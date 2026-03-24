@@ -111,7 +111,7 @@ func _ready() -> void:
 
 	# Show offline popup if needed
 	if SaveManager.offline_earnings > 0:
-		offline_label.text = "Welcome back!\nYou earned %s lobsters\nwhile you were away!" % GameManager.format_number(SaveManager.offline_earnings)
+		offline_label.text = "Welcome back!\nYou earned %s Lobster Coins\nwhile you were away!" % GameManager.format_number(SaveManager.offline_earnings)
 		offline_popup.visible = true
 	else:
 		offline_popup.visible = false
@@ -236,7 +236,7 @@ func _apply_layout() -> void:
 
 func _on_lobsters_changed(total: float) -> void:
 	lobster_count_label.text = GameManager.format_number(total)
-	lifetime_label.text = "%s lifetime" % GameManager.format_number(GameManager.lifetime_lobsters)
+	lifetime_label.text = "%s lifetime LC" % GameManager.format_number(GameManager.lifetime_lobsters)
 
 func _on_lps_changed(_lps: float) -> void:
 	_update_lps_display()
@@ -246,9 +246,9 @@ func _update_lps_display() -> void:
 	var boost_mult := GameManager.get_gacha_boost_multiplier("building_mult")
 	var effective_lps := base_lps * boost_mult
 	if effective_lps < 1.0 and effective_lps > 0:
-		lps_label.text = "%.1f lobsters/sec" % effective_lps
+		lps_label.text = "%.1f LCPS" % effective_lps
 	else:
-		lps_label.text = "%s lobsters/sec" % GameManager.format_number(effective_lps)
+		lps_label.text = "%s LCPS" % GameManager.format_number(effective_lps)
 	if boost_mult > 1.0:
 		lps_label.add_theme_color_override("font_color", Color("#f39c12"))
 	else:
@@ -419,7 +419,7 @@ func _show_dev_menu() -> void:
 	vbox.add_child(subtitle)
 
 	# --- Add Lobsters ---
-	_dev_add_section(vbox, "Add Current Lobsters")
+	_dev_add_section(vbox, "Add Current LC")
 	var lobster_amounts := [1000, 10000, 100000, 1000000, 10000000]
 	var lobster_row := HBoxContainer.new()
 	lobster_row.add_theme_constant_override("separation", 6)
@@ -430,7 +430,7 @@ func _show_dev_menu() -> void:
 		lobster_row.add_child(btn)
 
 	# --- Add Lifetime Lobsters ---
-	_dev_add_section(vbox, "Add Lifetime Lobsters")
+	_dev_add_section(vbox, "Add Lifetime LC")
 	var lifetime_row := HBoxContainer.new()
 	lifetime_row.add_theme_constant_override("separation", 6)
 	vbox.add_child(lifetime_row)
@@ -440,7 +440,7 @@ func _show_dev_menu() -> void:
 		lifetime_row.add_child(btn)
 
 	# --- Set LPS ---
-	_dev_add_section(vbox, "Set Lobsters/sec")
+	_dev_add_section(vbox, "Set LCPS")
 	var lps_row := HBoxContainer.new()
 	lps_row.add_theme_constant_override("separation", 6)
 	vbox.add_child(lps_row)

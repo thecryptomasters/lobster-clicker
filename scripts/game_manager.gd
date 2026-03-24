@@ -39,28 +39,28 @@ var building_upgrades: Array = []
 # Click upgrades: unlock at lifetime lobster thresholds, each doubles click power
 # {threshold, cost, name, desc}
 var click_upgrade_defs: Array = [
-	{"threshold": 500, "cost": 500, "multiplier": 2, "name": "Iron Claws", "desc": "2x lobsters per click. (500 lifetime lobsters)"},
-	{"threshold": 5000, "cost": 5000, "multiplier": 5, "name": "Steel Claws", "desc": "5x lobsters per click. (5,000 lifetime lobsters)"},
-	{"threshold": 250000, "cost": 250000, "multiplier": 10, "name": "Diamond Claws", "desc": "10x lobsters per click. (250,000 lifetime lobsters)"},
+	{"threshold": 500, "cost": 500, "multiplier": 2, "name": "Iron Claws", "desc": "2x LC per click. (500 lifetime LC)"},
+	{"threshold": 5000, "cost": 5000, "multiplier": 5, "name": "Steel Claws", "desc": "5x LC per click. (5,000 lifetime LC)"},
+	{"threshold": 250000, "cost": 250000, "multiplier": 10, "name": "Diamond Claws", "desc": "10x LC per click. (250,000 lifetime LC)"},
 ]
 var click_upgrades_purchased: Array[bool] = [false, false, false]
 var lifetime_lobsters: float = 0.0  # Total lobsters ever generated (never decreases)
 
 # Offline production rate upgrades (base 5%)
 var offline_rate_defs: Array = [
-	{"threshold": 25000, "cost": 15000, "rate": 0.10, "name": "Lobster Lookout", "desc": "Offline production: 10%. (25,000 lifetime lobsters)"},
-	{"threshold": 500000, "cost": 300000, "rate": 0.225, "name": "Night Shift", "desc": "Offline production: 22.5%. (500,000 lifetime lobsters)"},
-	{"threshold": 5000000, "cost": 3000000, "rate": 0.50, "name": "Automated Traps", "desc": "Offline production: 50%. (5,000,000 lifetime lobsters)"},
-	{"threshold": 50000000, "cost": 30000000, "rate": 0.85, "name": "Deep Sea Drones", "desc": "Offline production: 85%. (50,000,000 lifetime lobsters)"},
+	{"threshold": 25000, "cost": 15000, "rate": 0.10, "name": "Lobster Lookout", "desc": "Offline production: 10%. (25,000 lifetime LC)"},
+	{"threshold": 500000, "cost": 300000, "rate": 0.225, "name": "Night Shift", "desc": "Offline production: 22.5%. (500,000 lifetime LC)"},
+	{"threshold": 5000000, "cost": 3000000, "rate": 0.50, "name": "Automated Traps", "desc": "Offline production: 50%. (5,000,000 lifetime LC)"},
+	{"threshold": 50000000, "cost": 30000000, "rate": 0.85, "name": "Deep Sea Drones", "desc": "Offline production: 85%. (50,000,000 lifetime LC)"},
 ]
 var offline_rate_purchased: Array[bool] = [false, false, false, false]
 
 # Offline duration cap upgrades (base 1 hour)
 var offline_duration_defs: Array = [
-	{"threshold": 50000, "cost": 30000, "hours": 3, "name": "Extended Nets", "desc": "Offline cap: 3 hours. (50,000 lifetime lobsters)"},
-	{"threshold": 1000000, "cost": 600000, "hours": 8, "name": "Overnight Crew", "desc": "Offline cap: 8 hours. (1,000,000 lifetime lobsters)"},
-	{"threshold": 10000000, "cost": 6000000, "hours": 16, "name": "Double Shift", "desc": "Offline cap: 16 hours. (10,000,000 lifetime lobsters)"},
-	{"threshold": 100000000, "cost": 60000000, "hours": 24, "name": "24/7 Operations", "desc": "Offline cap: 24 hours. (100,000,000 lifetime lobsters)"},
+	{"threshold": 50000, "cost": 30000, "hours": 3, "name": "Extended Nets", "desc": "Offline cap: 3 hours. (50,000 lifetime LC)"},
+	{"threshold": 1000000, "cost": 600000, "hours": 8, "name": "Overnight Crew", "desc": "Offline cap: 8 hours. (1,000,000 lifetime LC)"},
+	{"threshold": 10000000, "cost": 6000000, "hours": 16, "name": "Double Shift", "desc": "Offline cap: 16 hours. (10,000,000 lifetime LC)"},
+	{"threshold": 100000000, "cost": 60000000, "hours": 24, "name": "24/7 Operations", "desc": "Offline cap: 24 hours. (100,000,000 lifetime LC)"},
 ]
 var offline_duration_purchased: Array[bool] = [false, false, false, false]
 
@@ -161,19 +161,19 @@ var boost_time_remaining: float = 0.0
 
 # CPS-to-click upgrades: add a percentage of LPS to each click
 var cps_click_upgrade_defs: Array = [
-	{"threshold": 50000, "cost": 25000, "percent": 1, "name": "Reinforced Grip", "desc": "+1% of LPS added per click. (50,000 lifetime lobsters)"},
-	{"threshold": 250000, "cost": 125000, "percent": 2, "name": "Vice Grip", "desc": "+2% of LPS added per click. (250,000 lifetime lobsters)"},
-	{"threshold": 2000000, "cost": 1000000, "percent": 5, "name": "Hydraulic Crusher", "desc": "+5% of LPS added per click. (2,000,000 lifetime lobsters)"},
+	{"threshold": 50000, "cost": 25000, "percent": 1, "name": "Reinforced Grip", "desc": "+1% of LCPS added per click. (50,000 lifetime LC)"},
+	{"threshold": 250000, "cost": 125000, "percent": 2, "name": "Vice Grip", "desc": "+2% of LCPS added per click. (250,000 lifetime LC)"},
+	{"threshold": 2000000, "cost": 1000000, "percent": 5, "name": "Hydraulic Crusher", "desc": "+5% of LCPS added per click. (2,000,000 lifetime LC)"},
 ]
 var cps_click_upgrades_purchased: Array[bool] = [false, false, false]
 
 # Hold-to-click: unlocks continuous clicking while holding, with speed upgrades
 # Base rate = 3 clicks/sec, each speed upgrade increases it
 var hold_click_defs: Array = [
-	{"threshold": 5000, "cost": 2500, "name": "Steady Grip", "desc": "Hold to auto-click! (3 clicks/sec). 5,000 lifetime lobsters.", "cps": 3.0},
-	{"threshold": 25000, "cost": 12000, "name": "Rapid Grip", "desc": "Hold auto-click speed: 6/sec. 25,000 lifetime lobsters.", "cps": 6.0},
-	{"threshold": 150000, "cost": 75000, "name": "Turbo Grip", "desc": "Hold auto-click speed: 10/sec. 150,000 lifetime lobsters.", "cps": 10.0},
-	{"threshold": 750000, "cost": 400000, "name": "Machine Grip", "desc": "Hold auto-click speed: 16/sec. 750,000 lifetime lobsters.", "cps": 16.0},
+	{"threshold": 5000, "cost": 2500, "name": "Steady Grip", "desc": "Hold to auto-click! (3 clicks/sec). 5,000 lifetime LC.", "cps": 3.0},
+	{"threshold": 25000, "cost": 12000, "name": "Rapid Grip", "desc": "Hold auto-click speed: 6/sec. 25,000 lifetime LC.", "cps": 6.0},
+	{"threshold": 150000, "cost": 75000, "name": "Turbo Grip", "desc": "Hold auto-click speed: 10/sec. 150,000 lifetime LC.", "cps": 10.0},
+	{"threshold": 750000, "cost": 400000, "name": "Machine Grip", "desc": "Hold auto-click speed: 16/sec. 750,000 lifetime LC.", "cps": 16.0},
 ]
 var hold_click_purchased: Array[bool] = [false, false, false, false]
 
@@ -412,9 +412,9 @@ const GACHA_BASE_COOLDOWN := 60.0
 
 # Gacha cooldown reduction upgrades
 var gacha_cooldown_upgrade_defs: Array = [
-	{"threshold": 10000, "cost": 5000, "reduction": 10, "name": "Quick Draw", "desc": "Gacha cooldown -10s. (10,000 lifetime lobsters)"},
-	{"threshold": 100000, "cost": 50000, "reduction": 10, "name": "Faster Crank", "desc": "Gacha cooldown -10s. (100,000 lifetime lobsters)"},
-	{"threshold": 500000, "cost": 250000, "reduction": 10, "name": "Turbo Capsule", "desc": "Gacha cooldown -10s. (500,000 lifetime lobsters)"},
+	{"threshold": 10000, "cost": 5000, "reduction": 10, "name": "Quick Draw", "desc": "Boost cooldown -10s. (10,000 lifetime LC)"},
+	{"threshold": 100000, "cost": 50000, "reduction": 10, "name": "Faster Crank", "desc": "Boost cooldown -10s. (100,000 lifetime LC)"},
+	{"threshold": 500000, "cost": 250000, "reduction": 10, "name": "Turbo Capsule", "desc": "Boost cooldown -10s. (500,000 lifetime LC)"},
 ]
 var gacha_cooldown_upgrades_purchased: Array[bool] = [false, false, false]
 

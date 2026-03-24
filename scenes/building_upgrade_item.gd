@@ -82,6 +82,16 @@ var gacha_cd_upgrade_index: int = 0
 var is_offline_rate_upgrade: bool = false
 var offline_rate_upgrade_index: int = 0
 
+var is_offline_duration_upgrade: bool = false
+var offline_duration_upgrade_index: int = 0
+
+func setup_offline_duration_upgrade(index: int, purchased: bool) -> void:
+	offline_duration_upgrade_index = index
+	is_offline_duration_upgrade = true
+	is_purchased = purchased
+	if is_node_ready():
+		_refresh_offline_duration_upgrade()
+
 func setup_offline_rate_upgrade(index: int, purchased: bool) -> void:
 	offline_rate_upgrade_index = index
 	is_offline_rate_upgrade = true
@@ -307,8 +317,47 @@ func _update_offline_rate_button_style() -> void:
 		buy_button.add_theme_stylebox_override("pressed", _unaffordable_style)
 		buy_button.add_theme_stylebox_override("disabled", _unaffordable_style)
 
+func _refresh_offline_duration_upgrade() -> void:
+	var def: Dictionary = GameManager.offline_duration_defs[offline_duration_upgrade_index]
+	name_label.text = def["name"]
+	desc_label.text = def["desc"]
+	if is_purchased:
+		cost_label.text = "OWNED"
+		cost_label.add_theme_color_override("font_color", Color("#66cc88"))
+		buy_button.text = "OWNED ✓"
+		buy_button.disabled = true
+		buy_button.add_theme_stylebox_override("normal", _owned_style)
+		buy_button.add_theme_stylebox_override("disabled", _owned_style)
+		buy_button.modulate = Color(0.8, 1.0, 0.8, 1)
+	else:
+		cost_label.text = "Cost: %s" % GameManager.format_number(def["cost"])
+		cost_label.add_theme_color_override("font_color", Color(0.6, 0.8, 0.6, 1))
+		buy_button.text = "BUY"
+		_update_offline_duration_button_style()
+
+func _update_offline_duration_button_style() -> void:
+	if is_purchased:
+		return
+	var affordable := GameManager.can_afford_offline_duration_upgrade(offline_duration_upgrade_index)
+	buy_button.disabled = not affordable
+	if affordable:
+		buy_button.modulate = Color(1, 1, 1, 1)
+		buy_button.add_theme_stylebox_override("normal", _affordable_style)
+		buy_button.add_theme_stylebox_override("hover", _affordable_style)
+		buy_button.add_theme_stylebox_override("pressed", _affordable_style)
+	else:
+		buy_button.modulate = Color(0.7, 0.7, 0.7, 1)
+		buy_button.add_theme_stylebox_override("normal", _unaffordable_style)
+		buy_button.add_theme_stylebox_override("hover", _unaffordable_style)
+		buy_button.add_theme_stylebox_override("pressed", _unaffordable_style)
+		buy_button.add_theme_stylebox_override("disabled", _unaffordable_style)
+
 func _on_buy() -> void:
-	if is_offline_rate_upgrade:
+	if is_offline_duration_upgrade:
+		if GameManager.buy_offline_duration_upgrade(offline_duration_upgrade_index):
+			is_purchased = true
+			_refresh_offline_duration_upgrade()
+	elif is_offline_rate_upgrade:
 		if GameManager.buy_offline_rate_upgrade(offline_rate_upgrade_index):
 			is_purchased = true
 			_refresh_offline_rate_upgrade()
@@ -335,7 +384,9 @@ func _on_buy() -> void:
 
 func _on_lobsters_changed(_total: float) -> void:
 	if is_node_ready() and not is_purchased:
-		if is_offline_rate_upgrade:
+		if is_offline_duration_upgrade:
+			_update_offline_duration_button_style()
+		elif is_offline_rate_upgrade:
 			_update_offline_rate_button_style()
 		elif is_gacha_cd_upgrade:
 			_update_gacha_cd_button_style()

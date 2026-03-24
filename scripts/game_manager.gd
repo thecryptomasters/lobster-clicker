@@ -52,6 +52,49 @@ var offline_rate_defs: Array = [
 ]
 var offline_rate_purchased: Array[bool] = [false, false, false, false]
 
+# Offline duration cap upgrades (base 1 hour)
+var offline_duration_defs: Array = [
+	{"threshold": 10000, "cost": 5000, "hours": 3, "name": "Extended Nets", "desc": "Offline cap: 3 hours. (10,000 lifetime lobsters)"},
+	{"threshold": 100000, "cost": 50000, "hours": 8, "name": "Overnight Crew", "desc": "Offline cap: 8 hours. (100,000 lifetime lobsters)"},
+	{"threshold": 1000000, "cost": 500000, "hours": 16, "name": "Double Shift", "desc": "Offline cap: 16 hours. (1,000,000 lifetime lobsters)"},
+	{"threshold": 10000000, "cost": 5000000, "hours": 24, "name": "24/7 Operations", "desc": "Offline cap: 24 hours. (10,000,000 lifetime lobsters)"},
+]
+var offline_duration_purchased: Array[bool] = [false, false, false, false]
+
+func get_offline_max_seconds() -> float:
+	var hours := 1.0
+	for i in range(offline_duration_purchased.size()):
+		if offline_duration_purchased[i]:
+			hours = offline_duration_defs[i]["hours"]
+	return hours * 3600.0
+
+func get_available_offline_duration_upgrades() -> Array:
+	var result: Array = []
+	for i in range(offline_duration_defs.size()):
+		if lifetime_lobsters >= offline_duration_defs[i]["threshold"]:
+			result.append({
+				"index": i,
+				"name": offline_duration_defs[i]["name"],
+				"desc": offline_duration_defs[i]["desc"],
+				"cost": offline_duration_defs[i]["cost"],
+				"purchased": offline_duration_purchased[i],
+			})
+	return result
+
+func can_afford_offline_duration_upgrade(index: int) -> bool:
+	return total_lobsters >= offline_duration_defs[index]["cost"]
+
+func buy_offline_duration_upgrade(index: int) -> bool:
+	if offline_duration_purchased[index]:
+		return false
+	var cost: float = offline_duration_defs[index]["cost"]
+	if total_lobsters < cost:
+		return false
+	total_lobsters -= cost
+	offline_duration_purchased[index] = true
+	lobsters_changed.emit(total_lobsters)
+	return true
+
 func get_offline_rate() -> float:
 	# Return highest unlocked rate, or base 5%
 	var rate := 0.05
@@ -485,6 +528,7 @@ func get_save_data() -> Dictionary:
 		"hold_click_upgrades": Array(hold_click_purchased),
 		"gacha_cooldown_upgrades": Array(gacha_cooldown_upgrades_purchased),
 		"offline_rate_upgrades": Array(offline_rate_purchased),
+		"offline_duration_upgrades": Array(offline_duration_purchased),
 		"farm_name": farm_name,
 		"last_save_time": Time.get_unix_time_from_system(),
 	}
@@ -520,6 +564,9 @@ func load_save_data(data: Dictionary) -> void:
 	var offline_data = data.get("offline_rate_upgrades", [])
 	for i in range(mini(offline_data.size(), offline_rate_purchased.size())):
 		offline_rate_purchased[i] = offline_data[i]
+	var offline_dur_data = data.get("offline_duration_upgrades", [])
+	for i in range(mini(offline_dur_data.size(), offline_duration_purchased.size())):
+		offline_duration_purchased[i] = offline_dur_data[i]
 	farm_name = data.get("farm_name", "My Lobster Farm")
 	_recalculate_lps()
 	_recalculate_click_power()

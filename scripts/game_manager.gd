@@ -363,7 +363,7 @@ func buy_gacha_cooldown_upgrade(index: int) -> bool:
 	return true
 
 func get_gacha_cost() -> float:
-	return maxf(50.0, floor(lobsters_per_second * 30.0))
+	return maxf(5000.0, floor(lobsters_per_second * 30.0))
 
 func is_gacha_on_cooldown() -> bool:
 	return gacha_cooldown_remaining > 0.0 or boost_time_remaining > 0.0

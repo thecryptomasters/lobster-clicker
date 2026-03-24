@@ -777,10 +777,10 @@ func _finish_gacha_roll() -> void:
 	_update_gacha_cost()
 
 const RARITY_COLORS := {
-	"common": Color(0.85, 0.85, 0.85, 0.5),
-	"uncommon": Color(0.2, 0.6, 0.86, 0.5),
-	"rare": Color(0.61, 0.35, 0.71, 0.5),
-	"legendary": Color(0.95, 0.61, 0.07, 0.6),
+	"common": Color(0.9, 0.9, 0.9, 0.85),
+	"uncommon": Color(0.3, 0.65, 0.95, 0.9),
+	"rare": Color(0.7, 0.4, 0.85, 0.9),
+	"legendary": Color(1.0, 0.75, 0.1, 0.95),
 }
 
 func _on_boost_activated(boost: Dictionary) -> void:
@@ -790,22 +790,32 @@ func _on_boost_activated(boost: Dictionary) -> void:
 	var rarity: String = boost.get("rarity", "common")
 	var aura_color: Color = RARITY_COLORS.get(rarity, RARITY_COLORS["common"])
 	boost_aura.color = aura_color
-	# Legendary gets more particles and bigger
+	# Scale intensity by rarity
 	if rarity == "legendary":
-		boost_aura.amount = 50
-		boost_aura.scale_amount_min = 4.0
-		boost_aura.scale_amount_max = 10.0
-		boost_aura.initial_velocity_max = 60.0
+		boost_aura.amount = 60
+		boost_aura.scale_amount_min = 10.0
+		boost_aura.scale_amount_max = 20.0
+		boost_aura.initial_velocity_max = 70.0
+		boost_aura.emission_sphere_radius = 100.0
 	elif rarity == "rare":
+		boost_aura.amount = 50
+		boost_aura.scale_amount_min = 8.0
+		boost_aura.scale_amount_max = 16.0
+		boost_aura.initial_velocity_max = 60.0
+		boost_aura.emission_sphere_radius = 90.0
+	elif rarity == "uncommon":
 		boost_aura.amount = 40
-		boost_aura.scale_amount_min = 3.5
-		boost_aura.scale_amount_max = 8.0
+		boost_aura.scale_amount_min = 6.0
+		boost_aura.scale_amount_max = 14.0
 		boost_aura.initial_velocity_max = 50.0
+		boost_aura.emission_sphere_radius = 80.0
 	else:
-		boost_aura.amount = 30
-		boost_aura.scale_amount_min = 3.0
-		boost_aura.scale_amount_max = 7.0
-		boost_aura.initial_velocity_max = 40.0
+		boost_aura.amount = 35
+		boost_aura.scale_amount_min = 5.0
+		boost_aura.scale_amount_max = 12.0
+		boost_aura.initial_velocity_max = 45.0
+		boost_aura.emission_sphere_radius = 75.0
+	boost_aura.restart()
 	boost_aura.emitting = true
 
 func _on_boost_expired() -> void:

@@ -80,7 +80,7 @@ func _ready() -> void:
 	GameManager.boost_activated.connect(_on_boost_activated)
 	GameManager.boost_expired.connect(_on_boost_expired)
 	_style_buy_capsule_button()
-	consumables_tab.visible = GameManager.lifetime_lobsters >= 500
+	consumables_tab.visible = GameManager.lifetime_lobsters >= 2500
 
 	# Scroll buttons
 	var sc: ScrollContainer = %RightPanel.get_node("VBox/ScrollContainer")
@@ -138,7 +138,7 @@ func _process(delta: float) -> void:
 			_finish_gacha_roll()
 
 	# Check consumables tab visibility
-	if not consumables_tab.visible and GameManager.lifetime_lobsters >= 500:
+	if not consumables_tab.visible and GameManager.lifetime_lobsters >= 2500:
 		consumables_tab.visible = true
 
 	# Update gacha cost display when on consumables tab

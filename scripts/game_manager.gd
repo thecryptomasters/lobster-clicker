@@ -164,6 +164,12 @@ func click() -> float:
 	return value
 
 func _process(delta: float) -> void:
+	# Tick gacha cooldown
+	if gacha_cooldown_remaining > 0:
+		gacha_cooldown_remaining -= delta
+		if gacha_cooldown_remaining < 0:
+			gacha_cooldown_remaining = 0.0
+
 	# Tick boost timer
 	if boost_time_remaining > 0:
 		boost_time_remaining -= delta
@@ -310,8 +316,14 @@ func buy_cps_click_upgrade(index: int) -> bool:
 
 # --- Gacha Boost System ---
 
+var gacha_cooldown_remaining: float = 0.0
+const GACHA_COOLDOWN := 30.0
+
 func get_gacha_cost() -> float:
-	return maxf(50.0, floor(lobsters_per_second * 10.0))
+	return maxf(50.0, floor(lobsters_per_second * 30.0))
+
+func is_gacha_on_cooldown() -> bool:
+	return gacha_cooldown_remaining > 0.0
 
 func get_gacha_boost_multiplier(type: String) -> float:
 	if not active_boost.is_empty() and boost_time_remaining > 0 and active_boost["type"] == type:
@@ -319,6 +331,8 @@ func get_gacha_boost_multiplier(type: String) -> float:
 	return 1.0
 
 func roll_gacha() -> Dictionary:
+	if gacha_cooldown_remaining > 0:
+		return {}
 	var cost := get_gacha_cost()
 	if total_lobsters < cost:
 		return {}
@@ -334,6 +348,7 @@ func roll_gacha() -> Dictionary:
 		if roll < cumulative:
 			active_boost = b.duplicate()
 			boost_time_remaining = b["duration"]
+			gacha_cooldown_remaining = GACHA_COOLDOWN
 			boost_activated.emit(active_boost)
 			lobsters_changed.emit(total_lobsters)
 			return active_boost

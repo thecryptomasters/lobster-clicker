@@ -732,7 +732,12 @@ func _update_gacha_cost() -> void:
 func _update_capsule_button_affordability() -> void:
 	var cost := GameManager.get_gacha_cost()
 	var can_afford := GameManager.total_lobsters >= cost
-	buy_capsule_button.disabled = not can_afford or _gacha_opening
+	var on_cooldown := GameManager.is_gacha_on_cooldown()
+	buy_capsule_button.disabled = not can_afford or _gacha_opening or on_cooldown
+	if on_cooldown and not _gacha_opening:
+		buy_capsule_button.text = "⏳ %ds" % ceili(GameManager.gacha_cooldown_remaining)
+	elif not _gacha_opening:
+		buy_capsule_button.text = "🎲 BUY CAPSULE"
 
 var _pending_gacha_result: Dictionary = {}
 

@@ -3,7 +3,7 @@
 [ext_resource type="Script" path="res://scenes/building_item.gd" id="1_script"]
 
 [node name="BuildingItem" type="PanelContainer"]
-custom_minimum_size = Vector2(0, 70)
+custom_minimum_size = Vector2(0, 85)
 size_flags_horizontal = 3
 script = ExtResource("1_script")
 
@@ -35,6 +35,14 @@ layout_mode = 2
 custom_minimum_size = Vector2(70, 40)
 text = "BUY"
 theme_override_font_sizes/font_size = 18
+
+[node name="DescLabel" type="Label" parent="VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Flavor text"
+theme_override_colors/font_color = Color(0.45, 0.55, 0.65, 1)
+theme_override_font_sizes/font_size = 13
+autowrap_mode = 2
 
 [node name="BottomRow" type="HBoxContainer" parent="VBox"]
 layout_mode = 2

@@ -3,6 +3,7 @@ extends PanelContainer
 var building_index: int = 0
 
 @onready var name_label: Label = %NameLabel
+@onready var desc_label: Label = %DescLabel
 @onready var cost_label: Label = %CostLabel
 @onready var count_label: Label = %CountLabel
 @onready var lps_label: Label = %LpsLabel
@@ -49,6 +50,7 @@ func setup(index: int) -> void:
 func _refresh() -> void:
 	var def: Dictionary = GameManager.building_defs[building_index]
 	name_label.text = def["name"]
+	desc_label.text = def["desc"]
 	var cost := GameManager.get_building_cost(building_index)
 	cost_label.text = "Cost: %s" % GameManager.format_number(cost)
 	var count := GameManager.building_counts[building_index]

@@ -21,6 +21,9 @@ var building_defs: Array = [
 	{"name": "Seafood Restaurant", "base_cost": 12000, "lps": 47.0, "desc": "Lobsters come to you!"},
 	{"name": "Fish Market", "base_cost": 130000, "lps": 260.0, "desc": "Control the lobster supply chain."},
 	{"name": "Ocean Farm", "base_cost": 1400000, "lps": 1400.0, "desc": "Industrial-scale lobster farming."},
+	{"name": "Research Lab", "base_cost": 20000000, "lps": 7800.0, "desc": "Genetically engineer the ultimate lobster."},
+	{"name": "Lobster Portal", "base_cost": 330000000, "lps": 44000.0, "desc": "Opens a rift to the Lobster Dimension."},
+	{"name": "Time Machine", "base_cost": 5100000000, "lps": 260000.0, "desc": "Harvest lobsters from every era in history."},
 ]
 
 var building_counts: Array[int] = []

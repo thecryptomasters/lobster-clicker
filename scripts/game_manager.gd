@@ -36,9 +36,9 @@ var building_upgrades: Array = []
 # Click upgrades: unlock at lifetime lobster thresholds, each doubles click power
 # {threshold, cost, name, desc}
 var click_upgrade_defs: Array = [
-	{"threshold": 1000, "cost": 500, "multiplier": 2, "name": "Iron Claws", "desc": "2x lobsters per click. (1,000 lifetime lobsters)"},
-	{"threshold": 10000, "cost": 5000, "multiplier": 5, "name": "Steel Claws", "desc": "5x lobsters per click. (10,000 lifetime lobsters)"},
-	{"threshold": 500000, "cost": 250000, "multiplier": 10, "name": "Diamond Claws", "desc": "10x lobsters per click. (500,000 lifetime lobsters)"},
+	{"threshold": 500, "cost": 500, "multiplier": 2, "name": "Iron Claws", "desc": "2x lobsters per click. (500 lifetime lobsters)"},
+	{"threshold": 5000, "cost": 5000, "multiplier": 5, "name": "Steel Claws", "desc": "5x lobsters per click. (5,000 lifetime lobsters)"},
+	{"threshold": 250000, "cost": 250000, "multiplier": 10, "name": "Diamond Claws", "desc": "10x lobsters per click. (250,000 lifetime lobsters)"},
 ]
 var click_upgrades_purchased: Array[bool] = [false, false, false]
 var lifetime_lobsters: float = 0.0  # Total lobsters ever generated (never decreases)

@@ -32,9 +32,9 @@ var building_upgrades: Array = []
 # Click upgrades: unlock at lifetime lobster thresholds, each doubles click power
 # {threshold, cost, name, desc}
 var click_upgrade_defs: Array = [
-	{"threshold": 10000, "cost": 5000, "name": "Iron Claws", "desc": "Doubles lobsters per click. (10,000 total lobsters)"},
-	{"threshold": 100000, "cost": 50000, "name": "Steel Claws", "desc": "Doubles lobsters per click. (100,000 total lobsters)"},
-	{"threshold": 1000000, "cost": 500000, "name": "Diamond Claws", "desc": "Doubles lobsters per click. (1,000,000 total lobsters)"},
+	{"threshold": 1000, "cost": 500, "multiplier": 2, "name": "Iron Claws", "desc": "2x lobsters per click. (1,000 lifetime lobsters)"},
+	{"threshold": 10000, "cost": 5000, "multiplier": 5, "name": "Steel Claws", "desc": "5x lobsters per click. (10,000 lifetime lobsters)"},
+	{"threshold": 500000, "cost": 250000, "multiplier": 10, "name": "Diamond Claws", "desc": "10x lobsters per click. (500,000 lifetime lobsters)"},
 ]
 var click_upgrades_purchased: Array[bool] = [false, false, false]
 var lifetime_lobsters: float = 0.0  # Total lobsters ever generated (never decreases)
@@ -77,7 +77,7 @@ func _recalculate_click_power() -> void:
 	lobsters_per_click = 1.0
 	for i in range(click_upgrades_purchased.size()):
 		if click_upgrades_purchased[i]:
-			lobsters_per_click *= 2.0
+			lobsters_per_click *= click_upgrade_defs[i]["multiplier"]
 
 # --- Click Upgrades ---
 

@@ -637,9 +637,9 @@ func _refresh_upgrades() -> void:
 
 	# Hide purchased toggle
 	var toggle_btn := Button.new()
-	toggle_btn.text = "✓ Hide Purchased" if _hide_purchased else "○ Show All"
+	toggle_btn.text = "Show all upgrades" if _hide_purchased else "Show only available upgrades"
 	toggle_btn.flat = true
-	toggle_btn.add_theme_color_override("font_color", Color("#88aacc") if _hide_purchased else Color("#667788"))
+	toggle_btn.add_theme_color_override("font_color", Color("#88aacc"))
 	toggle_btn.add_theme_font_size_override("font_size", 16)
 	toggle_btn.pressed.connect(func():
 		_hide_purchased = not _hide_purchased

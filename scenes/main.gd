@@ -1,18 +1,22 @@
 extends Control
 
-const UpgradeItemScene := preload("res://scenes/upgrade_item.tscn")
+const BuildingItemScene := preload("res://scenes/building_item.tscn")
+const BuildingUpgradeItemScene := preload("res://scenes/building_upgrade_item.tscn")
 
 @onready var lobster_count_label: Label = %LobsterCountLabel
 @onready var lps_label: Label = %LpsLabel
 @onready var claw_button: Button = %ClawButton
 @onready var left_pincer: Node2D = %LeftPincer
 @onready var right_pincer: Node2D = %RightPincer
+@onready var building_container: VBoxContainer = %BuildingContainer
 @onready var upgrade_container: VBoxContainer = %UpgradeContainer
 @onready var particles: CPUParticles2D = %ClickParticles
 @onready var float_text_container: Node2D = %FloatTextContainer
 @onready var offline_popup: PanelContainer = %OfflinePopup
 @onready var offline_label: Label = %OfflineLabel
 @onready var offline_ok_button: Button = %OfflineOkButton
+@onready var buildings_tab: Button = %BuildingsTab
+@onready var upgrades_tab: Button = %UpgradesTab
 
 # Animation: move pincers via X position (no rotation!)
 const OPEN_X := 22.0    # How far apart pincers sit when open
@@ -24,25 +28,38 @@ enum ClawState { IDLE, SNAPPING, OPENING }
 var claw_state: int = ClawState.IDLE
 var claw_progress: float = 0.0
 
+enum Tab { BUILDINGS, UPGRADES }
+var current_tab: int = Tab.BUILDINGS
+
+# Flash state for upgrades tab
+var _flash_timer: float = 0.0
+var _flash_active: bool = false
+
 func _ready() -> void:
 	GameManager.lobsters_changed.connect(_on_lobsters_changed)
 	GameManager.lps_changed.connect(_on_lps_changed)
+	GameManager.upgrade_unlocked.connect(_on_upgrade_unlocked)
+	GameManager.building_purchased.connect(_on_building_purchased)
 	claw_button.gui_input.connect(_on_claw_gui_input)
 	offline_ok_button.pressed.connect(_on_offline_ok)
+	buildings_tab.pressed.connect(_on_buildings_tab)
+	upgrades_tab.pressed.connect(_on_upgrades_tab)
 
 	# Set initial open position
 	left_pincer.position.x = -OPEN_X
 	right_pincer.position.x = OPEN_X
 
-	# Populate upgrades
-	for i in range(GameManager.upgrade_defs.size()):
-		var item := UpgradeItemScene.instantiate()
-		upgrade_container.add_child(item)
+	# Populate buildings
+	for i in range(GameManager.building_defs.size()):
+		var item := BuildingItemScene.instantiate()
+		building_container.add_child(item)
 		item.setup(i)
 
 	# Initial display
 	_on_lobsters_changed(GameManager.total_lobsters)
 	_on_lps_changed(GameManager.lobsters_per_second)
+	_switch_tab(Tab.BUILDINGS)
+	_refresh_upgrades()
 
 	# Show offline popup if needed
 	if SaveManager.offline_earnings > 0:
@@ -78,6 +95,19 @@ func _process(delta: float) -> void:
 				var t := 1.0 - pow(1.0 - claw_progress, 2.0)
 				left_pincer.position.x = lerpf(-SHUT_X, -OPEN_X, t)
 				right_pincer.position.x = lerpf(SHUT_X, OPEN_X, t)
+
+	# Flash upgrades tab when new upgrade available
+	if _flash_active:
+		_flash_timer += delta
+		if _flash_timer > 2.0:
+			_flash_active = false
+			_flash_timer = 0.0
+			_update_tab_styles()
+		elif current_tab != Tab.UPGRADES:
+			# Pulse between gold and dim
+			var pulse := (sin(_flash_timer * 8.0) + 1.0) / 2.0
+			var col := Color("#667788").lerp(Color("#ffd766"), pulse)
+			upgrades_tab.add_theme_color_override("font_color", col)
 
 func _on_lobsters_changed(total: float) -> void:
 	lobster_count_label.text = GameManager.format_number(total)
@@ -129,3 +159,58 @@ func _spawn_float_text(amount: float) -> void:
 
 func _on_offline_ok() -> void:
 	offline_popup.visible = false
+
+# --- Tab Management ---
+
+func _on_buildings_tab() -> void:
+	_switch_tab(Tab.BUILDINGS)
+
+func _on_upgrades_tab() -> void:
+	_switch_tab(Tab.UPGRADES)
+	_flash_active = false
+	_flash_timer = 0.0
+	_refresh_upgrades()
+
+func _switch_tab(tab: int) -> void:
+	current_tab = tab
+	building_container.visible = (tab == Tab.BUILDINGS)
+	upgrade_container.visible = (tab == Tab.UPGRADES)
+	_update_tab_styles()
+
+func _update_tab_styles() -> void:
+	if current_tab == Tab.BUILDINGS:
+		buildings_tab.add_theme_color_override("font_color", Color("#ffd766"))
+		upgrades_tab.add_theme_color_override("font_color", Color("#667788"))
+	else:
+		buildings_tab.add_theme_color_override("font_color", Color("#667788"))
+		upgrades_tab.add_theme_color_override("font_color", Color("#ffd766"))
+
+func _on_upgrade_unlocked(_building_index: int, _tier: int) -> void:
+	_flash_active = true
+	_flash_timer = 0.0
+	if current_tab == Tab.UPGRADES:
+		_refresh_upgrades()
+
+func _on_building_purchased(_index: int) -> void:
+	if current_tab == Tab.UPGRADES:
+		_refresh_upgrades()
+
+func _refresh_upgrades() -> void:
+	# Clear existing upgrade items
+	for child in upgrade_container.get_children():
+		child.queue_free()
+
+	var available := GameManager.get_available_upgrades()
+	if available.is_empty():
+		var empty_label := Label.new()
+		empty_label.text = "No upgrades available yet.\nBuy more buildings to unlock!"
+		empty_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		empty_label.add_theme_color_override("font_color", Color("#667788"))
+		empty_label.add_theme_font_size_override("font_size", 18)
+		upgrade_container.add_child(empty_label)
+		return
+
+	for upg in available:
+		var item := BuildingUpgradeItemScene.instantiate()
+		upgrade_container.add_child(item)
+		item.setup(upg["building_index"], upg["tier"], upg["purchased"])

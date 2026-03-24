@@ -188,12 +188,30 @@ theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
 [node name="VBox" type="VBoxContainer" parent="VBoxContainer/BottomPanel"]
 layout_mode = 2
 
-[node name="ShopTitle" type="Label" parent="VBoxContainer/BottomPanel/VBox"]
+[node name="TabBar" type="HBoxContainer" parent="VBoxContainer/BottomPanel/VBox"]
+unique_name_in_owner = true
 layout_mode = 2
-text = "UPGRADES"
-horizontal_alignment = 1
+theme_override_constants/separation = 0
+
+[node name="BuildingsTab" type="Button" parent="VBoxContainer/BottomPanel/VBox/TabBar"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+custom_minimum_size = Vector2(0, 50)
+text = "BUILDINGS"
+flat = true
 theme_override_colors/font_color = Color(1, 0.843, 0.4, 1)
-theme_override_font_sizes/font_size = 24
+theme_override_font_sizes/font_size = 22
+
+[node name="UpgradesTab" type="Button" parent="VBoxContainer/BottomPanel/VBox/TabBar"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+custom_minimum_size = Vector2(0, 50)
+text = "UPGRADES"
+flat = true
+theme_override_colors/font_color = Color(0.4, 0.467, 0.533, 1)
+theme_override_font_sizes/font_size = 22
 
 [node name="Separator" type="HSeparator" parent="VBoxContainer/BottomPanel/VBox"]
 layout_mode = 2
@@ -203,8 +221,15 @@ theme_override_colors/separator_color = Color(0.1, 0.29, 0.37, 1)
 layout_mode = 2
 size_flags_vertical = 3
 
+[node name="BuildingContainer" type="VBoxContainer" parent="VBoxContainer/BottomPanel/VBox/ScrollContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 10
+
 [node name="UpgradeContainer" type="VBoxContainer" parent="VBoxContainer/BottomPanel/VBox/ScrollContainer"]
 unique_name_in_owner = true
+visible = false
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 10

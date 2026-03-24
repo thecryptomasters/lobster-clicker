@@ -1,0 +1,54 @@
+[gd_scene load_steps=2 format=3 uid="uid://dupgrade_item_001"]
+
+[ext_resource type="Script" path="res://scenes/building_upgrade_item.gd" id="1_script"]
+
+[node name="BuildingUpgradeItem" type="PanelContainer"]
+custom_minimum_size = Vector2(0, 120)
+size_flags_horizontal = 3
+script = ExtResource("1_script")
+
+[node name="HBox" type="HBoxContainer" parent="."]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Info" type="VBoxContainer" parent="HBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_stretch_ratio = 2.5
+alignment = 1
+
+[node name="NameLabel" type="Label" parent="HBox/Info"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Upgrade Name"
+theme_override_colors/font_color = Color(1, 0.843, 0.4, 1)
+theme_override_font_sizes/font_size = 22
+
+[node name="DescLabel" type="Label" parent="HBox/Info"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Description"
+theme_override_colors/font_color = Color(0.7, 0.7, 0.7, 1)
+theme_override_font_sizes/font_size = 16
+autowrap_mode = 2
+
+[node name="CostLabel" type="Label" parent="HBox/Info"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Cost: 0"
+theme_override_colors/font_color = Color(0.6, 0.8, 0.6, 1)
+theme_override_font_sizes/font_size = 20
+
+[node name="Right" type="VBoxContainer" parent="HBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_stretch_ratio = 1.0
+alignment = 1
+
+[node name="BuyButton" type="Button" parent="HBox/Right"]
+unique_name_in_owner = true
+layout_mode = 2
+custom_minimum_size = Vector2(130, 60)
+size_flags_horizontal = 6
+text = "BUY"
+theme_override_font_sizes/font_size = 22

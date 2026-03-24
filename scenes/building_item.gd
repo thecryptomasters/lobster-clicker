@@ -1,6 +1,6 @@
 extends PanelContainer
 
-var upgrade_index: int = 0
+var building_index: int = 0
 
 @onready var name_label: Label = %NameLabel
 @onready var cost_label: Label = %CostLabel
@@ -14,9 +14,8 @@ var _unaffordable_style: StyleBoxFlat
 func _ready() -> void:
 	buy_button.pressed.connect(_on_buy)
 	GameManager.lobsters_changed.connect(_on_lobsters_changed)
-	GameManager.upgrade_purchased.connect(_on_upgrade_purchased)
+	GameManager.building_purchased.connect(_on_building_purchased)
 
-	# Create styled backgrounds for the BUY button
 	_affordable_style = StyleBoxFlat.new()
 	_affordable_style.bg_color = Color("#2d6b4f")
 	_affordable_style.corner_radius_top_left = 6
@@ -42,21 +41,26 @@ func _ready() -> void:
 	_refresh()
 
 func setup(index: int) -> void:
-	upgrade_index = index
+	building_index = index
 	if is_node_ready():
 		_refresh()
 
 func _refresh() -> void:
-	var def: Dictionary = GameManager.upgrade_defs[upgrade_index]
+	var def: Dictionary = GameManager.building_defs[building_index]
 	name_label.text = def["name"]
-	var cost := GameManager.get_upgrade_cost(upgrade_index)
+	var cost := GameManager.get_building_cost(building_index)
 	cost_label.text = "Cost: %s" % GameManager.format_number(cost)
-	count_label.text = "Owned: %d" % GameManager.upgrade_counts[upgrade_index]
-	lps_label.text = "+%s/sec" % str(def["lps"])
+	count_label.text = "Owned: %d" % GameManager.building_counts[building_index]
+	var mult := GameManager.get_building_multiplier(building_index)
+	var effective_lps: float = def["lps"] * mult
+	if mult > 1.0:
+		lps_label.text = "+%s/sec (%dx)" % [str(effective_lps), int(mult)]
+	else:
+		lps_label.text = "+%s/sec" % str(def["lps"])
 	_update_buy_button_style()
 
 func _update_buy_button_style() -> void:
-	var affordable := GameManager.can_afford_upgrade(upgrade_index)
+	var affordable := GameManager.can_afford_building(building_index)
 	buy_button.disabled = not affordable
 	if affordable:
 		buy_button.modulate = Color(1, 1, 1, 1)
@@ -71,13 +75,13 @@ func _update_buy_button_style() -> void:
 		buy_button.add_theme_stylebox_override("disabled", _unaffordable_style)
 
 func _on_buy() -> void:
-	GameManager.buy_upgrade(upgrade_index)
+	GameManager.buy_building(building_index)
 
 func _on_lobsters_changed(_total: float) -> void:
 	if is_node_ready():
 		_update_buy_button_style()
-		cost_label.text = "Cost: %s" % GameManager.format_number(GameManager.get_upgrade_cost(upgrade_index))
+		cost_label.text = "Cost: %s" % GameManager.format_number(GameManager.get_building_cost(building_index))
 
-func _on_upgrade_purchased(index: int) -> void:
-	if index == upgrade_index:
+func _on_building_purchased(index: int) -> void:
+	if index == building_index:
 		_refresh()

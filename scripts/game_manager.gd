@@ -317,7 +317,49 @@ func buy_cps_click_upgrade(index: int) -> bool:
 # --- Gacha Boost System ---
 
 var gacha_cooldown_remaining: float = 0.0
-const GACHA_COOLDOWN := 30.0
+const GACHA_BASE_COOLDOWN := 60.0
+
+# Gacha cooldown reduction upgrades
+var gacha_cooldown_upgrade_defs: Array = [
+	{"threshold": 10000, "cost": 5000, "reduction": 10, "name": "Quick Draw", "desc": "Gacha cooldown -10s. (10,000 lifetime lobsters)"},
+	{"threshold": 100000, "cost": 50000, "reduction": 10, "name": "Faster Crank", "desc": "Gacha cooldown -10s. (100,000 lifetime lobsters)"},
+	{"threshold": 500000, "cost": 250000, "reduction": 10, "name": "Turbo Capsule", "desc": "Gacha cooldown -10s. (500,000 lifetime lobsters)"},
+]
+var gacha_cooldown_upgrades_purchased: Array[bool] = [false, false, false]
+
+func get_gacha_cooldown() -> float:
+	var cd := GACHA_BASE_COOLDOWN
+	for i in range(gacha_cooldown_upgrades_purchased.size()):
+		if gacha_cooldown_upgrades_purchased[i]:
+			cd -= gacha_cooldown_upgrade_defs[i]["reduction"]
+	return cd
+
+func get_available_gacha_cooldown_upgrades() -> Array:
+	var result: Array = []
+	for i in range(gacha_cooldown_upgrade_defs.size()):
+		if lifetime_lobsters >= gacha_cooldown_upgrade_defs[i]["threshold"]:
+			result.append({
+				"index": i,
+				"name": gacha_cooldown_upgrade_defs[i]["name"],
+				"desc": gacha_cooldown_upgrade_defs[i]["desc"],
+				"cost": gacha_cooldown_upgrade_defs[i]["cost"],
+				"purchased": gacha_cooldown_upgrades_purchased[i],
+			})
+	return result
+
+func can_afford_gacha_cooldown_upgrade(index: int) -> bool:
+	return total_lobsters >= gacha_cooldown_upgrade_defs[index]["cost"]
+
+func buy_gacha_cooldown_upgrade(index: int) -> bool:
+	if gacha_cooldown_upgrades_purchased[index]:
+		return false
+	var cost: float = gacha_cooldown_upgrade_defs[index]["cost"]
+	if total_lobsters < cost:
+		return false
+	total_lobsters -= cost
+	gacha_cooldown_upgrades_purchased[index] = true
+	lobsters_changed.emit(total_lobsters)
+	return true
 
 func get_gacha_cost() -> float:
 	return maxf(50.0, floor(lobsters_per_second * 30.0))
@@ -351,7 +393,7 @@ func roll_gacha() -> Dictionary:
 		if roll < cumulative:
 			active_boost = b.duplicate()
 			boost_time_remaining = b["duration"]
-			gacha_cooldown_remaining = GACHA_COOLDOWN
+			gacha_cooldown_remaining = get_gacha_cooldown()
 			boost_activated.emit(active_boost)
 			lobsters_changed.emit(total_lobsters)
 			return active_boost
@@ -396,6 +438,7 @@ func get_save_data() -> Dictionary:
 		"click_upgrades": click_data,
 		"cps_click_upgrades": cps_click_data,
 		"hold_click_upgrades": Array(hold_click_purchased),
+		"gacha_cooldown_upgrades": Array(gacha_cooldown_upgrades_purchased),
 		"farm_name": farm_name,
 		"last_save_time": Time.get_unix_time_from_system(),
 	}
@@ -425,6 +468,9 @@ func load_save_data(data: Dictionary) -> void:
 	var hold_data = data.get("hold_click_upgrades", [])
 	for i in range(mini(hold_data.size(), hold_click_purchased.size())):
 		hold_click_purchased[i] = hold_data[i]
+	var gacha_cd_data = data.get("gacha_cooldown_upgrades", [])
+	for i in range(mini(gacha_cd_data.size(), gacha_cooldown_upgrades_purchased.size())):
+		gacha_cooldown_upgrades_purchased[i] = gacha_cd_data[i]
 	farm_name = data.get("farm_name", "My Lobster Farm")
 	_recalculate_lps()
 	_recalculate_click_power()

@@ -675,6 +675,21 @@ func _refresh_upgrades() -> void:
 			upgrade_container.add_child(item)
 			item.setup(upg["building_index"], upg["tier"], upg["purchased"])
 
+	# Gacha cooldown upgrades
+	var gacha_cd_upgrades := GameManager.get_available_gacha_cooldown_upgrades()
+	if not gacha_cd_upgrades.is_empty():
+		has_any = true
+		var header := Label.new()
+		header.text = "🎰 GACHA UPGRADES"
+		header.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		header.add_theme_color_override("font_color", Color("#e67e22"))
+		header.add_theme_font_size_override("font_size", 18)
+		upgrade_container.add_child(header)
+		for upg in gacha_cd_upgrades:
+			var item := BuildingUpgradeItemScene.instantiate()
+			upgrade_container.add_child(item)
+			item.setup_gacha_cd_upgrade(upg["index"], upg["purchased"])
+
 	if not has_any:
 		var empty_label := Label.new()
 		empty_label.text = "No upgrades available yet.\nBuy more buildings to unlock!"

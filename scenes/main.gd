@@ -80,11 +80,12 @@ func _ready() -> void:
 		offline_popup.visible = false
 
 func _process(delta: float) -> void:
-	# Check for viewport resize
-	var vp_width := int(get_viewport_rect().size.x)
-	if vp_width != _last_width:
-		_last_width = vp_width
-		_apply_layout()
+	# Check for viewport resize (throttle to every 30 frames to avoid JS overhead)
+	if Engine.get_process_frames() % 30 == 0:
+		var real_width := _get_real_width()
+		if real_width != _last_width:
+			_last_width = real_width
+			_apply_layout()
 
 	# Drive claw animation every frame via position
 	match claw_state:
@@ -126,9 +127,19 @@ func _process(delta: float) -> void:
 
 # --- Responsive Layout ---
 
+func _get_real_width() -> int:
+	# In web exports, use JS to get actual CSS pixel width (viewport lies due to stretch)
+	if OS.has_feature("web"):
+		var w = JavaScriptBridge.eval("window.innerWidth;")
+		if w != null:
+			return int(w)
+	# Fallback: use actual window size, not virtual viewport
+	var win_size := DisplayServer.window_get_size()
+	return win_size.x
+
 func _apply_layout() -> void:
-	var vp_width := int(get_viewport_rect().size.x)
-	var should_be_desktop := vp_width >= MOBILE_BREAKPOINT
+	var real_width := _get_real_width()
+	var should_be_desktop := real_width >= MOBILE_BREAKPOINT
 
 	if should_be_desktop == _is_desktop and _last_width != 0:
 		return  # No change needed

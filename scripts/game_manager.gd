@@ -15,7 +15,7 @@ var last_save_time: int = 0
 
 # Building definitions (formerly "upgrades")
 var building_defs: Array = [
-	{"name": "Lobster Trap", "base_cost": 15, "lps": 0.1, "desc": "A simple trap baited with fish heads."},
+	{"name": "Coin Collecting", "base_cost": 15, "lps": 0.1, "desc": "Every entrepreneur starts somewhere!"},
 	{"name": "Fishing Net", "base_cost": 100, "lps": 1.0, "desc": "Cast a wide net for more lobsters."},
 	{"name": "Fishing Boat", "base_cost": 1100, "lps": 8.0, "desc": "A sturdy boat for deep-sea lobstering."},
 	{"name": "Seafood Restaurant", "base_cost": 12000, "lps": 47.0, "desc": "Lobsters come to you!"},

@@ -288,6 +288,8 @@ theme_override_colors/separator_color = Color(0.1, 0.29, 0.37, 1)
 [node name="ScrollContainer" type="ScrollContainer" parent="RootContainer/RightPanel/VBox"]
 layout_mode = 2
 size_flags_vertical = 3
+scroll_deadzone = 10
+horizontal_scroll_mode = 0
 
 [node name="BuildingContainer" type="VBoxContainer" parent="RootContainer/RightPanel/VBox/ScrollContainer"]
 unique_name_in_owner = true

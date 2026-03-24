@@ -31,6 +31,7 @@ const BuildingUpgradeItemScene := preload("res://scenes/building_upgrade_item.ts
 @onready var boost_desc_label: Label = %BoostDescLabel
 @onready var timer_label: Label = %TimerLabel
 @onready var boost_hud_label: Label = %BoostHudLabel
+@onready var scroll_container: ScrollContainer
 @onready var root_container: BoxContainer = %RootContainer
 @onready var left_section: VBoxContainer = %LeftSection
 @onready var right_panel: PanelContainer = %RightPanel
@@ -79,6 +80,10 @@ func _ready() -> void:
 	GameManager.boost_expired.connect(_on_boost_expired)
 	_style_buy_capsule_button()
 	consumables_tab.visible = GameManager.lifetime_lobsters >= 500
+
+	# Get scroll container and enable touch scrolling
+	scroll_container = %RightPanel.get_node("VBox/ScrollContainer")
+	scroll_container.gui_input.connect(_on_scroll_gui_input)
 
 	# Load farm name
 	farm_name_button.text = GameManager.farm_name
@@ -347,6 +352,38 @@ func _apply_farm_name(new_name: String) -> void:
 	farm_name_button.text = new_name
 	farm_name_edit.visible = false
 	farm_name_button.visible = true
+
+# --- Touch Scrolling ---
+
+var _touch_scrolling: bool = false
+var _touch_start_y: float = 0.0
+var _scroll_start_v: int = 0
+
+func _on_scroll_gui_input(event: InputEvent) -> void:
+	if event is InputEventScreenTouch:
+		if event.pressed:
+			_touch_scrolling = true
+			_touch_start_y = event.position.y
+			_scroll_start_v = scroll_container.scroll_vertical
+		else:
+			_touch_scrolling = false
+	elif event is InputEventScreenDrag:
+		if _touch_scrolling:
+			var delta_y := _touch_start_y - event.position.y
+			scroll_container.scroll_vertical = _scroll_start_v + int(delta_y)
+	elif event is InputEventMouseButton:
+		# Also handle mouse drag for touch-emulated events
+		if event.button_index == MOUSE_BUTTON_LEFT:
+			if event.pressed:
+				_touch_scrolling = true
+				_touch_start_y = event.position.y
+				_scroll_start_v = scroll_container.scroll_vertical
+			else:
+				_touch_scrolling = false
+	elif event is InputEventMouseMotion:
+		if _touch_scrolling:
+			var delta_y := _touch_start_y - event.position.y
+			scroll_container.scroll_vertical = _scroll_start_v + int(delta_y)
 
 # --- Dev Menu ---
 

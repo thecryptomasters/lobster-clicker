@@ -23,6 +23,10 @@ window/size/viewport_height=854
 window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
 
+[gui]
+
+common/default_scroll_deadzone=10
+
 [input_devices]
 
 pointing/emulate_touch_from_mouse=true

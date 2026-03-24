@@ -253,12 +253,235 @@ func _on_farm_name_focus_lost() -> void:
 
 func _apply_farm_name(new_name: String) -> void:
 	new_name = new_name.strip_edges()
+	# Secret dev menu trigger
+	if new_name.to_lower() == "/dev":
+		farm_name_edit.visible = false
+		farm_name_button.visible = true
+		_show_dev_menu()
+		return
 	if new_name.is_empty():
 		new_name = "My Lobster Farm"
 	GameManager.farm_name = new_name
 	farm_name_button.text = new_name
 	farm_name_edit.visible = false
 	farm_name_button.visible = true
+
+# --- Dev Menu ---
+
+var _dev_popup: PanelContainer
+
+func _show_dev_menu() -> void:
+	if _dev_popup and is_instance_valid(_dev_popup):
+		_dev_popup.queue_free()
+
+	_dev_popup = PanelContainer.new()
+	_dev_popup.layout_mode = 1
+	_dev_popup.anchors_preset = Control.PRESET_CENTER
+	_dev_popup.anchor_left = 0.05
+	_dev_popup.anchor_right = 0.95
+	_dev_popup.anchor_top = 0.1
+	_dev_popup.anchor_bottom = 0.9
+	_dev_popup.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	_dev_popup.grow_vertical = Control.GROW_DIRECTION_BOTH
+
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(0.05, 0.08, 0.15, 0.97)
+	style.border_width_left = 2
+	style.border_width_top = 2
+	style.border_width_right = 2
+	style.border_width_bottom = 2
+	style.border_color = Color("#ff6b6b")
+	style.corner_radius_top_left = 12
+	style.corner_radius_top_right = 12
+	style.corner_radius_bottom_left = 12
+	style.corner_radius_bottom_right = 12
+	style.content_margin_left = 16.0
+	style.content_margin_right = 16.0
+	style.content_margin_top = 12.0
+	style.content_margin_bottom = 12.0
+	_dev_popup.add_theme_stylebox_override("panel", style)
+
+	var scroll := ScrollContainer.new()
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_dev_popup.add_child(scroll)
+
+	var vbox := VBoxContainer.new()
+	vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	vbox.add_theme_constant_override("separation", 10)
+	scroll.add_child(vbox)
+
+	# Title
+	var title := Label.new()
+	title.text = "🔧 DEV MENU"
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.add_theme_color_override("font_color", Color("#ff6b6b"))
+	title.add_theme_font_size_override("font_size", 24)
+	vbox.add_child(title)
+
+	var subtitle := Label.new()
+	subtitle.text = "Type /dev in farm name to open"
+	subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	subtitle.add_theme_color_override("font_color", Color("#667788"))
+	subtitle.add_theme_font_size_override("font_size", 14)
+	vbox.add_child(subtitle)
+
+	# --- Add Lobsters ---
+	_dev_add_section(vbox, "Add Current Lobsters")
+	var lobster_amounts := [1000, 10000, 100000, 1000000, 10000000]
+	var lobster_row := HBoxContainer.new()
+	lobster_row.add_theme_constant_override("separation", 6)
+	vbox.add_child(lobster_row)
+	for amt in lobster_amounts:
+		var btn := _dev_make_button("+%s" % GameManager.format_number(amt))
+		btn.pressed.connect(func(): GameManager.total_lobsters += amt; GameManager.lobsters_changed.emit(GameManager.total_lobsters))
+		lobster_row.add_child(btn)
+
+	# --- Add Lifetime Lobsters ---
+	_dev_add_section(vbox, "Add Lifetime Lobsters")
+	var lifetime_row := HBoxContainer.new()
+	lifetime_row.add_theme_constant_override("separation", 6)
+	vbox.add_child(lifetime_row)
+	for amt in lobster_amounts:
+		var btn := _dev_make_button("+%s" % GameManager.format_number(amt))
+		btn.pressed.connect(func(): GameManager.lifetime_lobsters += amt; GameManager.total_lobsters += amt; GameManager.lobsters_changed.emit(GameManager.total_lobsters))
+		lifetime_row.add_child(btn)
+
+	# --- Set LPS ---
+	_dev_add_section(vbox, "Set Lobsters/sec")
+	var lps_row := HBoxContainer.new()
+	lps_row.add_theme_constant_override("separation", 6)
+	vbox.add_child(lps_row)
+	var lps_amounts := [0, 10, 100, 1000, 10000]
+	for amt in lps_amounts:
+		var label_text := str(amt) if amt > 0 else "0"
+		var btn := _dev_make_button(label_text)
+		btn.pressed.connect(func():
+			GameManager.lobsters_per_second = float(amt)
+			GameManager.lps_changed.emit(GameManager.lobsters_per_second))
+		lps_row.add_child(btn)
+
+	# --- Unlock All Upgrades ---
+	_dev_add_section(vbox, "Upgrades")
+	var unlock_row := HBoxContainer.new()
+	unlock_row.add_theme_constant_override("separation", 6)
+	vbox.add_child(unlock_row)
+
+	var unlock_click_btn := _dev_make_button("All Click Upg.")
+	unlock_click_btn.pressed.connect(func():
+		for i in range(GameManager.click_upgrades_purchased.size()):
+			GameManager.click_upgrades_purchased[i] = true
+		for i in range(GameManager.cps_click_upgrades_purchased.size()):
+			GameManager.cps_click_upgrades_purchased[i] = true
+		GameManager._recalculate_click_power()
+		GameManager.lobsters_changed.emit(GameManager.total_lobsters))
+	unlock_row.add_child(unlock_click_btn)
+
+	var unlock_bldg_btn := _dev_make_button("All Bldg Upg.")
+	unlock_bldg_btn.pressed.connect(func():
+		for bi in range(GameManager.building_upgrades.size()):
+			for tier in range(GameManager.building_upgrades[bi].size()):
+				GameManager.building_upgrades[bi][tier] = true
+		GameManager._recalculate_lps()
+		GameManager.lobsters_changed.emit(GameManager.total_lobsters))
+	unlock_row.add_child(unlock_bldg_btn)
+
+	# --- Set Buildings ---
+	_dev_add_section(vbox, "Set All Buildings To")
+	var bldg_row := HBoxContainer.new()
+	bldg_row.add_theme_constant_override("separation", 6)
+	vbox.add_child(bldg_row)
+	var bldg_amounts := [0, 10, 25, 50, 100]
+	for amt in bldg_amounts:
+		var btn := _dev_make_button(str(amt))
+		btn.pressed.connect(func():
+			for i in range(GameManager.building_counts.size()):
+				GameManager.building_counts[i] = amt
+			GameManager._recalculate_lps()
+			GameManager.lobsters_changed.emit(GameManager.total_lobsters)
+			# Refresh building list
+			for child in building_container.get_children():
+				if child.has_method("_refresh"):
+					child._refresh())
+		bldg_row.add_child(btn)
+
+	# --- Reset ---
+	_dev_add_section(vbox, "⚠️ Danger Zone")
+	var reset_btn := _dev_make_button("RESET ALL PROGRESS")
+	reset_btn.add_theme_color_override("font_color", Color("#ff4444"))
+	reset_btn.pressed.connect(func():
+		GameManager.total_lobsters = 0.0
+		GameManager.lifetime_lobsters = 0.0
+		GameManager.lobsters_per_click = 1.0
+		GameManager.lobsters_per_second = 0.0
+		GameManager.farm_name = "My Lobster Farm"
+		GameManager.building_counts.fill(0)
+		GameManager.click_upgrades_purchased.fill(false)
+		GameManager.cps_click_upgrades_purchased.fill(false)
+		GameManager._init_building_upgrades()
+		GameManager._recalculate_lps()
+		GameManager._recalculate_click_power()
+		GameManager.lobsters_changed.emit(0.0)
+		GameManager.lps_changed.emit(0.0)
+		farm_name_button.text = "My Lobster Farm"
+		SaveManager.save_game()
+		for child in building_container.get_children():
+			if child.has_method("_refresh"):
+				child._refresh()
+		if current_tab == Tab.UPGRADES:
+			_refresh_upgrades()
+		_dev_popup.queue_free())
+	vbox.add_child(reset_btn)
+
+	# --- Close ---
+	var spacer := Control.new()
+	spacer.custom_minimum_size = Vector2(0, 8)
+	vbox.add_child(spacer)
+	var close_btn := _dev_make_button("CLOSE")
+	close_btn.pressed.connect(func(): _dev_popup.queue_free())
+	vbox.add_child(close_btn)
+
+	add_child(_dev_popup)
+
+func _dev_add_section(parent: VBoxContainer, title: String) -> void:
+	var sep := HSeparator.new()
+	sep.add_theme_color_override("separator_color", Color("#334455"))
+	parent.add_child(sep)
+	var label := Label.new()
+	label.text = title
+	label.add_theme_color_override("font_color", Color("#aabbcc"))
+	label.add_theme_font_size_override("font_size", 16)
+	parent.add_child(label)
+
+func _dev_make_button(text: String) -> Button:
+	var btn := Button.new()
+	btn.text = text
+	btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	btn.custom_minimum_size = Vector2(0, 40)
+	btn.add_theme_font_size_override("font_size", 16)
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color("#1a2a3a")
+	style.corner_radius_top_left = 6
+	style.corner_radius_top_right = 6
+	style.corner_radius_bottom_left = 6
+	style.corner_radius_bottom_right = 6
+	style.content_margin_left = 6.0
+	style.content_margin_right = 6.0
+	style.content_margin_top = 4.0
+	style.content_margin_bottom = 4.0
+	btn.add_theme_stylebox_override("normal", style)
+	var hover := StyleBoxFlat.new()
+	hover.bg_color = Color("#2a3a4a")
+	hover.corner_radius_top_left = 6
+	hover.corner_radius_top_right = 6
+	hover.corner_radius_bottom_left = 6
+	hover.corner_radius_bottom_right = 6
+	hover.content_margin_left = 6.0
+	hover.content_margin_right = 6.0
+	hover.content_margin_top = 4.0
+	hover.content_margin_bottom = 4.0
+	btn.add_theme_stylebox_override("hover", hover)
+	btn.add_theme_stylebox_override("pressed", hover)
+	return btn
 
 # --- Tab Management ---
 

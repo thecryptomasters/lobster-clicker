@@ -185,6 +185,7 @@ const RARITY_COLORS := {
 
 var active_boost: Dictionary = {}
 var boost_time_remaining: float = 0.0
+var _boost_end_time: float = 0.0  # Unix timestamp when boost expires
 
 # Premium boost state
 var premium_boost_cost_multiplier := 3.0
@@ -192,6 +193,9 @@ var flat_lcps_bonus: float = 0.0
 var single_building_boost_index: int = -1
 var single_building_boost_mult: float = 1.0
 var single_building_boost_time: float = 0.0
+var _single_boost_end_time: float = 0.0
+
+var _cooldown_end_time: float = 0.0  # Unix timestamp when cooldown expires
 
 # CPS-to-click upgrades: add a percentage of LPS to each click
 var cps_click_upgrade_defs: Array = [
@@ -289,28 +293,34 @@ func click() -> float:
 	return value
 
 func _process(delta: float) -> void:
-	# Tick gacha cooldown
-	if gacha_cooldown_remaining > 0:
-		gacha_cooldown_remaining -= delta
-		if gacha_cooldown_remaining < 0:
-			gacha_cooldown_remaining = 0.0
+	var now := Time.get_unix_time_from_system()
 
-	# Tick boost timer
-	if boost_time_remaining > 0:
-		boost_time_remaining -= delta
-		if boost_time_remaining <= 0:
+	# Update cooldown from timestamp
+	if _cooldown_end_time > 0:
+		gacha_cooldown_remaining = maxf(0.0, _cooldown_end_time - now)
+
+	# Update boost timer from timestamp
+	if _boost_end_time > 0:
+		var remaining := _boost_end_time - now
+		if remaining <= 0 and boost_time_remaining > 0:
 			boost_time_remaining = 0.0
+			_boost_end_time = 0.0
 			active_boost = {}
 			boost_expired.emit()
+		else:
+			boost_time_remaining = maxf(0.0, remaining)
 
-	# Tick single building boost timer
-	if single_building_boost_time > 0:
-		single_building_boost_time -= delta
-		if single_building_boost_time <= 0:
+	# Update single building boost from timestamp
+	if _single_boost_end_time > 0:
+		var remaining := _single_boost_end_time - now
+		if remaining <= 0 and single_building_boost_time > 0:
 			single_building_boost_time = 0.0
+			_single_boost_end_time = 0.0
 			single_building_boost_index = -1
 			single_building_boost_mult = 1.0
 			boost_expired.emit()
+		else:
+			single_building_boost_time = maxf(0.0, remaining)
 
 	if lobsters_per_second > 0:
 		var base_production := lobsters_per_second * get_gacha_boost_multiplier("building_mult") * delta
@@ -501,6 +511,18 @@ func buy_gacha_cooldown_upgrade(index: int) -> bool:
 	lobsters_changed.emit(total_lobsters)
 	return true
 
+func _set_cooldown(duration: float) -> void:
+	gacha_cooldown_remaining = duration
+	_cooldown_end_time = Time.get_unix_time_from_system() + duration
+
+func _set_boost_timer(duration: float) -> void:
+	boost_time_remaining = duration
+	_boost_end_time = Time.get_unix_time_from_system() + duration
+
+func _set_single_boost_timer(duration: float) -> void:
+	single_building_boost_time = duration
+	_single_boost_end_time = Time.get_unix_time_from_system() + duration
+
 func get_gacha_cost() -> float:
 	return maxf(5000.0, floor(lobsters_per_second * 30.0))
 
@@ -532,14 +554,14 @@ func roll_gacha() -> Dictionary:
 		cumulative += b["weight"]
 		if roll < cumulative:
 			active_boost = b.duplicate()
-			boost_time_remaining = b["duration"]
-			gacha_cooldown_remaining = get_gacha_cooldown()
+			_set_boost_timer(b["duration"])
+			_set_cooldown(get_gacha_cooldown())
 			boost_activated.emit(active_boost)
 			lobsters_changed.emit(total_lobsters)
 			return active_boost
 	# Fallback
 	active_boost = GACHA_BOOSTS[0].duplicate()
-	boost_time_remaining = GACHA_BOOSTS[0]["duration"]
+	_set_boost_timer(GACHA_BOOSTS[0]["duration"])
 	boost_activated.emit(active_boost)
 	lobsters_changed.emit(total_lobsters)
 	return active_boost
@@ -572,18 +594,18 @@ func activate_premium_boost(boost: Dictionary) -> void:
 	var btype: String = boost["type"]
 	if btype == "building_mult" or btype == "click_mult":
 		active_boost = boost.duplicate()
-		boost_time_remaining = boost["duration"]
-		gacha_cooldown_remaining = get_gacha_cooldown()
+		_set_boost_timer(boost["duration"])
+		_set_cooldown(get_gacha_cooldown())
 		boost_activated.emit(active_boost)
 	elif btype == "flat_lcps":
 		flat_lcps_bonus += boost["amount"]
-		gacha_cooldown_remaining = get_gacha_cooldown()
+		_set_cooldown(get_gacha_cooldown())
 		_recalculate_lps()
 	elif btype == "free_building":
 		var bi: int = boost["building_index"]
 		building_counts[bi] += 1
 		_recalculate_lps()
-		gacha_cooldown_remaining = get_gacha_cooldown()
+		_set_cooldown(get_gacha_cooldown())
 		building_purchased.emit(bi)
 	elif btype == "single_building_boost":
 		# Pick a random owned building
@@ -595,8 +617,8 @@ func activate_premium_boost(boost: Dictionary) -> void:
 			return
 		single_building_boost_index = owned[randi() % owned.size()]
 		single_building_boost_mult = boost["mult"]
-		single_building_boost_time = boost["duration"]
-		gacha_cooldown_remaining = get_gacha_cooldown()
+		_set_single_boost_timer(boost["duration"])
+		_set_cooldown(get_gacha_cooldown())
 	premium_boost_activated.emit(boost)
 	lobsters_changed.emit(total_lobsters)
 

@@ -799,7 +799,7 @@ func _style_buy_capsule_button() -> void:
 func _update_gacha_cost() -> void:
 	var cost := GameManager.get_gacha_cost()
 	gacha_cost_label.text = "Capsule Cost: %s" % GameManager.format_number(cost)
-	premium_cost_label.text = "Premium Cost: %s" % GameManager.format_number(GameManager.get_premium_cost())
+	premium_cost_label.text = "Card Cost: %s" % GameManager.format_number(GameManager.get_premium_cost())
 	_update_capsule_button_affordability()
 	_update_premium_button_affordability()
 
@@ -938,7 +938,7 @@ func _update_boost_hud_display() -> void:
 	else:
 		boost_hud_label.add_theme_color_override("font_color", Color("#f39c12"))
 
-# --- Premium Boost ---
+# --- Lobster Cards ---
 
 func _style_buy_premium_button() -> void:
 	var style := StyleBoxFlat.new()
@@ -984,7 +984,7 @@ func _update_premium_button_affordability() -> void:
 	if on_cooldown and not premium_options_container.visible:
 		buy_premium_button.text = "⏳ %ds" % ceili(GameManager.get_gacha_wait_time())
 	elif not premium_options_container.visible:
-		buy_premium_button.text = "⭐ CHOOSE YOUR BOOST"
+		buy_premium_button.text = "🃏 DRAW CARDS"
 
 func _on_buy_premium() -> void:
 	if GameManager.is_gacha_on_cooldown():

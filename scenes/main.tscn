@@ -27,53 +27,12 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_script")
 
-[sub_resource type="Shader" id="ocean_shader"]
-code = "shader_type canvas_item;
-
-uniform vec4 color_deep : source_color = vec4(0.02, 0.06, 0.14, 1.0);
-uniform vec4 color_mid : source_color = vec4(0.05, 0.12, 0.22, 1.0);
-uniform vec4 color_light : source_color = vec4(0.08, 0.18, 0.3, 1.0);
-uniform float speed : hint_range(0.01, 0.5) = 0.08;
-uniform float wave_strength : hint_range(0.0, 0.1) = 0.03;
-
-void fragment() {
-    vec2 uv = UV;
-    float t = TIME * speed;
-
-    // Gentle wave distortion
-    uv.x += sin(uv.y * 4.0 + t * 2.0) * wave_strength;
-    uv.y += cos(uv.x * 3.0 + t * 1.5) * wave_strength * 0.5;
-
-    // Breathing gradient pulse
-    float pulse = sin(t) * 0.5 + 0.5;
-    float grad = uv.y;
-
-    // Mix three colors based on vertical position + pulse
-    vec4 col = mix(color_light, color_mid, smoothstep(0.0, 0.5, grad));
-    col = mix(col, color_deep, smoothstep(0.3, 1.0, grad));
-
-    // Add subtle pulse brightness
-    col.rgb += pulse * 0.015;
-
-    COLOR = col;
-}
-"
-
-[sub_resource type="ShaderMaterial" id="ocean_mat"]
-shader = SubResource("ocean_shader")
-shader_parameter/color_deep = Color(0.02, 0.06, 0.14, 1)
-shader_parameter/color_mid = Color(0.05, 0.12, 0.22, 1)
-shader_parameter/color_light = Color(0.08, 0.18, 0.3, 1)
-shader_parameter/speed = 0.08
-shader_parameter/wave_strength = 0.03
-
 [node name="Background" type="ColorRect" parent="."]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-material = SubResource("ocean_mat")
-color = Color(1, 1, 1, 1)
+color = Color(0.039, 0.086, 0.157, 1)
 
 [node name="RootContainer" type="BoxContainer" parent="."]
 unique_name_in_owner = true

@@ -123,6 +123,13 @@ func _ready() -> void:
 		offline_popup.visible = false
 
 func _process(delta: float) -> void:
+	# Animate background gradient pulse
+	var bg := $Background as ColorRect
+	var pulse := (sin(Time.get_ticks_msec() / 1000.0 * 0.3) + 1.0) / 2.0
+	var color_deep := Color(0.02, 0.06, 0.14)
+	var color_light := Color(0.06, 0.12, 0.22)
+	bg.color = color_deep.lerp(color_light, pulse * 0.5)
+
 	# Hold-to-click: auto-fire clicks while holding
 	if _is_holding and GameManager.is_hold_click_unlocked():
 		_hold_timer += delta

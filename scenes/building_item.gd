@@ -8,6 +8,7 @@ var building_index: int = 0
 @onready var count_label: Label = %CountLabel
 @onready var lps_label: Label = %LpsLabel
 @onready var buy_button: Button = %BuyButton
+@onready var total_lps_label: Label = %TotalLpsLabel
 
 var _affordable_style: StyleBoxFlat
 var _unaffordable_style: StyleBoxFlat
@@ -61,6 +62,13 @@ func _refresh() -> void:
 		lps_label.text = "+%s/sec (%dx)" % [str(effective_lps), int(mult)]
 	else:
 		lps_label.text = "+%s/sec" % str(def["lps"])
+	# Total LCPS from this building
+	var total_building_lps: float = count * effective_lps
+	if total_building_lps > 0:
+		total_lps_label.text = "Generating: %s LCPS" % GameManager.format_number(total_building_lps)
+		total_lps_label.visible = true
+	else:
+		total_lps_label.visible = false
 	_update_buy_button_style()
 
 func _update_buy_button_style() -> void:

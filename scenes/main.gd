@@ -36,6 +36,9 @@ const BuildingUpgradeItemScene := preload("res://scenes/building_upgrade_item.ts
 @onready var root_container: BoxContainer = %RootContainer
 @onready var left_section: VBoxContainer = %LeftSection
 @onready var right_panel: PanelContainer = %RightPanel
+@onready var premium_cost_label: Label = %PremiumCostLabel
+@onready var buy_premium_button: Button = %BuyPremiumButton
+@onready var premium_options_container: VBoxContainer = %PremiumOptionsContainer
 
 # Animation: move pincers via X position (no rotation!)
 const OPEN_X := 22.0
@@ -77,9 +80,12 @@ func _ready() -> void:
 	upgrades_tab.pressed.connect(_on_upgrades_tab)
 	consumables_tab.pressed.connect(_on_consumables_tab)
 	buy_capsule_button.pressed.connect(_on_buy_capsule)
+	buy_premium_button.pressed.connect(_on_buy_premium)
 	GameManager.boost_activated.connect(_on_boost_activated)
 	GameManager.boost_expired.connect(_on_boost_expired)
+	GameManager.premium_boost_activated.connect(_on_premium_boost_activated)
 	_style_buy_capsule_button()
+	_style_buy_premium_button()
 	consumables_tab.visible = GameManager.lifetime_lobsters >= 2500
 
 	# Scroll buttons
@@ -245,11 +251,16 @@ func _update_lps_display() -> void:
 	var base_lps := GameManager.lobsters_per_second
 	var boost_mult := GameManager.get_gacha_boost_multiplier("building_mult")
 	var effective_lps := base_lps * boost_mult
+	# Add single building boost bonus to display
+	if GameManager.single_building_boost_time > 0 and GameManager.single_building_boost_index >= 0:
+		var bi := GameManager.single_building_boost_index
+		var boosted_lps: float = GameManager.building_counts[bi] * float(GameManager.building_defs[bi]["lps"]) * GameManager.get_building_multiplier(bi)
+		effective_lps += boosted_lps * (GameManager.single_building_boost_mult - 1.0) * boost_mult
 	if effective_lps < 1.0 and effective_lps > 0:
 		lps_label.text = "%.1f LCPS" % effective_lps
 	else:
 		lps_label.text = "%s LCPS" % GameManager.format_number(effective_lps)
-	if boost_mult > 1.0:
+	if boost_mult > 1.0 or GameManager.single_building_boost_time > 0:
 		lps_label.add_theme_color_override("font_color", Color("#f39c12"))
 	else:
 		lps_label.add_theme_color_override("font_color", Color(0.5, 0.7, 0.8, 1))
@@ -517,6 +528,10 @@ func _show_dev_menu() -> void:
 		GameManager.offline_rate_purchased.fill(false)
 		GameManager.offline_duration_purchased.fill(false)
 		GameManager.gacha_cooldown_remaining = 0.0
+		GameManager.flat_lcps_bonus = 0.0
+		GameManager.single_building_boost_index = -1
+		GameManager.single_building_boost_mult = 1.0
+		GameManager.single_building_boost_time = 0.0
 		GameManager._init_building_upgrades()
 		GameManager._recalculate_lps()
 		GameManager._recalculate_click_power()
@@ -605,6 +620,7 @@ func _switch_tab(tab: int) -> void:
 	if tab == Tab.CONSUMABLES:
 		_update_gacha_cost()
 		_update_capsule_button_affordability()
+		_update_premium_button_affordability()
 
 func _update_tab_styles() -> void:
 	var active_color := Color("#ffd766")
@@ -783,7 +799,9 @@ func _style_buy_capsule_button() -> void:
 func _update_gacha_cost() -> void:
 	var cost := GameManager.get_gacha_cost()
 	gacha_cost_label.text = "Capsule Cost: %s" % GameManager.format_number(cost)
+	premium_cost_label.text = "Premium Cost: %s" % GameManager.format_number(GameManager.get_premium_cost())
 	_update_capsule_button_affordability()
+	_update_premium_button_affordability()
 
 func _update_capsule_button_affordability() -> void:
 	var cost := GameManager.get_gacha_cost()
@@ -880,30 +898,251 @@ func _on_boost_activated(boost: Dictionary) -> void:
 	boost_aura.emitting = true
 
 func _on_boost_expired() -> void:
-	boost_hud_label.visible = false
+	_update_boost_hud_display()
 	_update_lps_display()
-	boost_aura.emitting = false
-	if result_panel.visible:
+	if GameManager.active_boost.is_empty() and GameManager.boost_time_remaining <= 0:
+		boost_aura.emitting = false
+	if result_panel.visible and GameManager.boost_time_remaining <= 0:
 		timer_label.text = "Expired!"
 		timer_label.add_theme_color_override("font_color", Color("#667788"))
 
 func _update_boost_hud(delta: float) -> void:
-	if GameManager.boost_time_remaining > 0 and not GameManager.active_boost.is_empty():
+	if (GameManager.boost_time_remaining > 0 and not GameManager.active_boost.is_empty()) or GameManager.single_building_boost_time > 0:
 		_update_boost_hud_display()
+		_update_lps_display()
 		# Update timer in result panel
-		if result_panel.visible:
+		if result_panel.visible and GameManager.boost_time_remaining > 0:
 			timer_label.text = "%.1fs remaining" % GameManager.boost_time_remaining
 			timer_label.add_theme_color_override("font_color", Color("#ffd766"))
 	# Update capsule button affordability periodically
 	if current_tab == Tab.CONSUMABLES:
 		_update_capsule_button_affordability()
+		_update_premium_button_affordability()
 
 func _update_boost_hud_display() -> void:
-	if GameManager.active_boost.is_empty() or GameManager.boost_time_remaining <= 0:
+	var lines: Array = []
+	if not GameManager.active_boost.is_empty() and GameManager.boost_time_remaining > 0:
+		var b := GameManager.active_boost
+		lines.append("%s — %sx %s (%.0fs)" % [b["name"], str(b["mult"]), "buildings" if b["type"] == "building_mult" else "clicks", GameManager.boost_time_remaining])
+	if GameManager.single_building_boost_time > 0 and GameManager.single_building_boost_index >= 0:
+		var bname: String = GameManager.building_defs[GameManager.single_building_boost_index]["name"]
+		lines.append("⚡ %s — %sx (%.0fs)" % [bname, str(GameManager.single_building_boost_mult), GameManager.single_building_boost_time])
+	if lines.is_empty():
 		boost_hud_label.visible = false
 		return
 	boost_hud_label.visible = true
-	var b := GameManager.active_boost
-	var color := Color(GameManager.RARITY_COLORS[b["rarity"]])
-	boost_hud_label.text = "%s — %sx %s (%.0fs)" % [b["name"], str(b["mult"]), "buildings" if b["type"] == "building_mult" else "clicks", GameManager.boost_time_remaining]
-	boost_hud_label.add_theme_color_override("font_color", color)
+	boost_hud_label.text = "\n".join(lines)
+	if not GameManager.active_boost.is_empty() and GameManager.boost_time_remaining > 0:
+		var b := GameManager.active_boost
+		boost_hud_label.add_theme_color_override("font_color", Color(GameManager.RARITY_COLORS[b["rarity"]]))
+	else:
+		boost_hud_label.add_theme_color_override("font_color", Color("#f39c12"))
+
+# --- Premium Boost ---
+
+func _style_buy_premium_button() -> void:
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color("#9b59b6")
+	style.corner_radius_top_left = 8
+	style.corner_radius_top_right = 8
+	style.corner_radius_bottom_left = 8
+	style.corner_radius_bottom_right = 8
+	style.content_margin_left = 12.0
+	style.content_margin_right = 12.0
+	style.content_margin_top = 8.0
+	style.content_margin_bottom = 8.0
+	buy_premium_button.add_theme_stylebox_override("normal", style)
+	var hover := StyleBoxFlat.new()
+	hover.bg_color = Color("#8e44ad")
+	hover.corner_radius_top_left = 8
+	hover.corner_radius_top_right = 8
+	hover.corner_radius_bottom_left = 8
+	hover.corner_radius_bottom_right = 8
+	hover.content_margin_left = 12.0
+	hover.content_margin_right = 12.0
+	hover.content_margin_top = 8.0
+	hover.content_margin_bottom = 8.0
+	buy_premium_button.add_theme_stylebox_override("hover", hover)
+	buy_premium_button.add_theme_stylebox_override("pressed", hover)
+	var disabled := StyleBoxFlat.new()
+	disabled.bg_color = Color("#555555")
+	disabled.corner_radius_top_left = 8
+	disabled.corner_radius_top_right = 8
+	disabled.corner_radius_bottom_left = 8
+	disabled.corner_radius_bottom_right = 8
+	disabled.content_margin_left = 12.0
+	disabled.content_margin_right = 12.0
+	disabled.content_margin_top = 8.0
+	disabled.content_margin_bottom = 8.0
+	buy_premium_button.add_theme_stylebox_override("disabled", disabled)
+
+func _update_premium_button_affordability() -> void:
+	var cost := GameManager.get_premium_cost()
+	var can_afford := GameManager.total_lobsters >= cost
+	var on_cooldown := GameManager.is_gacha_on_cooldown()
+	buy_premium_button.disabled = not can_afford or on_cooldown or premium_options_container.visible
+	if on_cooldown and not premium_options_container.visible:
+		buy_premium_button.text = "⏳ %ds" % ceili(GameManager.get_gacha_wait_time())
+	elif not premium_options_container.visible:
+		buy_premium_button.text = "⭐ CHOOSE YOUR BOOST"
+
+func _on_buy_premium() -> void:
+	if GameManager.is_gacha_on_cooldown():
+		return
+	var cost := GameManager.get_premium_cost()
+	if GameManager.total_lobsters < cost:
+		return
+	GameManager.total_lobsters -= cost
+	GameManager.lobsters_changed.emit(GameManager.total_lobsters)
+	var options := GameManager.roll_premium_options()
+	_show_premium_options(options)
+
+func _show_premium_options(options: Array) -> void:
+	# Clear previous options
+	for child in premium_options_container.get_children():
+		child.queue_free()
+	premium_options_container.visible = true
+	buy_premium_button.disabled = true
+
+	for opt in options:
+		var card := _create_option_card(opt)
+		premium_options_container.add_child(card)
+
+func _create_option_card(boost: Dictionary) -> PanelContainer:
+	var card := PanelContainer.new()
+	var rarity: String = boost["rarity"]
+	var rarity_color := Color(GameManager.RARITY_COLORS[rarity])
+
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(rarity_color, 0.1)
+	style.border_width_left = 3
+	style.border_color = rarity_color
+	style.corner_radius_top_left = 6
+	style.corner_radius_top_right = 6
+	style.corner_radius_bottom_left = 6
+	style.corner_radius_bottom_right = 6
+	style.content_margin_left = 12.0
+	style.content_margin_right = 12.0
+	style.content_margin_top = 8.0
+	style.content_margin_bottom = 8.0
+	card.add_theme_stylebox_override("panel", style)
+
+	var vbox := VBoxContainer.new()
+	vbox.add_theme_constant_override("separation", 4)
+	card.add_child(vbox)
+
+	# Rarity badge
+	var rarity_lbl := Label.new()
+	var rarity_display := rarity.to_upper()
+	if rarity == "legendary":
+		rarity_lbl.text = "★ %s ★" % rarity_display
+	elif rarity == "rare":
+		rarity_lbl.text = "◆ %s ◆" % rarity_display
+	elif rarity == "uncommon":
+		rarity_lbl.text = "● %s ●" % rarity_display
+	else:
+		rarity_lbl.text = rarity_display
+	rarity_lbl.add_theme_color_override("font_color", rarity_color)
+	rarity_lbl.add_theme_font_size_override("font_size", 12)
+	vbox.add_child(rarity_lbl)
+
+	# Name
+	var name_lbl := Label.new()
+	name_lbl.text = boost["name"]
+	name_lbl.add_theme_color_override("font_color", rarity_color)
+	name_lbl.add_theme_font_size_override("font_size", 20)
+	vbox.add_child(name_lbl)
+
+	# Description
+	var desc_lbl := Label.new()
+	desc_lbl.text = boost["desc"]
+	desc_lbl.add_theme_color_override("font_color", Color(0.7, 0.7, 0.7, 1))
+	desc_lbl.add_theme_font_size_override("font_size", 14)
+	desc_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	vbox.add_child(desc_lbl)
+
+	# Select button
+	var select_btn := Button.new()
+	select_btn.text = "SELECT"
+	select_btn.custom_minimum_size = Vector2(0, 40)
+	select_btn.add_theme_font_size_override("font_size", 18)
+	var btn_style := StyleBoxFlat.new()
+	btn_style.bg_color = rarity_color.darkened(0.3)
+	btn_style.corner_radius_top_left = 6
+	btn_style.corner_radius_top_right = 6
+	btn_style.corner_radius_bottom_left = 6
+	btn_style.corner_radius_bottom_right = 6
+	btn_style.content_margin_left = 8.0
+	btn_style.content_margin_right = 8.0
+	btn_style.content_margin_top = 4.0
+	btn_style.content_margin_bottom = 4.0
+	select_btn.add_theme_stylebox_override("normal", btn_style)
+	var btn_hover := StyleBoxFlat.new()
+	btn_hover.bg_color = rarity_color.darkened(0.1)
+	btn_hover.corner_radius_top_left = 6
+	btn_hover.corner_radius_top_right = 6
+	btn_hover.corner_radius_bottom_left = 6
+	btn_hover.corner_radius_bottom_right = 6
+	btn_hover.content_margin_left = 8.0
+	btn_hover.content_margin_right = 8.0
+	btn_hover.content_margin_top = 4.0
+	btn_hover.content_margin_bottom = 4.0
+	select_btn.add_theme_stylebox_override("hover", btn_hover)
+	select_btn.add_theme_stylebox_override("pressed", btn_hover)
+	select_btn.pressed.connect(_on_premium_option_selected.bind(boost))
+	vbox.add_child(select_btn)
+
+	return card
+
+func _on_premium_option_selected(boost: Dictionary) -> void:
+	GameManager.activate_premium_boost(boost)
+	premium_options_container.visible = false
+	_update_gacha_cost()
+
+func _on_premium_boost_activated(boost: Dictionary) -> void:
+	var btype: String = boost["type"]
+	# Show result in the gacha result panel for timed boosts
+	if btype == "building_mult" or btype == "click_mult":
+		result_panel.visible = true
+		var rarity: String = boost["rarity"]
+		var color := Color(GameManager.RARITY_COLORS[rarity])
+		rarity_label.text = "★ %s ★" % rarity.to_upper() if rarity == "legendary" else rarity.to_upper()
+		rarity_label.add_theme_color_override("font_color", color)
+		boost_name_label.text = boost["name"]
+		boost_name_label.add_theme_color_override("font_color", color)
+		boost_desc_label.text = "%s for %ds" % [boost["desc"], int(boost["duration"])]
+	elif btype == "flat_lcps":
+		result_panel.visible = true
+		var color := Color(GameManager.RARITY_COLORS[boost["rarity"]])
+		rarity_label.text = "PERMANENT"
+		rarity_label.add_theme_color_override("font_color", color)
+		boost_name_label.text = boost["name"]
+		boost_name_label.add_theme_color_override("font_color", color)
+		boost_desc_label.text = boost["desc"]
+		timer_label.text = "Applied! Total flat bonus: +%s LCPS" % GameManager.format_number(GameManager.flat_lcps_bonus)
+		timer_label.add_theme_color_override("font_color", Color("#2ecc71"))
+	elif btype == "free_building":
+		result_panel.visible = true
+		var color := Color(GameManager.RARITY_COLORS[boost["rarity"]])
+		rarity_label.text = "FREE BUILDING"
+		rarity_label.add_theme_color_override("font_color", color)
+		boost_name_label.text = boost["name"]
+		boost_name_label.add_theme_color_override("font_color", color)
+		boost_desc_label.text = boost["desc"]
+		timer_label.text = "Added!"
+		timer_label.add_theme_color_override("font_color", Color("#2ecc71"))
+		# Refresh building list
+		for child in building_container.get_children():
+			if child.has_method("_refresh"):
+				child._refresh()
+	elif btype == "single_building_boost":
+		var bname: String = GameManager.building_defs[GameManager.single_building_boost_index]["name"]
+		result_panel.visible = true
+		var color := Color(GameManager.RARITY_COLORS[boost["rarity"]])
+		rarity_label.text = rarity_label.text if not rarity_label.text.is_empty() else boost["rarity"].to_upper()
+		rarity_label.add_theme_color_override("font_color", color)
+		boost_name_label.text = "%s → %s" % [boost["name"], bname]
+		boost_name_label.add_theme_color_override("font_color", color)
+		boost_desc_label.text = "%sx %s for %ds" % [str(boost["mult"]), bname, int(boost["duration"])]
+		timer_label.text = ""
+	_update_lps_display()

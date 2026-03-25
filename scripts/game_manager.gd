@@ -6,6 +6,8 @@ signal building_purchased(index: int)
 signal upgrade_unlocked(building_index: int, tier: int)
 signal boost_activated(boost: Dictionary)
 signal boost_expired()
+signal premium_options_ready(options: Array)
+signal premium_boost_activated(boost: Dictionary)
 
 var total_lobsters: float = 0.0
 var lobsters_per_click: float = 1.0
@@ -149,6 +151,31 @@ const GACHA_BOOSTS := [
 	{"name": "LOBSTER FRENZY", "desc": "100x clicking power", "type": "click_mult", "mult": 100.0, "duration": 10.0, "rarity": "legendary", "weight": 3},
 ]
 
+const PREMIUM_BOOSTS := [
+	# All gacha boosts
+	{"name": "Tiny Tide", "desc": "2x building production", "type": "building_mult", "mult": 2.0, "duration": 30.0, "rarity": "common", "weight": 25},
+	{"name": "Quick Pinch", "desc": "3x clicking power", "type": "click_mult", "mult": 3.0, "duration": 20.0, "rarity": "common", "weight": 25},
+	{"name": "Rising Tide", "desc": "5x building production", "type": "building_mult", "mult": 5.0, "duration": 30.0, "rarity": "uncommon", "weight": 15},
+	{"name": "Power Pinch", "desc": "10x clicking power", "type": "click_mult", "mult": 10.0, "duration": 15.0, "rarity": "uncommon", "weight": 15},
+	{"name": "Tidal Wave", "desc": "10x building production", "type": "building_mult", "mult": 10.0, "duration": 20.0, "rarity": "rare", "weight": 8},
+	{"name": "Mega Pinch", "desc": "50x clicking power", "type": "click_mult", "mult": 50.0, "duration": 10.0, "rarity": "rare", "weight": 7},
+	{"name": "TSUNAMI", "desc": "25x building production", "type": "building_mult", "mult": 25.0, "duration": 15.0, "rarity": "legendary", "weight": 2},
+	{"name": "LOBSTER FRENZY", "desc": "100x clicking power", "type": "click_mult", "mult": 100.0, "duration": 10.0, "rarity": "legendary", "weight": 3},
+	# Permanent flat LCPS
+	{"name": "Tidal Income I", "desc": "+10 LCPS permanently", "type": "flat_lcps", "amount": 10.0, "rarity": "uncommon", "weight": 12},
+	{"name": "Tidal Income II", "desc": "+100 LCPS permanently", "type": "flat_lcps", "amount": 100.0, "rarity": "rare", "weight": 6},
+	{"name": "Tidal Income III", "desc": "+250 LCPS permanently", "type": "flat_lcps", "amount": 250.0, "rarity": "legendary", "weight": 2},
+	# Free buildings
+	{"name": "Free Coin Collecting", "desc": "Adds 1 Coin Collecting for free!", "type": "free_building", "building_index": 0, "rarity": "common", "weight": 15},
+	{"name": "Free Lobster Memes", "desc": "Adds 1 Lobster Memes for free!", "type": "free_building", "building_index": 1, "rarity": "uncommon", "weight": 10},
+	{"name": "Free Fishcord Server", "desc": "Adds 1 Fishcord Server for free!", "type": "free_building", "building_index": 2, "rarity": "rare", "weight": 5},
+	# Single random building boost
+	{"name": "Focused Training", "desc": "2x production for a random building", "type": "single_building_boost", "mult": 2.0, "duration": 45.0, "rarity": "common", "weight": 20},
+	{"name": "Specialized Boost", "desc": "5x production for a random building", "type": "single_building_boost", "mult": 5.0, "duration": 30.0, "rarity": "uncommon", "weight": 12},
+	{"name": "Expert Training", "desc": "15x production for a random building", "type": "single_building_boost", "mult": 15.0, "duration": 20.0, "rarity": "rare", "weight": 6},
+	{"name": "MEGA FOCUS", "desc": "50x production for a random building", "type": "single_building_boost", "mult": 50.0, "duration": 15.0, "rarity": "legendary", "weight": 2},
+]
+
 const RARITY_COLORS := {
 	"common": "#aaaaaa",
 	"uncommon": "#3498db",
@@ -158,6 +185,13 @@ const RARITY_COLORS := {
 
 var active_boost: Dictionary = {}
 var boost_time_remaining: float = 0.0
+
+# Premium boost state
+var premium_boost_cost_multiplier := 3.0
+var flat_lcps_bonus: float = 0.0
+var single_building_boost_index: int = -1
+var single_building_boost_mult: float = 1.0
+var single_building_boost_time: float = 0.0
 
 # CPS-to-click upgrades: add a percentage of LPS to each click
 var cps_click_upgrade_defs: Array = [
@@ -269,10 +303,24 @@ func _process(delta: float) -> void:
 			active_boost = {}
 			boost_expired.emit()
 
+	# Tick single building boost timer
+	if single_building_boost_time > 0:
+		single_building_boost_time -= delta
+		if single_building_boost_time <= 0:
+			single_building_boost_time = 0.0
+			single_building_boost_index = -1
+			single_building_boost_mult = 1.0
+			boost_expired.emit()
+
 	if lobsters_per_second > 0:
-		var earned := lobsters_per_second * get_gacha_boost_multiplier("building_mult") * delta
-		total_lobsters += earned
-		lifetime_lobsters += earned
+		var base_production := lobsters_per_second * get_gacha_boost_multiplier("building_mult") * delta
+		# Add single building boost bonus
+		if single_building_boost_time > 0 and single_building_boost_index >= 0:
+			var boosted_building_lps: float = building_counts[single_building_boost_index] * float(building_defs[single_building_boost_index]["lps"]) * get_building_multiplier(single_building_boost_index)
+			var bonus: float = boosted_building_lps * (single_building_boost_mult - 1.0)
+			base_production += bonus * get_gacha_boost_multiplier("building_mult") * delta
+		total_lobsters += base_production
+		lifetime_lobsters += base_production
 		lobsters_changed.emit(total_lobsters)
 
 func _recalculate_click_power() -> void:
@@ -339,6 +387,7 @@ func _recalculate_lps() -> void:
 	lobsters_per_second = 0.0
 	for i in range(building_defs.size()):
 		lobsters_per_second += building_counts[i] * building_defs[i]["lps"] * get_building_multiplier(i)
+	lobsters_per_second += flat_lcps_bonus
 	lps_changed.emit(lobsters_per_second)
 
 # --- Milestone Upgrades ---
@@ -495,6 +544,62 @@ func roll_gacha() -> Dictionary:
 	lobsters_changed.emit(total_lobsters)
 	return active_boost
 
+# --- Premium Boost System ---
+
+func get_premium_cost() -> float:
+	return get_gacha_cost() * premium_boost_cost_multiplier
+
+func roll_premium_options() -> Array:
+	var total_weight := 0
+	for b in PREMIUM_BOOSTS:
+		total_weight += b["weight"]
+	var options: Array = []
+	var used_names: Array = []
+	while options.size() < 3:
+		var roll := randi() % total_weight
+		var cumulative := 0
+		for b in PREMIUM_BOOSTS:
+			cumulative += b["weight"]
+			if roll < cumulative:
+				if b["name"] not in used_names:
+					options.append(b.duplicate())
+					used_names.append(b["name"])
+				break
+	premium_options_ready.emit(options)
+	return options
+
+func activate_premium_boost(boost: Dictionary) -> void:
+	var btype: String = boost["type"]
+	if btype == "building_mult" or btype == "click_mult":
+		active_boost = boost.duplicate()
+		boost_time_remaining = boost["duration"]
+		gacha_cooldown_remaining = get_gacha_cooldown()
+		boost_activated.emit(active_boost)
+	elif btype == "flat_lcps":
+		flat_lcps_bonus += boost["amount"]
+		gacha_cooldown_remaining = get_gacha_cooldown()
+		_recalculate_lps()
+	elif btype == "free_building":
+		var bi: int = boost["building_index"]
+		building_counts[bi] += 1
+		_recalculate_lps()
+		gacha_cooldown_remaining = get_gacha_cooldown()
+		building_purchased.emit(bi)
+	elif btype == "single_building_boost":
+		# Pick a random owned building
+		var owned: Array = []
+		for i in range(building_counts.size()):
+			if building_counts[i] > 0:
+				owned.append(i)
+		if owned.is_empty():
+			return
+		single_building_boost_index = owned[randi() % owned.size()]
+		single_building_boost_mult = boost["mult"]
+		single_building_boost_time = boost["duration"]
+		gacha_cooldown_remaining = get_gacha_cooldown()
+	premium_boost_activated.emit(boost)
+	lobsters_changed.emit(total_lobsters)
+
 func format_number(n: float) -> String:
 	var num := int(floor(n))
 	var s := str(num)
@@ -533,6 +638,7 @@ func get_save_data() -> Dictionary:
 		"offline_rate_upgrades": Array(offline_rate_purchased),
 		"offline_duration_upgrades": Array(offline_duration_purchased),
 		"farm_name": farm_name,
+		"flat_lcps_bonus": flat_lcps_bonus,
 		"last_save_time": Time.get_unix_time_from_system(),
 	}
 
@@ -571,6 +677,7 @@ func load_save_data(data: Dictionary) -> void:
 	for i in range(mini(offline_dur_data.size(), offline_duration_purchased.size())):
 		offline_duration_purchased[i] = offline_dur_data[i]
 	farm_name = data.get("farm_name", "My Lobster Farm")
+	flat_lcps_bonus = data.get("flat_lcps_bonus", 0.0)
 	_recalculate_lps()
 	_recalculate_click_power()
 	lobsters_changed.emit(total_lobsters)

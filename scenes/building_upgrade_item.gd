@@ -125,7 +125,8 @@ func _refresh() -> void:
 	var def: Dictionary = GameManager.building_defs[building_index]
 	name_label.text = "%s Tier %s" % [def["name"], tier_names[tier]]
 	var threshold: int = GameManager.UPGRADE_THRESHOLDS[tier]
-	desc_label.text = "Doubles %s production. (Requires %d %ss)" % [def["name"], threshold, def["name"]]
+	var mult: int = GameManager.TIER_MULTIPLIERS[tier]
+	desc_label.text = "%dx %s production. (Requires %d %ss)" % [mult, def["name"], threshold, def["name"]]
 	var cost := GameManager.get_upgrade_cost_for(building_index, tier)
 
 	if is_purchased:

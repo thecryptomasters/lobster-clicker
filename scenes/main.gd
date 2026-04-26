@@ -39,6 +39,7 @@ const BuildingUpgradeItemScene := preload("res://scenes/building_upgrade_item.ts
 @onready var premium_cost_label: Label = %PremiumCostLabel
 @onready var buy_premium_button: Button = %BuyPremiumButton
 @onready var premium_options_container: VBoxContainer = %PremiumOptionsContainer
+@onready var music_player: AudioStreamPlayer = %MusicPlayer
 
 # Animation: move pincers via X position (no rotation!)
 const OPEN_X := 22.0
@@ -92,6 +93,8 @@ func _ready() -> void:
 	var sc: ScrollContainer = %RightPanel.get_node("VBox/ScrollContainer")
 	scroll_up_btn.pressed.connect(func(): sc.scroll_vertical = max(0, sc.scroll_vertical - 150))
 	scroll_down_btn.pressed.connect(func(): sc.scroll_vertical += 150)
+
+	_start_music()
 
 	# Load farm name
 	farm_name_button.text = GameManager.farm_name
@@ -307,7 +310,12 @@ func _unhandled_input(event: InputEvent) -> void:
 		else:
 			_is_holding = false
 
+func _start_music() -> void:
+	if music_player and not music_player.playing:
+		music_player.play()
+
 func _try_click() -> void:
+	_start_music()
 	var now := Time.get_ticks_msec() / 1000.0
 	if now - _click_debounce < CLICK_DEBOUNCE_TIME:
 		return

@@ -41,6 +41,9 @@ const BuildingUpgradeItemScene := preload("res://scenes/building_upgrade_item.ts
 @onready var premium_options_container: VBoxContainer = %PremiumOptionsContainer
 @onready var music_player: AudioStreamPlayer = %MusicPlayer
 
+var mute_button: Button
+var _music_muted: bool = false
+
 # Animation: move pincers via X position (no rotation!)
 const OPEN_X := 22.0
 const SHUT_X := 3.0
@@ -85,6 +88,7 @@ func _ready() -> void:
 	GameManager.boost_activated.connect(_on_boost_activated)
 	GameManager.boost_expired.connect(_on_boost_expired)
 	GameManager.premium_boost_activated.connect(_on_premium_boost_activated)
+	_create_mute_button()
 	_style_buy_capsule_button()
 	_style_buy_premium_button()
 	consumables_tab.visible = GameManager.lifetime_lobsters >= 2500
@@ -311,8 +315,69 @@ func _unhandled_input(event: InputEvent) -> void:
 			_is_holding = false
 
 func _start_music() -> void:
+	if _music_muted:
+		return
 	if music_player and not music_player.playing:
 		music_player.play()
+	if music_player:
+		music_player.stream_paused = false
+
+func _create_mute_button() -> void:
+	mute_button = Button.new()
+	mute_button.name = "MuteButton"
+	mute_button.text = "🔊"
+	mute_button.tooltip_text = "Mute music"
+	mute_button.custom_minimum_size = Vector2(42, 34)
+	mute_button.focus_mode = Control.FOCUS_NONE
+	mute_button.flat = false
+	mute_button.z_index = 20
+	mute_button.anchor_left = 1.0
+	mute_button.anchor_right = 1.0
+	mute_button.anchor_top = 0.0
+	mute_button.anchor_bottom = 0.0
+	mute_button.offset_left = -54.0
+	mute_button.offset_right = -12.0
+	mute_button.offset_top = 10.0
+	mute_button.offset_bottom = 44.0
+	mute_button.add_theme_font_size_override("font_size", 18)
+
+	var normal := StyleBoxFlat.new()
+	normal.bg_color = Color(0.06, 0.10, 0.18, 0.72)
+	normal.border_width_left = 1
+	normal.border_width_top = 1
+	normal.border_width_right = 1
+	normal.border_width_bottom = 1
+	normal.border_color = Color(0.22, 0.42, 0.52, 0.9)
+	normal.corner_radius_top_left = 9
+	normal.corner_radius_top_right = 9
+	normal.corner_radius_bottom_left = 9
+	normal.corner_radius_bottom_right = 9
+	mute_button.add_theme_stylebox_override("normal", normal)
+
+	var hover := normal.duplicate() as StyleBoxFlat
+	hover.bg_color = Color(0.10, 0.18, 0.28, 0.88)
+	mute_button.add_theme_stylebox_override("hover", hover)
+	mute_button.add_theme_stylebox_override("pressed", hover)
+
+	mute_button.pressed.connect(_on_mute_button_pressed)
+	add_child(mute_button)
+
+func _on_mute_button_pressed() -> void:
+	_music_muted = not _music_muted
+	if music_player:
+		if _music_muted:
+			music_player.stream_paused = true
+		else:
+			if not music_player.playing:
+				music_player.play()
+			music_player.stream_paused = false
+	_update_mute_button()
+
+func _update_mute_button() -> void:
+	if not mute_button:
+		return
+	mute_button.text = "🔇" if _music_muted else "🔊"
+	mute_button.tooltip_text = "Unmute music" if _music_muted else "Mute music"
 
 func _try_click() -> void:
 	_start_music()

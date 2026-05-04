@@ -380,7 +380,6 @@ func _update_mute_button() -> void:
 	mute_button.tooltip_text = "Unmute music" if _music_muted else "Mute music"
 
 func _try_click() -> void:
-	_start_music()
 	var now := Time.get_ticks_msec() / 1000.0
 	if now - _click_debounce < CLICK_DEBOUNCE_TIME:
 		return

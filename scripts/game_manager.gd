@@ -8,12 +8,28 @@ signal boost_activated(boost: Dictionary)
 signal boost_expired()
 signal premium_options_ready(options: Array)
 signal premium_boost_activated(boost: Dictionary)
+signal transaction_completed()
+signal achievement_unlocked(id: String, title: String, desc: String)
+signal objective_changed(text: String)
+signal rare_event_triggered(event: Dictionary)
+signal purchase_mode_changed(mode: int)
+
+const SAVE_VERSION := 2
 
 var total_lobsters: float = 0.0
 var lobsters_per_click: float = 1.0
 var farm_name: String = "My Lobster Farm"
 var lobsters_per_second: float = 0.0
 var last_save_time: int = 0
+var music_muted: bool = false
+
+var achievements: Dictionary = {}
+var first_rare_event_seen: bool = false
+var pending_premium_options: Array = []
+var pending_premium_cost: float = 0.0
+var _last_objective: String = ""
+var _passive_ui_timer: float = 0.0
+var building_purchase_mode: int = 1  # 1, 10, or -1 for max affordable
 
 # Building definitions (formerly "upgrades")
 var building_defs: Array = [
@@ -98,6 +114,7 @@ func buy_offline_duration_upgrade(index: int) -> bool:
 	total_lobsters -= cost
 	offline_duration_purchased[index] = true
 	lobsters_changed.emit(total_lobsters)
+	transaction_completed.emit()
 	return true
 
 func get_offline_rate() -> float:
@@ -133,6 +150,7 @@ func buy_offline_rate_upgrade(index: int) -> bool:
 	total_lobsters -= cost
 	offline_rate_purchased[index] = true
 	lobsters_changed.emit(total_lobsters)
+	transaction_completed.emit()
 	return true
 
 # Gacha boost system
@@ -251,12 +269,14 @@ func buy_hold_click_upgrade(index: int) -> bool:
 	total_lobsters -= cost
 	hold_click_purchased[index] = true
 	lobsters_changed.emit(total_lobsters)
+	transaction_completed.emit()
 	return true
 
 func _ready() -> void:
 	building_counts.resize(building_defs.size())
 	building_counts.fill(0)
 	_init_building_upgrades()
+	_emit_objective()
 
 func _init_building_upgrades() -> void:
 	building_upgrades.clear()
@@ -285,11 +305,80 @@ func get_click_value() -> float:
 	base *= get_gacha_boost_multiplier("click_mult")
 	return base
 
+func _unlock_achievement(id: String, title: String, desc: String) -> bool:
+	if achievements.get(id, false):
+		return false
+	achievements[id] = true
+	achievement_unlocked.emit(id, title, desc)
+	transaction_completed.emit()
+	return true
+
+func unlock_offline_achievement() -> void:
+	_unlock_achievement("night_shift", "Night Shift", "Your crew kept working while you were away.")
+
+func get_current_objective() -> String:
+	if not achievements.get("first_catch", false):
+		return "Tap the claw and catch your first Lobster Coin."
+	if not achievements.get("tiny_fleet", false):
+		return "Catch 15 LC and buy Coin Collecting."
+	if building_counts[0] < 10:
+		return "Build a fleet: buy 10 Coin Collecting (%d/10)." % building_counts[0]
+	if not building_upgrades[0][0]:
+		return "Upgrade ready: make Coin Collecting 2x stronger."
+	if not first_rare_event_seen:
+		return "Keep pinching. Something strange is stirring..."
+	return "Grow the lobster empire and unlock the next upgrade."
+
+func _emit_objective() -> void:
+	var objective := get_current_objective()
+	if objective == _last_objective:
+		return
+	_last_objective = objective
+	objective_changed.emit(objective)
+
+func _get_cheapest_building_cost() -> float:
+	var cheapest := INF
+	for i in range(building_defs.size()):
+		cheapest = minf(cheapest, get_building_cost(i))
+	return cheapest
+
+func _trigger_disco_lobster() -> void:
+	if first_rare_event_seen:
+		return
+	first_rare_event_seen = true
+	var next_cost := _get_cheapest_building_cost()
+	var bonus := maxf(25.0, next_cost - total_lobsters)
+	total_lobsters += bonus
+	lifetime_lobsters += bonus
+	active_boost = {
+		"name": "Disco Lobster",
+		"desc": "3x clicking power",
+		"type": "click_mult",
+		"mult": 3.0,
+		"duration": 20.0,
+		"rarity": "rare",
+		"weight": 0,
+	}
+	_set_boost_timer(20.0)
+	boost_activated.emit(active_boost)
+	_unlock_achievement("disco_lobster", "Disco Lobster Found!", "The beat boosts your claw and funds the next purchase.")
+	rare_event_triggered.emit({"id": "disco_lobster", "bonus": bonus, "duration": 20.0})
+	lobsters_changed.emit(total_lobsters)
+	_emit_objective()
+
+func _check_first_session_milestones() -> void:
+	if lifetime_lobsters > 0:
+		_unlock_achievement("first_catch", "First Catch", "The lobster empire begins.")
+	if not first_rare_event_seen and lifetime_lobsters >= 100.0:
+		_trigger_disco_lobster()
+	_emit_objective()
+
 func click() -> float:
 	var value := get_click_value()
 	total_lobsters += value
 	lifetime_lobsters += value
 	lobsters_changed.emit(total_lobsters)
+	_check_first_session_milestones()
 	return value
 
 func _process(delta: float) -> void:
@@ -298,11 +387,13 @@ func _process(delta: float) -> void:
 	# Update cooldown from timestamp
 	if _cooldown_end_time > 0:
 		gacha_cooldown_remaining = maxf(0.0, _cooldown_end_time - now)
+		if gacha_cooldown_remaining <= 0:
+			_cooldown_end_time = 0.0
 
 	# Update boost timer from timestamp
 	if _boost_end_time > 0:
 		var remaining := _boost_end_time - now
-		if remaining <= 0 and boost_time_remaining > 0:
+		if remaining <= 0:
 			boost_time_remaining = 0.0
 			_boost_end_time = 0.0
 			active_boost = {}
@@ -313,7 +404,7 @@ func _process(delta: float) -> void:
 	# Update single building boost from timestamp
 	if _single_boost_end_time > 0:
 		var remaining := _single_boost_end_time - now
-		if remaining <= 0 and single_building_boost_time > 0:
+		if remaining <= 0:
 			single_building_boost_time = 0.0
 			_single_boost_end_time = 0.0
 			single_building_boost_index = -1
@@ -331,7 +422,11 @@ func _process(delta: float) -> void:
 			base_production += bonus * get_gacha_boost_multiplier("building_mult") * delta
 		total_lobsters += base_production
 		lifetime_lobsters += base_production
-		lobsters_changed.emit(total_lobsters)
+		_passive_ui_timer += delta
+		if _passive_ui_timer >= 0.1:
+			_passive_ui_timer = 0.0
+			lobsters_changed.emit(total_lobsters)
+			_check_first_session_milestones()
 
 func _recalculate_click_power() -> void:
 	lobsters_per_click = 1.0
@@ -367,6 +462,7 @@ func buy_click_upgrade(index: int) -> bool:
 	click_upgrades_purchased[index] = true
 	_recalculate_click_power()
 	lobsters_changed.emit(total_lobsters)
+	transaction_completed.emit()
 	return true
 
 func get_building_cost(index: int) -> float:
@@ -374,23 +470,70 @@ func get_building_cost(index: int) -> float:
 	var count: int = building_counts[index]
 	return floor(base * pow(COST_MULTIPLIER, count))
 
+func set_building_purchase_mode(mode: int) -> void:
+	if mode not in [1, 10, -1]:
+		return
+	building_purchase_mode = mode
+	purchase_mode_changed.emit(mode)
+
+func get_bulk_building_cost(index: int, amount: int) -> float:
+	var total := 0.0
+	var base: float = building_defs[index]["base_cost"]
+	var start_count: int = building_counts[index]
+	for offset in range(amount):
+		total += floor(base * pow(COST_MULTIPLIER, start_count + offset))
+	return total
+
+func get_max_affordable_buildings(index: int) -> int:
+	var remaining := total_lobsters
+	var amount := 0
+	var base: float = building_defs[index]["base_cost"]
+	var start_count: int = building_counts[index]
+	while amount < 10000:
+		var cost: float = floor(base * pow(COST_MULTIPLIER, start_count + amount))
+		if remaining < cost:
+			break
+		remaining -= cost
+		amount += 1
+	return amount
+
+func get_selected_building_amount(index: int) -> int:
+	if building_purchase_mode == -1:
+		return get_max_affordable_buildings(index)
+	return building_purchase_mode
+
+func get_selected_building_cost(index: int) -> float:
+	var amount := get_selected_building_amount(index)
+	if amount <= 0:
+		return get_building_cost(index)
+	return get_bulk_building_cost(index, amount)
+
 func can_afford_building(index: int) -> bool:
-	return total_lobsters >= get_building_cost(index)
+	var amount := get_selected_building_amount(index)
+	return amount > 0 and total_lobsters >= get_bulk_building_cost(index, amount)
 
 func buy_building(index: int) -> bool:
-	var cost := get_building_cost(index)
+	var amount := get_selected_building_amount(index)
+	if amount <= 0:
+		return false
+	var cost := get_bulk_building_cost(index, amount)
 	if total_lobsters < cost:
 		return false
 	total_lobsters -= cost
 	var old_count := building_counts[index]
-	building_counts[index] += 1
+	building_counts[index] += amount
 	_recalculate_lps()
 	lobsters_changed.emit(total_lobsters)
 	building_purchased.emit(index)
+	_unlock_achievement("tiny_fleet", "Tiny Fleet", "Your first automated collector is on deck.")
+	if building_counts[index] >= 10:
+		_unlock_achievement("ten_on_deck", "Ten on Deck", "Ten %s are working the waters." % building_defs[index]["name"])
 	# Check if a new upgrade threshold was crossed
 	for tier in range(UPGRADE_THRESHOLDS.size()):
 		if old_count < UPGRADE_THRESHOLDS[tier] and building_counts[index] >= UPGRADE_THRESHOLDS[tier]:
 			upgrade_unlocked.emit(index, tier)
+	transaction_completed.emit()
+	_emit_objective()
 	return true
 
 func _recalculate_lps() -> void:
@@ -435,6 +578,8 @@ func buy_building_upgrade(building_index: int, tier: int) -> bool:
 	building_upgrades[building_index][tier] = true
 	_recalculate_lps()
 	lobsters_changed.emit(total_lobsters)
+	transaction_completed.emit()
+	_emit_objective()
 	return true
 
 func get_available_cps_click_upgrades() -> Array:
@@ -462,6 +607,7 @@ func buy_cps_click_upgrade(index: int) -> bool:
 	total_lobsters -= cost
 	cps_click_upgrades_purchased[index] = true
 	lobsters_changed.emit(total_lobsters)
+	transaction_completed.emit()
 	return true
 
 # --- Gacha Boost System ---
@@ -509,6 +655,7 @@ func buy_gacha_cooldown_upgrade(index: int) -> bool:
 	total_lobsters -= cost
 	gacha_cooldown_upgrades_purchased[index] = true
 	lobsters_changed.emit(total_lobsters)
+	transaction_completed.emit()
 	return true
 
 func _set_cooldown(duration: float) -> void:
@@ -558,12 +705,15 @@ func roll_gacha() -> Dictionary:
 			_set_cooldown(get_gacha_cooldown())
 			boost_activated.emit(active_boost)
 			lobsters_changed.emit(total_lobsters)
+			transaction_completed.emit()
 			return active_boost
 	# Fallback
 	active_boost = GACHA_BOOSTS[0].duplicate()
 	_set_boost_timer(GACHA_BOOSTS[0]["duration"])
+	_set_cooldown(get_gacha_cooldown())
 	boost_activated.emit(active_boost)
 	lobsters_changed.emit(total_lobsters)
+	transaction_completed.emit()
 	return active_boost
 
 # --- Premium Boost System ---
@@ -571,16 +721,30 @@ func roll_gacha() -> Dictionary:
 func get_premium_cost() -> float:
 	return get_gacha_cost() * premium_boost_cost_multiplier
 
+func _get_eligible_premium_boosts() -> Array:
+	var eligible: Array = []
+	var owns_building := false
+	for count in building_counts:
+		if count > 0:
+			owns_building = true
+			break
+	for boost in PREMIUM_BOOSTS:
+		if boost["type"] == "single_building_boost" and not owns_building:
+			continue
+		eligible.append(boost)
+	return eligible
+
 func roll_premium_options() -> Array:
+	var pool := _get_eligible_premium_boosts()
 	var total_weight := 0
-	for b in PREMIUM_BOOSTS:
+	for b in pool:
 		total_weight += b["weight"]
 	var options: Array = []
 	var used_names: Array = []
 	while options.size() < 3:
 		var roll := randi() % total_weight
 		var cumulative := 0
-		for b in PREMIUM_BOOSTS:
+		for b in pool:
 			cumulative += b["weight"]
 			if roll < cumulative:
 				if b["name"] not in used_names:
@@ -590,7 +754,35 @@ func roll_premium_options() -> Array:
 	premium_options_ready.emit(options)
 	return options
 
-func activate_premium_boost(boost: Dictionary) -> void:
+func start_premium_draw() -> Array:
+	if not pending_premium_options.is_empty():
+		return pending_premium_options.duplicate(true)
+	if is_gacha_on_cooldown():
+		return []
+	var cost := get_premium_cost()
+	if total_lobsters < cost:
+		return []
+	total_lobsters -= cost
+	pending_premium_cost = cost
+	pending_premium_options = roll_premium_options()
+	if pending_premium_options.is_empty():
+		total_lobsters += pending_premium_cost
+		pending_premium_cost = 0.0
+		return []
+	lobsters_changed.emit(total_lobsters)
+	transaction_completed.emit()
+	return pending_premium_options.duplicate(true)
+
+func activate_premium_boost(boost: Dictionary) -> bool:
+	if pending_premium_options.is_empty():
+		return false
+	var is_pending_option := false
+	for option in pending_premium_options:
+		if option.get("name", "") == boost.get("name", ""):
+			is_pending_option = true
+			break
+	if not is_pending_option:
+		return false
 	var btype: String = boost["type"]
 	if btype == "building_mult" or btype == "click_mult":
 		active_boost = boost.duplicate()
@@ -603,10 +795,14 @@ func activate_premium_boost(boost: Dictionary) -> void:
 		_recalculate_lps()
 	elif btype == "free_building":
 		var bi: int = boost["building_index"]
+		var old_count := building_counts[bi]
 		building_counts[bi] += 1
 		_recalculate_lps()
 		_set_cooldown(get_gacha_cooldown())
 		building_purchased.emit(bi)
+		for tier in range(UPGRADE_THRESHOLDS.size()):
+			if old_count < UPGRADE_THRESHOLDS[tier] and building_counts[bi] >= UPGRADE_THRESHOLDS[tier]:
+				upgrade_unlocked.emit(bi, tier)
 	elif btype == "single_building_boost":
 		# Pick a random owned building
 		var owned: Array = []
@@ -614,15 +810,31 @@ func activate_premium_boost(boost: Dictionary) -> void:
 			if building_counts[i] > 0:
 				owned.append(i)
 		if owned.is_empty():
-			return
+			return false
 		single_building_boost_index = owned[randi() % owned.size()]
 		single_building_boost_mult = boost["mult"]
 		_set_single_boost_timer(boost["duration"])
 		_set_cooldown(get_gacha_cooldown())
+	else:
+		return false
+	pending_premium_options.clear()
+	pending_premium_cost = 0.0
 	premium_boost_activated.emit(boost)
 	lobsters_changed.emit(total_lobsters)
+	transaction_completed.emit()
+	_emit_objective()
+	return true
 
 func format_number(n: float) -> String:
+	var absolute := absf(n)
+	if absolute >= 1000000000000000.0:
+		return _format_compact(n / 1000000000000000.0, "Q")
+	if absolute >= 1000000000000.0:
+		return _format_compact(n / 1000000000000.0, "T")
+	if absolute >= 1000000000.0:
+		return _format_compact(n / 1000000000.0, "B")
+	if absolute >= 1000000.0:
+		return _format_compact(n / 1000000.0, "M")
 	var num := int(floor(n))
 	var s := str(num)
 	var result := ""
@@ -633,6 +845,56 @@ func format_number(n: float) -> String:
 		result = s[i] + result
 		count += 1
 	return result
+
+func _format_compact(value: float, suffix: String) -> String:
+	var formatted := "%.2f" % value
+	formatted = formatted.trim_suffix("0").trim_suffix("0").trim_suffix(".")
+	return formatted + suffix
+
+func format_rate(n: float) -> String:
+	if n == 0:
+		return "0"
+	if absf(n) < 1.0:
+		return ("%.2f" % n).trim_suffix("0").trim_suffix(".")
+	if absf(n) < 100.0 and not is_equal_approx(n, floor(n)):
+		return ("%.1f" % n).trim_suffix("0").trim_suffix(".")
+	return format_number(n)
+
+func reset_progress() -> void:
+	total_lobsters = 0.0
+	lifetime_lobsters = 0.0
+	lobsters_per_click = 1.0
+	lobsters_per_second = 0.0
+	farm_name = "My Lobster Farm"
+	building_counts.fill(0)
+	click_upgrades_purchased.fill(false)
+	cps_click_upgrades_purchased.fill(false)
+	hold_click_purchased.fill(false)
+	gacha_cooldown_upgrades_purchased.fill(false)
+	offline_rate_purchased.fill(false)
+	offline_duration_purchased.fill(false)
+	flat_lcps_bonus = 0.0
+	active_boost = {}
+	boost_time_remaining = 0.0
+	_boost_end_time = 0.0
+	gacha_cooldown_remaining = 0.0
+	_cooldown_end_time = 0.0
+	single_building_boost_index = -1
+	single_building_boost_mult = 1.0
+	single_building_boost_time = 0.0
+	_single_boost_end_time = 0.0
+	pending_premium_options.clear()
+	pending_premium_cost = 0.0
+	achievements.clear()
+	first_rare_event_seen = false
+	_last_objective = ""
+	_init_building_upgrades()
+	_recalculate_lps()
+	_recalculate_click_power()
+	lobsters_changed.emit(total_lobsters)
+	lps_changed.emit(lobsters_per_second)
+	transaction_completed.emit()
+	_emit_objective()
 
 func get_save_data() -> Dictionary:
 	# Convert building_upgrades to serializable format
@@ -649,6 +911,7 @@ func get_save_data() -> Dictionary:
 	for i in range(cps_click_upgrades_purchased.size()):
 		cps_click_data.append(cps_click_upgrades_purchased[i])
 	return {
+		"save_version": SAVE_VERSION,
 		"total_lobsters": total_lobsters,
 		"lifetime_lobsters": lifetime_lobsters,
 		"building_counts": building_counts,
@@ -661,6 +924,17 @@ func get_save_data() -> Dictionary:
 		"offline_duration_upgrades": Array(offline_duration_purchased),
 		"farm_name": farm_name,
 		"flat_lcps_bonus": flat_lcps_bonus,
+		"music_muted": music_muted,
+		"achievements": achievements.duplicate(true),
+		"first_rare_event_seen": first_rare_event_seen,
+		"pending_premium_options": pending_premium_options.duplicate(true),
+		"pending_premium_cost": pending_premium_cost,
+		"active_boost": active_boost.duplicate(true),
+		"boost_end_time": _boost_end_time,
+		"cooldown_end_time": _cooldown_end_time,
+		"single_building_boost_index": single_building_boost_index,
+		"single_building_boost_mult": single_building_boost_mult,
+		"single_boost_end_time": _single_boost_end_time,
 		"last_save_time": Time.get_unix_time_from_system(),
 	}
 
@@ -700,7 +974,31 @@ func load_save_data(data: Dictionary) -> void:
 		offline_duration_purchased[i] = offline_dur_data[i]
 	farm_name = data.get("farm_name", "My Lobster Farm")
 	flat_lcps_bonus = data.get("flat_lcps_bonus", 0.0)
+	music_muted = data.get("music_muted", false)
+	achievements = data.get("achievements", {}).duplicate(true)
+	first_rare_event_seen = data.get("first_rare_event_seen", false)
+	pending_premium_options = data.get("pending_premium_options", []).duplicate(true)
+	pending_premium_cost = data.get("pending_premium_cost", 0.0)
+	active_boost = data.get("active_boost", {}).duplicate(true)
+	_boost_end_time = data.get("boost_end_time", 0.0)
+	_cooldown_end_time = data.get("cooldown_end_time", 0.0)
+	single_building_boost_index = data.get("single_building_boost_index", -1)
+	single_building_boost_mult = data.get("single_building_boost_mult", 1.0)
+	_single_boost_end_time = data.get("single_boost_end_time", 0.0)
+	var now := Time.get_unix_time_from_system()
+	boost_time_remaining = maxf(0.0, _boost_end_time - now)
+	gacha_cooldown_remaining = maxf(0.0, _cooldown_end_time - now)
+	single_building_boost_time = maxf(0.0, _single_boost_end_time - now)
+	if boost_time_remaining <= 0:
+		active_boost = {}
+		_boost_end_time = 0.0
+	if single_building_boost_time <= 0:
+		single_building_boost_index = -1
+		single_building_boost_mult = 1.0
+		_single_boost_end_time = 0.0
 	_recalculate_lps()
 	_recalculate_click_power()
 	lobsters_changed.emit(total_lobsters)
 	last_save_time = data.get("last_save_time", 0)
+	_last_objective = ""
+	_emit_objective()

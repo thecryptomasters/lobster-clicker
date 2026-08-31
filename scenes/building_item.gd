@@ -18,6 +18,7 @@ func _ready() -> void:
 	GameManager.lobsters_changed.connect(_on_lobsters_changed)
 	GameManager.building_purchased.connect(_on_building_purchased)
 	GameManager.lps_changed.connect(_on_lps_changed)
+	GameManager.purchase_mode_changed.connect(_on_purchase_mode_changed)
 
 	_affordable_style = StyleBoxFlat.new()
 	_affordable_style.bg_color = Color("#2d6b4f")
@@ -52,8 +53,13 @@ func _refresh() -> void:
 	var def: Dictionary = GameManager.building_defs[building_index]
 	name_label.text = def["name"]
 	desc_label.text = def["desc"]
-	var cost := GameManager.get_building_cost(building_index)
+	var cost := GameManager.get_selected_building_cost(building_index)
 	cost_label.text = "Cost: %s" % GameManager.format_number(cost)
+	var selected_amount := GameManager.get_selected_building_amount(building_index)
+	if GameManager.building_purchase_mode == -1:
+		buy_button.text = "BUY MAX (%d)" % selected_amount if selected_amount > 0 else "BUY MAX"
+	else:
+		buy_button.text = "BUY %d" % GameManager.building_purchase_mode
 	var count := GameManager.building_counts[building_index]
 	count_label.text = "x%d" % count
 	var mult := GameManager.get_building_multiplier(building_index)
@@ -65,7 +71,7 @@ func _refresh() -> void:
 	# Total LCPS from this building
 	var total_building_lps: float = count * effective_lps
 	if total_building_lps > 0:
-		total_lps_label.text = "Generating: %s LCPS" % GameManager.format_number(total_building_lps)
+		total_lps_label.text = "Generating: %s LCPS" % GameManager.format_rate(total_building_lps)
 		total_lps_label.visible = true
 	else:
 		total_lps_label.visible = false
@@ -92,12 +98,19 @@ func _on_buy() -> void:
 func _on_lobsters_changed(_total: float) -> void:
 	if is_node_ready():
 		_update_buy_button_style()
-		cost_label.text = "Cost: %s" % GameManager.format_number(GameManager.get_building_cost(building_index))
+		cost_label.text = "Cost: %s" % GameManager.format_number(GameManager.get_selected_building_cost(building_index))
+		if GameManager.building_purchase_mode == -1:
+			var amount := GameManager.get_selected_building_amount(building_index)
+			buy_button.text = "BUY MAX (%d)" % amount if amount > 0 else "BUY MAX"
 
 func _on_building_purchased(index: int) -> void:
 	if index == building_index:
 		_refresh()
 
 func _on_lps_changed(_lps: float) -> void:
+	if is_node_ready():
+		_refresh()
+
+func _on_purchase_mode_changed(_mode: int) -> void:
 	if is_node_ready():
 		_refresh()

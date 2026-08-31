@@ -167,7 +167,7 @@ func _refresh_click_upgrade() -> void:
 	if is_purchased:
 		cost_label.text = "OWNED"
 		cost_label.add_theme_color_override("font_color", Color("#66cc88"))
-		buy_button.text = "OWNED ✓"
+		buy_button.text = "OWNED"
 		buy_button.disabled = true
 		buy_button.add_theme_stylebox_override("normal", _owned_style)
 		buy_button.add_theme_stylebox_override("disabled", _owned_style)
@@ -185,7 +185,7 @@ func _refresh_cps_click_upgrade() -> void:
 	if is_purchased:
 		cost_label.text = "OWNED"
 		cost_label.add_theme_color_override("font_color", Color("#66cc88"))
-		buy_button.text = "OWNED ✓"
+		buy_button.text = "OWNED"
 		buy_button.disabled = true
 		buy_button.add_theme_stylebox_override("normal", _owned_style)
 		buy_button.add_theme_stylebox_override("disabled", _owned_style)
@@ -220,7 +220,7 @@ func _refresh_hold_click_upgrade() -> void:
 	if is_purchased:
 		cost_label.text = "OWNED"
 		cost_label.add_theme_color_override("font_color", Color("#66cc88"))
-		buy_button.text = "OWNED ✓"
+		buy_button.text = "OWNED"
 		buy_button.disabled = true
 		buy_button.add_theme_stylebox_override("normal", _owned_style)
 		buy_button.add_theme_stylebox_override("disabled", _owned_style)
@@ -255,7 +255,7 @@ func _refresh_gacha_cd_upgrade() -> void:
 	if is_purchased:
 		cost_label.text = "OWNED"
 		cost_label.add_theme_color_override("font_color", Color("#66cc88"))
-		buy_button.text = "OWNED ✓"
+		buy_button.text = "OWNED"
 		buy_button.disabled = true
 		buy_button.add_theme_stylebox_override("normal", _owned_style)
 		buy_button.add_theme_stylebox_override("disabled", _owned_style)
@@ -290,7 +290,7 @@ func _refresh_offline_rate_upgrade() -> void:
 	if is_purchased:
 		cost_label.text = "OWNED"
 		cost_label.add_theme_color_override("font_color", Color("#66cc88"))
-		buy_button.text = "OWNED ✓"
+		buy_button.text = "OWNED"
 		buy_button.disabled = true
 		buy_button.add_theme_stylebox_override("normal", _owned_style)
 		buy_button.add_theme_stylebox_override("disabled", _owned_style)
@@ -325,7 +325,7 @@ func _refresh_offline_duration_upgrade() -> void:
 	if is_purchased:
 		cost_label.text = "OWNED"
 		cost_label.add_theme_color_override("font_color", Color("#66cc88"))
-		buy_button.text = "OWNED ✓"
+		buy_button.text = "OWNED"
 		buy_button.disabled = true
 		buy_button.add_theme_stylebox_override("normal", _owned_style)
 		buy_button.add_theme_stylebox_override("disabled", _owned_style)

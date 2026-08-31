@@ -40,9 +40,19 @@ const BuildingUpgradeItemScene := preload("res://scenes/building_upgrade_item.ts
 @onready var buy_premium_button: Button = %BuyPremiumButton
 @onready var premium_options_container: VBoxContainer = %PremiumOptionsContainer
 @onready var music_player: AudioStreamPlayer = %MusicPlayer
+@onready var objective_label: Label = %ClickHint
+@onready var buy_one_button: Button = %BuyOneButton
+@onready var buy_ten_button: Button = %BuyTenButton
+@onready var buy_max_button: Button = %BuyMaxButton
+@onready var bulk_buy_row: HBoxContainer = %BulkBuyRow
+@onready var title_label: Label = %Title
 
 var mute_button: Button
 var _music_muted: bool = false
+var _toast_panel: PanelContainer
+var _toast_tween: Tween
+var _boost_ui_timer: float = 0.0
+var _claw_bump_tween: Tween
 
 # Animation: move pincers via X position (no rotation!)
 const OPEN_X := 22.0
@@ -88,6 +98,13 @@ func _ready() -> void:
 	GameManager.boost_activated.connect(_on_boost_activated)
 	GameManager.boost_expired.connect(_on_boost_expired)
 	GameManager.premium_boost_activated.connect(_on_premium_boost_activated)
+	GameManager.achievement_unlocked.connect(_on_achievement_unlocked)
+	GameManager.objective_changed.connect(_on_objective_changed)
+	buy_one_button.pressed.connect(func(): GameManager.set_building_purchase_mode(1))
+	buy_ten_button.pressed.connect(func(): GameManager.set_building_purchase_mode(10))
+	buy_max_button.pressed.connect(func(): GameManager.set_building_purchase_mode(-1))
+	GameManager.purchase_mode_changed.connect(_update_bulk_buy_styles)
+	_music_muted = GameManager.music_muted
 	_create_mute_button()
 	_style_buy_capsule_button()
 	_style_buy_premium_button()
@@ -99,6 +116,7 @@ func _ready() -> void:
 	scroll_down_btn.pressed.connect(func(): sc.scroll_vertical += 150)
 
 	_start_music()
+	_update_mute_button()
 
 	# Load farm name
 	farm_name_button.text = GameManager.farm_name
@@ -118,6 +136,10 @@ func _ready() -> void:
 	_on_lps_changed(GameManager.lobsters_per_second)
 	_switch_tab(Tab.BUILDINGS)
 	_refresh_upgrades()
+	_on_objective_changed(GameManager.get_current_objective())
+	if not GameManager.pending_premium_options.is_empty():
+		_show_premium_options(GameManager.pending_premium_options)
+	_update_bulk_buy_styles(GameManager.building_purchase_mode)
 
 	# Apply responsive layout
 	_apply_layout()
@@ -237,6 +259,10 @@ func _apply_layout() -> void:
 		right_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
 		scroll_up_btn.visible = false
 		scroll_down_btn.visible = false
+		title_label.add_theme_font_size_override("font_size", 28)
+		mute_button.offset_left = -108.0
+		mute_button.offset_right = -12.0
+		mute_button.add_theme_font_size_override("font_size", 13)
 	else:
 		# Mobile: stacked vertically (VBox), claw compact on top, buildings get more space
 		root_container.vertical = true
@@ -246,6 +272,10 @@ func _apply_layout() -> void:
 		right_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
 		scroll_up_btn.visible = true
 		scroll_down_btn.visible = true
+		title_label.add_theme_font_size_override("font_size", 22)
+		mute_button.offset_left = -80.0
+		mute_button.offset_right = -8.0
+		mute_button.add_theme_font_size_override("font_size", 11)
 
 func _on_lobsters_changed(total: float) -> void:
 	lobster_count_label.text = GameManager.format_number(total)
@@ -303,6 +333,18 @@ func _on_claw_gui_input(event: InputEvent) -> void:
 		return
 
 func _unhandled_input(event: InputEvent) -> void:
+	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_SPACE:
+		var focused := get_viewport().gui_get_focus_owner()
+		if not (focused is LineEdit):
+			get_viewport().set_input_as_handled()
+			_try_click()
+		return
+	if event is InputEventJoypadButton and event.pressed and event.button_index == JOY_BUTTON_A:
+		get_viewport().set_input_as_handled()
+		_try_click()
+		return
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and not event.pressed:
+		_is_holding = false
 	if event is InputEventScreenTouch:
 		if event.pressed:
 			if claw_button and claw_button.get_global_rect().has_point(event.position):
@@ -325,9 +367,9 @@ func _start_music() -> void:
 func _create_mute_button() -> void:
 	mute_button = Button.new()
 	mute_button.name = "MuteButton"
-	mute_button.text = "🔊"
+	mute_button.text = "MUTE"
 	mute_button.tooltip_text = "Mute music"
-	mute_button.custom_minimum_size = Vector2(42, 34)
+	mute_button.custom_minimum_size = Vector2(96, 34)
 	mute_button.focus_mode = Control.FOCUS_NONE
 	mute_button.flat = false
 	mute_button.z_index = 20
@@ -335,11 +377,11 @@ func _create_mute_button() -> void:
 	mute_button.anchor_right = 1.0
 	mute_button.anchor_top = 0.0
 	mute_button.anchor_bottom = 0.0
-	mute_button.offset_left = -54.0
+	mute_button.offset_left = -108.0
 	mute_button.offset_right = -12.0
 	mute_button.offset_top = 10.0
 	mute_button.offset_bottom = 44.0
-	mute_button.add_theme_font_size_override("font_size", 18)
+	mute_button.add_theme_font_size_override("font_size", 13)
 
 	var normal := StyleBoxFlat.new()
 	normal.bg_color = Color(0.06, 0.10, 0.18, 0.72)
@@ -364,6 +406,7 @@ func _create_mute_button() -> void:
 
 func _on_mute_button_pressed() -> void:
 	_music_muted = not _music_muted
+	GameManager.music_muted = _music_muted
 	if music_player:
 		if _music_muted:
 			music_player.stream_paused = true
@@ -372,11 +415,12 @@ func _on_mute_button_pressed() -> void:
 				music_player.play()
 			music_player.stream_paused = false
 	_update_mute_button()
+	SaveManager.save_game()
 
 func _update_mute_button() -> void:
 	if not mute_button:
 		return
-	mute_button.text = "🔇" if _music_muted else "🔊"
+	mute_button.text = "UNMUTE" if _music_muted else "MUTE"
 	mute_button.tooltip_text = "Unmute music" if _music_muted else "Mute music"
 
 func _try_click() -> void:
@@ -393,6 +437,12 @@ func _do_click() -> void:
 	_spawn_float_text(amount)
 	particles.restart()
 	particles.emitting = true
+	if _claw_bump_tween and _claw_bump_tween.is_valid():
+		_claw_bump_tween.kill()
+	claw_button.scale = Vector2.ONE
+	_claw_bump_tween = create_tween()
+	_claw_bump_tween.tween_property(claw_button, "scale", Vector2(0.96, 0.96), 0.04)
+	_claw_bump_tween.tween_property(claw_button, "scale", Vector2.ONE, 0.09)
 
 func _spawn_float_text(amount: float) -> void:
 	var label := Label.new()
@@ -441,6 +491,67 @@ func _apply_farm_name(new_name: String) -> void:
 	farm_name_button.text = new_name
 	farm_name_edit.visible = false
 	farm_name_button.visible = true
+	SaveManager.save_game()
+
+func _on_objective_changed(text: String) -> void:
+	if objective_label:
+		objective_label.text = text
+
+func _update_bulk_buy_styles(mode: int) -> void:
+	buy_one_button.disabled = mode == 1
+	buy_ten_button.disabled = mode == 10
+	buy_max_button.disabled = mode == -1
+
+func _on_achievement_unlocked(_id: String, title: String, desc: String) -> void:
+	_show_toast(title, desc)
+
+func _show_toast(title: String, desc: String) -> void:
+	if _toast_panel and is_instance_valid(_toast_panel):
+		_toast_panel.queue_free()
+	_toast_panel = PanelContainer.new()
+	_toast_panel.z_index = 100
+	_toast_panel.set_anchors_preset(Control.PRESET_CENTER_TOP)
+	var toast_width := minf(380.0, get_viewport_rect().size.x - 24.0)
+	_toast_panel.position = Vector2(-toast_width / 2.0, 18)
+	_toast_panel.custom_minimum_size = Vector2(toast_width, 88)
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(0.08, 0.12, 0.22, 0.97)
+	style.border_width_left = 2
+	style.border_width_top = 2
+	style.border_width_right = 2
+	style.border_width_bottom = 2
+	style.border_color = Color("#ffd766")
+	style.corner_radius_top_left = 10
+	style.corner_radius_top_right = 10
+	style.corner_radius_bottom_left = 10
+	style.corner_radius_bottom_right = 10
+	style.content_margin_left = 14.0
+	style.content_margin_right = 14.0
+	style.content_margin_top = 10.0
+	style.content_margin_bottom = 10.0
+	_toast_panel.add_theme_stylebox_override("panel", style)
+	var box := VBoxContainer.new()
+	var title_label := Label.new()
+	title_label.text = title
+	title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title_label.add_theme_color_override("font_color", Color("#ffd766"))
+	title_label.add_theme_font_size_override("font_size", 20)
+	var desc_label := Label.new()
+	desc_label.text = desc
+	desc_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	desc_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	desc_label.add_theme_color_override("font_color", Color("#b9d7e5"))
+	desc_label.add_theme_font_size_override("font_size", 14)
+	box.add_child(title_label)
+	box.add_child(desc_label)
+	_toast_panel.add_child(box)
+	add_child(_toast_panel)
+	_toast_panel.modulate.a = 0.0
+	_toast_tween = create_tween()
+	_toast_tween.tween_property(_toast_panel, "modulate:a", 1.0, 0.18)
+	_toast_tween.tween_interval(2.8)
+	_toast_tween.tween_property(_toast_panel, "modulate:a", 0.0, 0.35)
+	_toast_tween.tween_callback(_toast_panel.queue_free)
 
 # --- Dev Menu ---
 
@@ -488,14 +599,14 @@ func _show_dev_menu() -> void:
 
 	# Title
 	var title := Label.new()
-	title.text = "🔧 DEV MENU"
+	title.text = "DEV MENU"
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.add_theme_color_override("font_color", Color("#ff6b6b"))
 	title.add_theme_font_size_override("font_size", 24)
 	vbox.add_child(title)
 
 	var subtitle := Label.new()
-	subtitle.text = "🤫"
+	subtitle.text = "Internal testing tools"
 	subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	subtitle.add_theme_color_override("font_color", Color("#667788"))
 	subtitle.add_theme_font_size_override("font_size", 14)
@@ -581,44 +692,10 @@ func _show_dev_menu() -> void:
 		bldg_row.add_child(btn)
 
 	# --- Reset ---
-	_dev_add_section(vbox, "⚠️ Danger Zone")
+	_dev_add_section(vbox, "Danger Zone")
 	var reset_btn := _dev_make_button("RESET ALL PROGRESS")
 	reset_btn.add_theme_color_override("font_color", Color("#ff4444"))
-	reset_btn.pressed.connect(func():
-		GameManager.total_lobsters = 0.0
-		GameManager.lifetime_lobsters = 0.0
-		GameManager.lobsters_per_click = 1.0
-		GameManager.lobsters_per_second = 0.0
-		GameManager.farm_name = "My Lobster Farm"
-		GameManager.building_counts.fill(0)
-		GameManager.click_upgrades_purchased.fill(false)
-		GameManager.cps_click_upgrades_purchased.fill(false)
-		GameManager.active_boost = {}
-		GameManager.boost_time_remaining = 0.0
-		GameManager.hold_click_purchased.fill(false)
-		GameManager.gacha_cooldown_upgrades_purchased.fill(false)
-		GameManager.offline_rate_purchased.fill(false)
-		GameManager.offline_duration_purchased.fill(false)
-		GameManager.gacha_cooldown_remaining = 0.0
-		GameManager.flat_lcps_bonus = 0.0
-		GameManager.single_building_boost_index = -1
-		GameManager.single_building_boost_mult = 1.0
-		GameManager.single_building_boost_time = 0.0
-		GameManager._init_building_upgrades()
-		GameManager._recalculate_lps()
-		GameManager._recalculate_click_power()
-		GameManager.lobsters_changed.emit(0.0)
-		GameManager.lps_changed.emit(0.0)
-		farm_name_button.text = "My Lobster Farm"
-		consumables_tab.visible = false
-		_switch_tab(Tab.BUILDINGS)
-		SaveManager.save_game()
-		for child in building_container.get_children():
-			if child.has_method("_refresh"):
-				child._refresh()
-		if current_tab == Tab.UPGRADES:
-			_refresh_upgrades()
-		_dev_popup.queue_free())
+	reset_btn.pressed.connect(_show_reset_confirmation)
 	vbox.add_child(reset_btn)
 
 	# --- Close ---
@@ -630,6 +707,28 @@ func _show_dev_menu() -> void:
 	vbox.add_child(close_btn)
 
 	add_child(_dev_popup)
+
+func _show_reset_confirmation() -> void:
+	var dialog := ConfirmationDialog.new()
+	dialog.title = "Reset all progress?"
+	dialog.dialog_text = "This permanently resets LC, buildings, upgrades, boosts, achievements, and the farm name."
+	dialog.ok_button_text = "RESET"
+	dialog.cancel_button_text = "CANCEL"
+	dialog.confirmed.connect(func():
+		GameManager.reset_progress()
+		farm_name_button.text = "My Lobster Farm"
+		consumables_tab.visible = false
+		_switch_tab(Tab.BUILDINGS)
+		for child in building_container.get_children():
+			if child.has_method("_refresh"):
+				child._refresh()
+		_refresh_upgrades()
+		if _dev_popup and is_instance_valid(_dev_popup):
+			_dev_popup.queue_free())
+	dialog.canceled.connect(dialog.queue_free)
+	dialog.confirmed.connect(dialog.queue_free)
+	add_child(dialog)
+	dialog.popup_centered(Vector2i(460, 220))
 
 func _dev_add_section(parent: VBoxContainer, title: String) -> void:
 	var sep := HSeparator.new()
@@ -688,6 +787,7 @@ func _switch_tab(tab: int) -> void:
 	building_container.visible = (tab == Tab.BUILDINGS)
 	upgrade_container.visible = (tab == Tab.UPGRADES)
 	consumables_container.visible = (tab == Tab.CONSUMABLES)
+	bulk_buy_row.visible = (tab == Tab.BUILDINGS)
 	_update_tab_styles()
 	if tab == Tab.CONSUMABLES:
 		_update_gacha_cost()
@@ -755,7 +855,7 @@ func _refresh_upgrades() -> void:
 			click_items.append(func(item): item.setup_hold_click_upgrade(upg["index"], upg["purchased"]))
 	if not click_items.is_empty():
 		has_any = true
-		_add_collapsible_section("🦞 CLICK POWER", "click_power", Color("#ff6b6b"), click_items)
+		_add_collapsible_section("CLICK POWER", "click_power", Color("#ff6b6b"), click_items)
 
 	# Building upgrades
 	var bldg_items: Array = []
@@ -764,7 +864,7 @@ func _refresh_upgrades() -> void:
 			bldg_items.append(func(item): item.setup(upg["building_index"], upg["tier"], upg["purchased"]))
 	if not bldg_items.is_empty():
 		has_any = true
-		_add_collapsible_section("🏗️ BUILDING UPGRADES", "building_upgrades", Color("#ffd766"), bldg_items)
+		_add_collapsible_section("BUILDING UPGRADES", "building_upgrades", Color("#ffd766"), bldg_items)
 
 	# Offline upgrades (rate + duration combined)
 	var offline_items: Array = []
@@ -776,7 +876,7 @@ func _refresh_upgrades() -> void:
 			offline_items.append(func(item): item.setup_offline_duration_upgrade(upg["index"], upg["purchased"]))
 	if not offline_items.is_empty():
 		has_any = true
-		_add_collapsible_section("🌙 OFFLINE PRODUCTION", "offline", Color("#5dade2"), offline_items)
+		_add_collapsible_section("OFFLINE PRODUCTION", "offline", Color("#5dade2"), offline_items)
 
 	# Gacha cooldown upgrades
 	var gacha_items: Array = []
@@ -785,12 +885,12 @@ func _refresh_upgrades() -> void:
 			gacha_items.append(func(item): item.setup_gacha_cd_upgrade(upg["index"], upg["purchased"]))
 	if not gacha_items.is_empty():
 		has_any = true
-		_add_collapsible_section("🎰 GACHA UPGRADES", "gacha", Color("#e67e22"), gacha_items)
+		_add_collapsible_section("GACHA UPGRADES", "gacha", Color("#e67e22"), gacha_items)
 
 	if not has_any:
 		var empty_label := Label.new()
 		if _hide_purchased:
-			empty_label.text = "All available upgrades purchased! 🎉"
+			empty_label.text = "All available upgrades purchased!"
 		else:
 			empty_label.text = "No upgrades available yet.\nBuy more buildings to unlock!"
 		empty_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -803,7 +903,7 @@ func _add_collapsible_section(title: String, key: String, color: Color, items: A
 
 	# Header button
 	var header_btn := Button.new()
-	header_btn.text = ("▶ " if is_collapsed else "▼ ") + title
+	header_btn.text = ("+ " if is_collapsed else "- ") + title
 	header_btn.flat = true
 	header_btn.add_theme_color_override("font_color", color)
 	header_btn.add_theme_font_size_override("font_size", 18)
@@ -817,7 +917,7 @@ func _add_collapsible_section(title: String, key: String, color: Color, items: A
 	header_btn.pressed.connect(func():
 		_collapsed_sections[key] = not _collapsed_sections.get(key, false)
 		items_box.visible = not _collapsed_sections[key]
-		header_btn.text = ("▶ " if _collapsed_sections[key] else "▼ ") + title)
+		header_btn.text = ("+ " if _collapsed_sections[key] else "- ") + title)
 
 	upgrade_container.add_child(header_btn)
 	upgrade_container.add_child(items_box)
@@ -881,9 +981,9 @@ func _update_capsule_button_affordability() -> void:
 	var on_cooldown := GameManager.is_gacha_on_cooldown()
 	buy_capsule_button.disabled = not can_afford or _gacha_opening or on_cooldown
 	if on_cooldown and not _gacha_opening:
-		buy_capsule_button.text = "⏳ %ds" % ceili(GameManager.get_gacha_wait_time())
+		buy_capsule_button.text = "WAIT %ds" % ceili(GameManager.get_gacha_wait_time())
 	elif not _gacha_opening:
-		buy_capsule_button.text = "🎲 BUY CAPSULE"
+		buy_capsule_button.text = "BUY CAPSULE"
 
 var _pending_gacha_result: Dictionary = {}
 
@@ -900,7 +1000,7 @@ func _on_buy_capsule() -> void:
 	result_panel.visible = true
 	rarity_label.text = "Opening..."
 	rarity_label.add_theme_color_override("font_color", Color("#ffffff"))
-	boost_name_label.text = "🎲 🎲 🎲"
+	boost_name_label.text = "OPENING..."
 	boost_name_label.add_theme_color_override("font_color", Color("#ffffff"))
 	boost_desc_label.text = ""
 	timer_label.text = ""
@@ -914,11 +1014,11 @@ func _finish_gacha_roll() -> void:
 	var color := Color(GameManager.RARITY_COLORS[rarity])
 	var rarity_display := rarity.to_upper()
 	if rarity == "legendary":
-		rarity_label.text = "★ %s ★" % rarity_display
+		rarity_label.text = rarity_display
 	elif rarity == "rare":
-		rarity_label.text = "◆ %s ◆" % rarity_display
+		rarity_label.text = rarity_display
 	elif rarity == "uncommon":
-		rarity_label.text = "● %s ●" % rarity_display
+		rarity_label.text = rarity_display
 	else:
 		rarity_label.text = rarity_display
 	rarity_label.add_theme_color_override("font_color", color)
@@ -979,6 +1079,10 @@ func _on_boost_expired() -> void:
 		timer_label.add_theme_color_override("font_color", Color("#667788"))
 
 func _update_boost_hud(delta: float) -> void:
+	_boost_ui_timer += delta
+	if _boost_ui_timer < 0.1:
+		return
+	_boost_ui_timer = 0.0
 	if (GameManager.boost_time_remaining > 0 and not GameManager.active_boost.is_empty()) or GameManager.single_building_boost_time > 0:
 		_update_boost_hud_display()
 		_update_lps_display()
@@ -995,10 +1099,10 @@ func _update_boost_hud_display() -> void:
 	var lines: Array = []
 	if not GameManager.active_boost.is_empty() and GameManager.boost_time_remaining > 0:
 		var b := GameManager.active_boost
-		lines.append("%s — %sx %s (%.0fs)" % [b["name"], str(b["mult"]), "buildings" if b["type"] == "building_mult" else "clicks", GameManager.boost_time_remaining])
+		lines.append("%s - %sx %s (%.0fs)" % [b["name"], str(b["mult"]), "buildings" if b["type"] == "building_mult" else "clicks", GameManager.boost_time_remaining])
 	if GameManager.single_building_boost_time > 0 and GameManager.single_building_boost_index >= 0:
 		var bname: String = GameManager.building_defs[GameManager.single_building_boost_index]["name"]
-		lines.append("⚡ %s — %sx (%.0fs)" % [bname, str(GameManager.single_building_boost_mult), GameManager.single_building_boost_time])
+		lines.append("BOOST: %s - %sx (%.0fs)" % [bname, str(GameManager.single_building_boost_mult), GameManager.single_building_boost_time])
 	if lines.is_empty():
 		boost_hud_label.visible = false
 		return
@@ -1054,20 +1158,14 @@ func _update_premium_button_affordability() -> void:
 	var on_cooldown := GameManager.is_gacha_on_cooldown()
 	buy_premium_button.disabled = not can_afford or on_cooldown or premium_options_container.visible
 	if on_cooldown and not premium_options_container.visible:
-		buy_premium_button.text = "⏳ %ds" % ceili(GameManager.get_gacha_wait_time())
+		buy_premium_button.text = "WAIT %ds" % ceili(GameManager.get_gacha_wait_time())
 	elif not premium_options_container.visible:
-		buy_premium_button.text = "🃏 DRAW CARDS"
+		buy_premium_button.text = "DRAW CARDS"
 
 func _on_buy_premium() -> void:
-	if GameManager.is_gacha_on_cooldown():
-		return
-	var cost := GameManager.get_premium_cost()
-	if GameManager.total_lobsters < cost:
-		return
-	GameManager.total_lobsters -= cost
-	GameManager.lobsters_changed.emit(GameManager.total_lobsters)
-	var options := GameManager.roll_premium_options()
-	_show_premium_options(options)
+	var options := GameManager.start_premium_draw()
+	if not options.is_empty():
+		_show_premium_options(options)
 
 func _show_premium_options(options: Array) -> void:
 	# Clear previous options
@@ -1107,11 +1205,11 @@ func _create_option_card(boost: Dictionary) -> PanelContainer:
 	var rarity_lbl := Label.new()
 	var rarity_display := rarity.to_upper()
 	if rarity == "legendary":
-		rarity_lbl.text = "★ %s ★" % rarity_display
+		rarity_lbl.text = rarity_display
 	elif rarity == "rare":
-		rarity_lbl.text = "◆ %s ◆" % rarity_display
+		rarity_lbl.text = rarity_display
 	elif rarity == "uncommon":
-		rarity_lbl.text = "● %s ●" % rarity_display
+		rarity_lbl.text = rarity_display
 	else:
 		rarity_lbl.text = rarity_display
 	rarity_lbl.add_theme_color_override("font_color", rarity_color)
@@ -1167,9 +1265,9 @@ func _create_option_card(boost: Dictionary) -> PanelContainer:
 	return card
 
 func _on_premium_option_selected(boost: Dictionary) -> void:
-	GameManager.activate_premium_boost(boost)
-	premium_options_container.visible = false
-	_update_gacha_cost()
+	if GameManager.activate_premium_boost(boost):
+		premium_options_container.visible = false
+		_update_gacha_cost()
 
 func _on_premium_boost_activated(boost: Dictionary) -> void:
 	var btype: String = boost["type"]
@@ -1178,7 +1276,7 @@ func _on_premium_boost_activated(boost: Dictionary) -> void:
 		result_panel.visible = true
 		var rarity: String = boost["rarity"]
 		var color := Color(GameManager.RARITY_COLORS[rarity])
-		rarity_label.text = "★ %s ★" % rarity.to_upper() if rarity == "legendary" else rarity.to_upper()
+		rarity_label.text = rarity.to_upper()
 		rarity_label.add_theme_color_override("font_color", color)
 		boost_name_label.text = boost["name"]
 		boost_name_label.add_theme_color_override("font_color", color)
@@ -1213,7 +1311,7 @@ func _on_premium_boost_activated(boost: Dictionary) -> void:
 		var color := Color(GameManager.RARITY_COLORS[boost["rarity"]])
 		rarity_label.text = rarity_label.text if not rarity_label.text.is_empty() else boost["rarity"].to_upper()
 		rarity_label.add_theme_color_override("font_color", color)
-		boost_name_label.text = "%s → %s" % [boost["name"], bname]
+		boost_name_label.text = "%s -> %s" % [boost["name"], bname]
 		boost_name_label.add_theme_color_override("font_color", color)
 		boost_desc_label.text = "%sx %s for %ds" % [str(boost["mult"]), bname, int(boost["duration"])]
 		timer_label.text = ""

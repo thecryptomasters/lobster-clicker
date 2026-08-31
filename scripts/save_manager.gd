@@ -1,10 +1,15 @@
 extends Node
 
 const SAVE_KEY := "lobster_clicker_save"
+const BACKUP_KEY := "lobster_clicker_save_backup"
+const SAVE_PATH := "user://save.json"
+const BACKUP_PATH := "user://save.backup.json"
+const TEMP_PATH := "user://save.tmp.json"
 const SAVE_INTERVAL := 10.0  # Save every 10 seconds (browsers throttle background tabs)
 
 var save_timer: float = 0.0
 var offline_earnings: float = 0.0
+var _test_mode: bool = false
 
 # Must keep references to prevent GC of JS callbacks
 var _beforeunload_cb: JavaScriptObject
@@ -13,7 +18,11 @@ var _visibility_cb: JavaScriptObject
 var _freeze_cb: JavaScriptObject
 
 func _ready() -> void:
+	_test_mode = OS.get_cmdline_user_args().has("--test")
+	if _test_mode:
+		return
 	load_game()
+	GameManager.transaction_completed.connect(save_game)
 	if OS.has_feature("web"):
 		# beforeunload — desktop tab close
 		_beforeunload_cb = JavaScriptBridge.create_callback(_on_browser_save)
@@ -56,16 +65,16 @@ func _calculate_offline_bonus() -> void:
 	# Read the saved timestamp from localStorage and award offline production
 	if not OS.has_feature("web"):
 		return
-	var result = JavaScriptBridge.eval("localStorage.getItem('%s');" % SAVE_KEY)
+	var storage := JavaScriptBridge.get_interface("localStorage")
+	var result = storage.getItem(SAVE_KEY)
 	if result == null:
 		return
 	var json_str := str(result)
 	if json_str == "" or json_str == "null":
 		return
-	var json := JSON.new()
-	if json.parse(json_str) != OK:
+	var data := _decode_save(json_str)
+	if data.is_empty():
 		return
-	var data: Dictionary = json.data
 	var saved_time: int = data.get("last_save_time", 0)
 	if saved_time > 0 and GameManager.lobsters_per_second > 0:
 		var now := int(Time.get_unix_time_from_system())
@@ -76,39 +85,56 @@ func _calculate_offline_bonus() -> void:
 			GameManager.total_lobsters += earned
 			GameManager.lifetime_lobsters += earned
 			GameManager.lobsters_changed.emit(GameManager.total_lobsters)
+			GameManager.unlock_offline_achievement()
 			# Save the updated total immediately
 			save_game()
 
 func save_game() -> void:
+	if _test_mode:
+		return
 	var data := GameManager.get_save_data()
 	var json := JSON.stringify(data)
 	if OS.has_feature("web"):
-		JavaScriptBridge.eval("localStorage.setItem('%s', '%s');" % [SAVE_KEY, json.c_escape()])
+		var storage := JavaScriptBridge.get_interface("localStorage")
+		var current = storage.getItem(SAVE_KEY)
+		if current != null and not _decode_save(str(current)).is_empty():
+			storage.setItem(BACKUP_KEY, str(current))
+		storage.setItem(SAVE_KEY, json)
 	else:
-		var file := FileAccess.open("user://save.json", FileAccess.WRITE)
+		var file := FileAccess.open(TEMP_PATH, FileAccess.WRITE)
 		if file:
 			file.store_string(json)
+			file.flush()
+			file.close()
+			var save_path := ProjectSettings.globalize_path(SAVE_PATH)
+			var backup_path := ProjectSettings.globalize_path(BACKUP_PATH)
+			var temp_path := ProjectSettings.globalize_path(TEMP_PATH)
+			if FileAccess.file_exists(SAVE_PATH):
+				var current_text := FileAccess.get_file_as_string(SAVE_PATH)
+				if not _decode_save(current_text).is_empty():
+					DirAccess.copy_absolute(save_path, backup_path)
+				DirAccess.remove_absolute(save_path)
+			DirAccess.rename_absolute(temp_path, save_path)
 
 func load_game() -> void:
-	var json_str := ""
+	var data: Dictionary = {}
 	if OS.has_feature("web"):
-		var result = JavaScriptBridge.eval("localStorage.getItem('%s');" % SAVE_KEY)
+		var storage := JavaScriptBridge.get_interface("localStorage")
+		var result = storage.getItem(SAVE_KEY)
 		if result != null:
-			json_str = str(result)
+			data = _decode_save(str(result))
+		if data.is_empty():
+			var backup = storage.getItem(BACKUP_KEY)
+			if backup != null:
+				data = _decode_save(str(backup))
 	else:
-		var file := FileAccess.open("user://save.json", FileAccess.READ)
-		if file:
-			json_str = file.get_as_text()
+		if FileAccess.file_exists(SAVE_PATH):
+			data = _decode_save(FileAccess.get_file_as_string(SAVE_PATH))
+		if data.is_empty() and FileAccess.file_exists(BACKUP_PATH):
+			data = _decode_save(FileAccess.get_file_as_string(BACKUP_PATH))
 
-	if json_str == "" or json_str == "null":
+	if data.is_empty():
 		return
-
-	var json := JSON.new()
-	var err := json.parse(json_str)
-	if err != OK:
-		return
-
-	var data: Dictionary = json.data
 	GameManager.load_save_data(data)
 
 	# Calculate offline earnings from last save
@@ -122,6 +148,44 @@ func load_game() -> void:
 			GameManager.total_lobsters += offline_earnings
 			GameManager.lifetime_lobsters += offline_earnings
 			GameManager.lobsters_changed.emit(GameManager.total_lobsters)
+			GameManager.unlock_offline_achievement()
+
+func _decode_save(json_str: String) -> Dictionary:
+	if json_str == "" or json_str == "null":
+		return {}
+	var json := JSON.new()
+	if json.parse(json_str) != OK or typeof(json.data) != TYPE_DICTIONARY:
+		return {}
+	var data: Dictionary = json.data
+	if not _is_valid_save(data):
+		return {}
+	return data
+
+func _is_valid_save(data: Dictionary) -> bool:
+	if not data.has("total_lobsters"):
+		return false
+	if typeof(data["total_lobsters"]) != TYPE_FLOAT and typeof(data["total_lobsters"]) != TYPE_INT:
+		return false
+	var total := float(data["total_lobsters"])
+	if not is_finite(total) or total < 0.0:
+		return false
+	var save_version := int(data.get("save_version", 1))
+	if save_version < 1 or save_version > GameManager.SAVE_VERSION:
+		return false
+	for key in ["building_counts", "building_upgrades"]:
+		if data.has(key) and typeof(data[key]) != TYPE_ARRAY:
+			return false
+	if data.has("building_counts"):
+		for count in data["building_counts"]:
+			if (typeof(count) != TYPE_INT and typeof(count) != TYPE_FLOAT) or int(count) < 0:
+				return false
+	if data.has("building_upgrades"):
+		for tiers in data["building_upgrades"]:
+			if typeof(tiers) != TYPE_ARRAY:
+				return false
+	if data.has("farm_name") and typeof(data["farm_name"]) != TYPE_STRING:
+		return false
+	return true
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_CLOSE_REQUEST or what == NOTIFICATION_WM_GO_BACK_REQUEST:

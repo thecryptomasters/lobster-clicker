@@ -60,8 +60,9 @@ size_flags_stretch_ratio = 1.0
 alignment = 1
 
 [node name="Title" type="Label" parent="RootContainer/LeftSection"]
+unique_name_in_owner = true
 layout_mode = 2
-text = "🦞 LOBSTER CLICKER"
+text = "LOBSTER CLICKER"
 horizontal_alignment = 1
 theme_override_colors/font_color = Color(0.753, 0.224, 0.169, 1)
 theme_override_font_sizes/font_size = 28
@@ -238,8 +239,9 @@ unique_name_in_owner = true
 position = Vector2(0, -70)
 
 [node name="ClickHint" type="Label" parent="RootContainer/LeftSection"]
+unique_name_in_owner = true
 layout_mode = 2
-text = "Tap the claw!"
+text = "Tap the claw and catch your first Lobster Coin."
 horizontal_alignment = 1
 theme_override_colors/font_color = Color(0.4, 0.5, 0.6, 1)
 theme_override_font_sizes/font_size = 18
@@ -293,12 +295,39 @@ theme_override_font_sizes/font_size = 22
 layout_mode = 2
 theme_override_colors/separator_color = Color(0.1, 0.29, 0.37, 1)
 
+[node name="BulkBuyRow" type="HBoxContainer" parent="RootContainer/RightPanel/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+alignment = 2
+
+[node name="BulkBuyLabel" type="Label" parent="RootContainer/RightPanel/VBox/BulkBuyRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "PURCHASE AMOUNT"
+theme_override_colors/font_color = Color(0.5, 0.65, 0.75, 1)
+theme_override_font_sizes/font_size = 13
+
+[node name="BuyOneButton" type="Button" parent="RootContainer/RightPanel/VBox/BulkBuyRow"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "x1"
+
+[node name="BuyTenButton" type="Button" parent="RootContainer/RightPanel/VBox/BulkBuyRow"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "x10"
+
+[node name="BuyMaxButton" type="Button" parent="RootContainer/RightPanel/VBox/BulkBuyRow"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "MAX"
+
 [node name="ScrollUpButton" type="Button" parent="RootContainer/RightPanel/VBox"]
 unique_name_in_owner = true
 visible = false
 layout_mode = 2
 custom_minimum_size = Vector2(0, 36)
-text = "▲"
+text = "UP"
 flat = true
 theme_override_colors/font_color = Color(0.5, 0.65, 0.75, 1)
 theme_override_font_sizes/font_size = 20
@@ -333,7 +362,7 @@ theme_override_constants/separation = 12
 [node name="GachaTitle" type="Label" parent="RootContainer/RightPanel/VBox/ScrollContainer/ConsumablesContainer"]
 unique_name_in_owner = true
 layout_mode = 2
-text = "🎰 LOBSTER GACHA"
+text = "LOBSTER GACHA"
 horizontal_alignment = 1
 theme_override_colors/font_color = Color(0.902, 0.494, 0.133, 1)
 theme_override_font_sizes/font_size = 26
@@ -357,7 +386,7 @@ theme_override_font_sizes/font_size = 18
 unique_name_in_owner = true
 layout_mode = 2
 custom_minimum_size = Vector2(0, 60)
-text = "🎲 BUY CAPSULE"
+text = "BUY CAPSULE"
 theme_override_font_sizes/font_size = 24
 
 [node name="ResultPanel" type="VBoxContainer" parent="RootContainer/RightPanel/VBox/ScrollContainer/ConsumablesContainer"]
@@ -369,7 +398,7 @@ theme_override_constants/separation = 4
 [node name="RarityLabel" type="Label" parent="RootContainer/RightPanel/VBox/ScrollContainer/ConsumablesContainer/ResultPanel"]
 unique_name_in_owner = true
 layout_mode = 2
-text = "★ LEGENDARY ★"
+text = "LEGENDARY"
 horizontal_alignment = 1
 theme_override_font_sizes/font_size = 16
 
@@ -403,7 +432,7 @@ theme_override_colors/separator_color = Color(0.1, 0.29, 0.37, 1)
 [node name="PremiumTitle" type="Label" parent="RootContainer/RightPanel/VBox/ScrollContainer/ConsumablesContainer"]
 unique_name_in_owner = true
 layout_mode = 2
-text = "🃏 LOBSTER CARDS"
+text = "LOBSTER CARDS"
 horizontal_alignment = 1
 theme_override_colors/font_color = Color(0.608, 0.349, 0.714, 1)
 theme_override_font_sizes/font_size = 26
@@ -427,7 +456,7 @@ theme_override_font_sizes/font_size = 18
 unique_name_in_owner = true
 layout_mode = 2
 custom_minimum_size = Vector2(0, 60)
-text = "⭐ CHOOSE YOUR BOOST"
+text = "DRAW CARDS"
 theme_override_font_sizes/font_size = 24
 
 [node name="PremiumOptionsContainer" type="VBoxContainer" parent="RootContainer/RightPanel/VBox/ScrollContainer/ConsumablesContainer"]
@@ -441,7 +470,7 @@ unique_name_in_owner = true
 visible = false
 layout_mode = 2
 custom_minimum_size = Vector2(0, 36)
-text = "▼"
+text = "DOWN"
 flat = true
 theme_override_colors/font_color = Color(0.5, 0.65, 0.75, 1)
 theme_override_font_sizes/font_size = 20

@@ -17,6 +17,13 @@ var _pagehide_cb: JavaScriptObject
 var _visibility_cb: JavaScriptObject
 var _freeze_cb: JavaScriptObject
 
+func calculate_offline_earnings(lps: float, elapsed_seconds: float, max_seconds: float, rate: float) -> float:
+	if not is_finite(lps) or not is_finite(elapsed_seconds) or not is_finite(max_seconds) or not is_finite(rate):
+		return 0.0
+	if lps <= 0.0 or elapsed_seconds <= 0.0 or max_seconds <= 0.0 or rate <= 0.0:
+		return 0.0
+	return lps * minf(elapsed_seconds, max_seconds) * clampf(rate, 0.0, 1.0)
+
 func _ready() -> void:
 	_test_mode = OS.get_cmdline_user_args().has("--test")
 	if _test_mode:
@@ -80,8 +87,7 @@ func _calculate_offline_bonus() -> void:
 		var now := int(Time.get_unix_time_from_system())
 		var elapsed := now - saved_time
 		if elapsed > 5:
-			var capped_elapsed := minf(elapsed, GameManager.get_offline_max_seconds())
-			var earned := GameManager.lobsters_per_second * capped_elapsed * GameManager.get_offline_rate()
+			var earned := calculate_offline_earnings(GameManager.lobsters_per_second, elapsed, GameManager.get_offline_max_seconds(), GameManager.get_offline_rate())
 			GameManager.total_lobsters += earned
 			GameManager.lifetime_lobsters += earned
 			GameManager.run_lobsters += earned
@@ -144,8 +150,7 @@ func load_game() -> void:
 		var now := int(Time.get_unix_time_from_system())
 		var elapsed := now - saved_time
 		if elapsed > 5 and GameManager.lobsters_per_second > 0:
-			var capped_elapsed := minf(elapsed, GameManager.get_offline_max_seconds())
-			offline_earnings = GameManager.lobsters_per_second * capped_elapsed * GameManager.get_offline_rate()
+			offline_earnings = calculate_offline_earnings(GameManager.lobsters_per_second, elapsed, GameManager.get_offline_max_seconds(), GameManager.get_offline_rate())
 			GameManager.total_lobsters += offline_earnings
 			GameManager.lifetime_lobsters += offline_earnings
 			GameManager.run_lobsters += offline_earnings
@@ -179,14 +184,35 @@ func _is_valid_save(data: Dictionary) -> bool:
 			return false
 	if data.has("building_counts"):
 		for count in data["building_counts"]:
-			if (typeof(count) != TYPE_INT and typeof(count) != TYPE_FLOAT) or int(count) < 0:
+			if (typeof(count) != TYPE_INT and typeof(count) != TYPE_FLOAT) or int(count) < 0 or float(count) != floor(float(count)):
 				return false
 	if data.has("building_upgrades"):
 		for tiers in data["building_upgrades"]:
 			if typeof(tiers) != TYPE_ARRAY:
 				return false
+			for purchased in tiers:
+				if typeof(purchased) != TYPE_BOOL:
+					return false
+	for key in ["click_upgrades", "cps_click_upgrades", "hold_click_upgrades", "gacha_cooldown_upgrades", "offline_rate_upgrades", "offline_duration_upgrades"]:
+		if data.has(key):
+			if typeof(data[key]) != TYPE_ARRAY:
+				return false
+			for purchased in data[key]:
+				if typeof(purchased) != TYPE_BOOL:
+					return false
 	if data.has("farm_name") and typeof(data["farm_name"]) != TYPE_STRING:
 		return false
+	for key in ["music_volume", "sfx_volume"]:
+		if data.has(key):
+			if typeof(data[key]) != TYPE_FLOAT and typeof(data[key]) != TYPE_INT:
+				return false
+			if not is_finite(float(data[key])) or float(data[key]) < 0.0 or float(data[key]) > 1.0:
+				return false
+	if data.has("reduced_motion") and typeof(data["reduced_motion"]) != TYPE_BOOL:
+		return false
+	for key in ["music_muted", "first_rare_event_seen"]:
+		if data.has(key) and typeof(data[key]) != TYPE_BOOL:
+			return false
 	for key in ["lifetime_lobsters", "run_lobsters"]:
 		if data.has(key):
 			if typeof(data[key]) != TYPE_FLOAT and typeof(data[key]) != TYPE_INT:
@@ -197,8 +223,52 @@ func _is_valid_save(data: Dictionary) -> bool:
 		if data.has(key):
 			if typeof(data[key]) != TYPE_INT and typeof(data[key]) != TYPE_FLOAT:
 				return false
-			if int(data[key]) < 0:
+			if int(data[key]) < 0 or float(data[key]) != floor(float(data[key])):
 				return false
+	for key in ["flat_lcps_bonus", "pending_premium_cost", "boost_end_time", "cooldown_end_time", "single_building_boost_mult", "single_boost_end_time", "last_save_time"]:
+		if data.has(key):
+			if typeof(data[key]) != TYPE_FLOAT and typeof(data[key]) != TYPE_INT:
+				return false
+			if not is_finite(float(data[key])) or float(data[key]) < 0.0:
+				return false
+	if data.has("single_building_boost_index"):
+		if typeof(data["single_building_boost_index"]) != TYPE_INT and typeof(data["single_building_boost_index"]) != TYPE_FLOAT:
+			return false
+		if int(data["single_building_boost_index"]) < -1 or int(data["single_building_boost_index"]) >= GameManager.building_defs.size():
+			return false
+	if data.has("achievements"):
+		if typeof(data["achievements"]) != TYPE_DICTIONARY:
+			return false
+		for value in data["achievements"].values():
+			if typeof(value) != TYPE_BOOL:
+				return false
+	if data.has("pending_premium_options"):
+		if typeof(data["pending_premium_options"]) != TYPE_ARRAY:
+			return false
+		for option in data["pending_premium_options"]:
+			if not _is_valid_saved_boost(option):
+				return false
+	if data.has("active_boost") and not (typeof(data["active_boost"]) == TYPE_DICTIONARY and (data["active_boost"].is_empty() or _is_valid_saved_boost(data["active_boost"]))):
+		return false
+	return true
+
+func _is_valid_saved_boost(value: Variant) -> bool:
+	if typeof(value) != TYPE_DICTIONARY:
+		return false
+	var boost: Dictionary = value
+	if typeof(boost.get("name")) != TYPE_STRING or typeof(boost.get("type")) != TYPE_STRING:
+		return false
+	for key in ["mult", "duration", "amount"]:
+		if boost.has(key):
+			if typeof(boost[key]) != TYPE_FLOAT and typeof(boost[key]) != TYPE_INT:
+				return false
+			if not is_finite(float(boost[key])) or float(boost[key]) < 0.0:
+				return false
+	if boost.has("building_index"):
+		if typeof(boost["building_index"]) != TYPE_INT and typeof(boost["building_index"]) != TYPE_FLOAT:
+			return false
+		if int(boost["building_index"]) < 0 or int(boost["building_index"]) >= GameManager.building_defs.size():
+			return false
 	return true
 
 func _notification(what: int) -> void:

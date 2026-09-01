@@ -26,6 +26,9 @@ var farm_name: String = "My Lobster Farm"
 var lobsters_per_second: float = 0.0
 var last_save_time: int = 0
 var music_muted: bool = false
+var music_volume: float = 0.60
+var sfx_volume: float = 0.80
+var reduced_motion: bool = false
 
 var achievements: Dictionary = {}
 var first_rare_event_seen: bool = false
@@ -1007,6 +1010,9 @@ func get_save_data() -> Dictionary:
 		"farm_name": farm_name,
 		"flat_lcps_bonus": flat_lcps_bonus,
 		"music_muted": music_muted,
+		"music_volume": music_volume,
+		"sfx_volume": sfx_volume,
+		"reduced_motion": reduced_motion,
 		"achievements": achievements.duplicate(true),
 		"first_rare_event_seen": first_rare_event_seen,
 		"pending_premium_options": pending_premium_options.duplicate(true),
@@ -1057,9 +1063,14 @@ func load_save_data(data: Dictionary) -> void:
 	var offline_dur_data = data.get("offline_duration_upgrades", [])
 	for i in range(mini(offline_dur_data.size(), offline_duration_purchased.size())):
 		offline_duration_purchased[i] = offline_dur_data[i]
-	farm_name = data.get("farm_name", "My Lobster Farm")
+	farm_name = str(data.get("farm_name", "My Lobster Farm")).strip_edges().left(32)
+	if farm_name.is_empty():
+		farm_name = "My Lobster Farm"
 	flat_lcps_bonus = data.get("flat_lcps_bonus", 0.0)
 	music_muted = data.get("music_muted", false)
+	music_volume = clampf(float(data.get("music_volume", 0.60)), 0.0, 1.0)
+	sfx_volume = clampf(float(data.get("sfx_volume", 0.80)), 0.0, 1.0)
+	reduced_motion = bool(data.get("reduced_motion", false))
 	achievements = data.get("achievements", {}).duplicate(true)
 	first_rare_event_seen = data.get("first_rare_event_seen", false)
 	pending_premium_options = data.get("pending_premium_options", []).duplicate(true)

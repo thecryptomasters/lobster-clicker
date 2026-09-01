@@ -2,6 +2,11 @@ extends Control
 
 const BuildingItemScene := preload("res://scenes/building_item.tscn")
 const BuildingUpgradeItemScene := preload("res://scenes/building_upgrade_item.tscn")
+const ClawSnapSfx := preload("res://assets/sfx/claw_snap.wav")
+const PurchaseSfx := preload("res://assets/sfx/purchase.wav")
+const AchievementSfx := preload("res://assets/sfx/achievement.wav")
+const DiscoSfx := preload("res://assets/sfx/disco.wav")
+const MoltSfx := preload("res://assets/sfx/molt.wav")
 
 @onready var farm_name_button: Button = %FarmNameButton
 @onready var farm_name_edit: LineEdit = %FarmNameEdit
@@ -55,11 +60,14 @@ const BuildingUpgradeItemScene := preload("res://scenes/building_upgrade_item.ts
 @onready var title_label: Label = %Title
 
 var mute_button: Button
+var settings_button: Button
 var _music_muted: bool = false
 var _toast_panel: PanelContainer
 var _toast_tween: Tween
 var _boost_ui_timer: float = 0.0
 var _claw_bump_tween: Tween
+var _sfx_players: Array[AudioStreamPlayer] = []
+var _next_sfx_player: int = 0
 
 # Animation: move pincers via X position (no rotation!)
 const OPEN_X := 22.0
@@ -116,6 +124,8 @@ func _ready() -> void:
 	GameManager.purchase_mode_changed.connect(_update_bulk_buy_styles)
 	_music_muted = GameManager.music_muted
 	_create_mute_button()
+	_create_settings_button()
+	_create_sfx_pool()
 	_style_buy_capsule_button()
 	_style_buy_premium_button()
 	consumables_tab.visible = GameManager.lifetime_lobsters >= 2500
@@ -126,6 +136,7 @@ func _ready() -> void:
 	scroll_down_btn.pressed.connect(func(): sc.scroll_vertical += 150)
 
 	_start_music()
+	_apply_audio_settings()
 	_update_mute_button()
 
 	# Load farm name
@@ -279,6 +290,9 @@ func _apply_layout() -> void:
 		mute_button.offset_left = -108.0
 		mute_button.offset_right = -12.0
 		mute_button.add_theme_font_size_override("font_size", 13)
+		settings_button.offset_left = 12.0
+		settings_button.offset_right = 108.0
+		settings_button.add_theme_font_size_override("font_size", 13)
 	else:
 		# Mobile: stacked vertically (VBox), claw compact on top, buildings get more space
 		root_container.vertical = true
@@ -294,6 +308,9 @@ func _apply_layout() -> void:
 		mute_button.offset_left = -112.0
 		mute_button.offset_right = -16.0
 		mute_button.add_theme_font_size_override("font_size", 11)
+		settings_button.offset_left = 8.0
+		settings_button.offset_right = 104.0
+		settings_button.add_theme_font_size_override("font_size", 11)
 
 func _on_lobsters_changed(total: float) -> void:
 	lobster_count_label.text = GameManager.format_number(total)
@@ -385,6 +402,34 @@ func _start_music() -> void:
 	if music_player:
 		music_player.stream_paused = false
 
+func _volume_to_db(value: float) -> float:
+	if value <= 0.0:
+		return -80.0
+	return lerpf(-40.0, 0.0, clampf(value, 0.0, 1.0))
+
+func _apply_audio_settings() -> void:
+	if music_player:
+		music_player.volume_db = _volume_to_db(GameManager.music_volume)
+		music_player.stream_paused = GameManager.music_muted
+	_music_muted = GameManager.music_muted
+	_update_mute_button()
+
+func _create_sfx_pool() -> void:
+	for i in range(6):
+		var player := AudioStreamPlayer.new()
+		player.name = "SfxPlayer%d" % i
+		add_child(player)
+		_sfx_players.append(player)
+
+func _play_sfx(stream: AudioStream) -> void:
+	if not stream or GameManager.sfx_volume <= 0.0 or _sfx_players.is_empty():
+		return
+	var player := _sfx_players[_next_sfx_player]
+	_next_sfx_player = (_next_sfx_player + 1) % _sfx_players.size()
+	player.stream = stream
+	player.volume_db = _volume_to_db(GameManager.sfx_volume)
+	player.play()
+
 func _create_mute_button() -> void:
 	mute_button = Button.new()
 	mute_button.name = "MuteButton"
@@ -425,6 +470,96 @@ func _create_mute_button() -> void:
 	mute_button.pressed.connect(_on_mute_button_pressed)
 	add_child(mute_button)
 
+func _create_settings_button() -> void:
+	settings_button = Button.new()
+	settings_button.name = "SettingsButton"
+	settings_button.text = "SETTINGS"
+	settings_button.tooltip_text = "Audio and accessibility settings"
+	settings_button.custom_minimum_size = Vector2(96, 34)
+	settings_button.focus_mode = Control.FOCUS_ALL
+	settings_button.z_index = 20
+	settings_button.anchor_left = 0.0
+	settings_button.anchor_right = 0.0
+	settings_button.anchor_top = 0.0
+	settings_button.anchor_bottom = 0.0
+	settings_button.offset_left = 12.0
+	settings_button.offset_right = 108.0
+	settings_button.offset_top = 10.0
+	settings_button.offset_bottom = 44.0
+	settings_button.add_theme_font_size_override("font_size", 13)
+	settings_button.pressed.connect(_show_settings_dialog)
+	add_child(settings_button)
+
+func _show_settings_dialog() -> void:
+	var dialog := AcceptDialog.new()
+	dialog.title = "Settings"
+	dialog.ok_button_text = "DONE"
+	dialog.min_size = Vector2i(420, 360)
+	dialog.confirmed.connect(SaveManager.save_game)
+	dialog.confirmed.connect(dialog.queue_free)
+	dialog.close_requested.connect(SaveManager.save_game)
+	dialog.close_requested.connect(dialog.queue_free)
+
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 12)
+
+	var music_label := Label.new()
+	music_label.text = "Music volume: %d%%" % int(round(GameManager.music_volume * 100.0))
+	box.add_child(music_label)
+	var music_slider := HSlider.new()
+	music_slider.min_value = 0.0
+	music_slider.max_value = 100.0
+	music_slider.step = 1.0
+	music_slider.value = GameManager.music_volume * 100.0
+	music_slider.custom_minimum_size = Vector2(360, 34)
+	music_slider.value_changed.connect(func(value: float):
+		GameManager.music_volume = value / 100.0
+		music_label.text = "Music volume: %d%%" % int(value)
+		_apply_audio_settings())
+	music_slider.drag_ended.connect(func(_changed: bool): SaveManager.save_game())
+	box.add_child(music_slider)
+
+	var sfx_label := Label.new()
+	sfx_label.text = "Sound effects volume: %d%%" % int(round(GameManager.sfx_volume * 100.0))
+	box.add_child(sfx_label)
+	var sfx_slider := HSlider.new()
+	sfx_slider.min_value = 0.0
+	sfx_slider.max_value = 100.0
+	sfx_slider.step = 1.0
+	sfx_slider.value = GameManager.sfx_volume * 100.0
+	sfx_slider.custom_minimum_size = Vector2(360, 34)
+	sfx_slider.value_changed.connect(func(value: float):
+		GameManager.sfx_volume = value / 100.0
+		sfx_label.text = "Sound effects volume: %d%%" % int(value))
+	sfx_slider.drag_ended.connect(func(_changed: bool):
+		_play_sfx(PurchaseSfx)
+		SaveManager.save_game())
+	box.add_child(sfx_slider)
+
+	var mute_toggle := CheckButton.new()
+	mute_toggle.text = "Mute music"
+	mute_toggle.button_pressed = GameManager.music_muted
+	mute_toggle.toggled.connect(func(enabled: bool):
+		GameManager.music_muted = enabled
+		_apply_audio_settings()
+		SaveManager.save_game())
+	box.add_child(mute_toggle)
+
+	var motion_toggle := CheckButton.new()
+	motion_toggle.text = "Reduce motion and particles"
+	motion_toggle.button_pressed = GameManager.reduced_motion
+	motion_toggle.toggled.connect(func(enabled: bool):
+		GameManager.reduced_motion = enabled
+		if enabled:
+			particles.emitting = false
+			boost_aura.emitting = false
+		SaveManager.save_game())
+	box.add_child(motion_toggle)
+
+	dialog.add_child(box)
+	add_child(dialog)
+	dialog.popup_centered(Vector2i(460, 390))
+
 func _on_mute_button_pressed() -> void:
 	_music_muted = not _music_muted
 	GameManager.music_muted = _music_muted
@@ -453,6 +588,9 @@ func _try_click() -> void:
 
 func _do_click() -> void:
 	var amount := GameManager.click()
+	_play_sfx(ClawSnapSfx)
+	if GameManager.reduced_motion:
+		return
 	claw_state = ClawState.SNAPPING
 	claw_progress = 0.0
 	_spawn_float_text(amount)
@@ -524,7 +662,8 @@ func _update_bulk_buy_styles(mode: int) -> void:
 	buy_ten_button.disabled = mode == 10
 	buy_max_button.disabled = mode == -1
 
-func _on_achievement_unlocked(_id: String, title: String, desc: String) -> void:
+func _on_achievement_unlocked(id: String, title: String, desc: String) -> void:
+	_play_sfx(DiscoSfx if id == "disco_lobster" else AchievementSfx)
 	_show_toast(title, desc)
 
 func _show_toast(title: String, desc: String) -> void:
@@ -568,6 +707,13 @@ func _show_toast(title: String, desc: String) -> void:
 	box.add_child(desc_label)
 	_toast_panel.add_child(box)
 	add_child(_toast_panel)
+	if GameManager.reduced_motion:
+		var toast_to_remove := _toast_panel
+		_toast_panel.modulate.a = 1.0
+		get_tree().create_timer(3.2).timeout.connect(func():
+			if toast_to_remove and is_instance_valid(toast_to_remove):
+				toast_to_remove.queue_free())
+		return
 	_toast_panel.modulate.a = 0.0
 	_toast_tween = create_tween()
 	_toast_tween.tween_property(_toast_panel, "modulate:a", 1.0, 0.18)
@@ -870,6 +1016,7 @@ func _show_molt_confirmation() -> void:
 	dialog.popup_centered(Vector2i(560, 300))
 
 func _on_molt_completed(gained: int, total_shells: int) -> void:
+	_play_sfx(MoltSfx)
 	for child in building_container.get_children():
 		if child.has_method("_refresh"):
 			child._refresh()
@@ -885,6 +1032,7 @@ func _on_upgrade_unlocked(_building_index: int, _tier: int) -> void:
 		_refresh_upgrades()
 
 func _on_building_purchased(_index: int) -> void:
+	_play_sfx(PurchaseSfx)
 	if current_tab == Tab.UPGRADES:
 		_refresh_upgrades()
 
@@ -1071,6 +1219,10 @@ func _on_buy_capsule() -> void:
 	if result.is_empty():
 		return
 	_pending_gacha_result = result
+	if GameManager.reduced_motion:
+		result_panel.visible = true
+		_finish_gacha_roll()
+		return
 	# Show opening animation
 	_gacha_opening = true
 	_gacha_opening_timer = 0.6
@@ -1114,6 +1266,11 @@ const RARITY_COLORS := {
 func _on_boost_activated(boost: Dictionary) -> void:
 	_update_boost_hud_display()
 	_update_lps_display()
+	if boost.get("name", "") != "Disco Lobster":
+		_play_sfx(AchievementSfx)
+	if GameManager.reduced_motion:
+		boost_aura.emitting = false
+		return
 	# Activate aura
 	var rarity: String = boost.get("rarity", "common")
 	var aura_color: Color = RARITY_COLORS.get(rarity, RARITY_COLORS["common"])

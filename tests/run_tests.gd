@@ -50,10 +50,19 @@ func _run() -> void:
 	_expect(GameManager.pending_premium_options.is_empty(), "successful card selection clears pending transaction")
 
 	GameManager.music_muted = true
+	GameManager.music_volume = 0.42
+	GameManager.sfx_volume = 0.73
+	GameManager.reduced_motion = true
 	var settings_save := GameManager.get_save_data()
 	GameManager.music_muted = false
+	GameManager.music_volume = 0.0
+	GameManager.sfx_volume = 0.0
+	GameManager.reduced_motion = false
 	GameManager.load_save_data(settings_save)
 	_expect(GameManager.music_muted, "music setting survives save/load")
+	_expect(is_equal_approx(GameManager.music_volume, 0.42), "music volume survives save/load")
+	_expect(is_equal_approx(GameManager.sfx_volume, 0.73), "SFX volume survives save/load")
+	_expect(GameManager.reduced_motion, "reduced-motion setting survives save/load")
 
 	GameManager.reset_progress()
 	_expect(GameManager.pending_premium_options.is_empty(), "reset clears pending card choices")
@@ -66,6 +75,20 @@ func _run() -> void:
 	_expect(SaveManager._decode_save('{"total_lobsters":"bad"}').is_empty(), "invalid currency type is rejected")
 	_expect(SaveManager._decode_save('{"save_version":999,"total_lobsters":1}').is_empty(), "unsupported future save version is rejected")
 	_expect(SaveManager._decode_save('{"total_lobsters":1,"building_counts":["bad"]}').is_empty(), "invalid building data is rejected")
+	_expect(SaveManager._decode_save('{"save_version":3,"total_lobsters":1,"music_volume":2}').is_empty(), "out-of-range volume is rejected")
+	_expect(SaveManager._decode_save('{"save_version":3,"total_lobsters":1,"reduced_motion":"yes"}').is_empty(), "invalid reduced-motion setting is rejected")
+	_expect(SaveManager._decode_save('{"save_version":3,"total_lobsters":1,"click_upgrades":[1]}').is_empty(), "non-boolean upgrade state is rejected")
+	_expect(SaveManager._decode_save('{"save_version":3,"total_lobsters":1,"building_upgrades":[["yes"]]}').is_empty(), "corrupt building-upgrade tier is rejected")
+	_expect(SaveManager._decode_save('{"save_version":3,"total_lobsters":1,"pending_premium_options":[{"name":"Broken"}]}').is_empty(), "malformed paid-card choice is rejected")
+
+	_expect(is_equal_approx(SaveManager.calculate_offline_earnings(100.0, 3600.0, 3600.0, 0.05), 18000.0), "base offline earnings calculate correctly")
+	_expect(is_equal_approx(SaveManager.calculate_offline_earnings(100.0, 7200.0, 3600.0, 0.50), 180000.0), "offline duration cap is enforced")
+	_expect(SaveManager.calculate_offline_earnings(100.0, -60.0, 3600.0, 0.50) == 0.0, "future save timestamps cannot subtract currency")
+
+	GameManager.reset_progress()
+	GameManager.load_save_data({"save_version": 2, "total_lobsters": 12.0, "lifetime_lobsters": 34.0})
+	_expect(GameManager.run_lobsters == 34.0, "v2 saves migrate lifetime progress into the first Molting run")
+	_expect(GameManager.shells == 0 and GameManager.molt_count == 0, "v2 saves migrate with clean Molting state")
 
 	GameManager.reset_progress()
 	GameManager.set_building_purchase_mode(10)
@@ -120,6 +143,28 @@ func _run() -> void:
 	GameManager.pending_premium_options.clear()
 
 	_expect(SaveManager._decode_save('{"save_version":3,"total_lobsters":1,"shells":-1}').is_empty(), "negative Shell count is rejected")
+
+	# Main-scene settings smoke: controls instantiate and reduced motion avoids animation.
+	GameManager.reset_progress()
+	GameManager.reduced_motion = true
+	var main_scene: PackedScene = load("res://scenes/main.tscn")
+	var main_ui = main_scene.instantiate()
+	add_child(main_ui)
+	await get_tree().process_frame
+	main_ui._show_settings_dialog()
+	await get_tree().process_frame
+	var found_settings_dialog := false
+	for child in main_ui.get_children():
+		if child is AcceptDialog and child.title == "Settings":
+			found_settings_dialog = true
+	_expect(found_settings_dialog, "settings dialog opens from the main scene")
+	main_ui._do_click()
+	_expect(main_ui.claw_state == main_ui.ClawState.IDLE, "reduced motion skips claw animation")
+	main_ui.queue_free()
+	await get_tree().process_frame
+	main_ui = null
+	main_scene = null
+	await get_tree().process_frame
 
 	if failures.is_empty():
 		print("PASS: Lobster Clicker regression suite")

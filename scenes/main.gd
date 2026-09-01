@@ -62,7 +62,9 @@ const MIST_BLUE := Color("#94b8c7")
 @onready var molt_button: Button = %MoltButton
 @onready var gacha_cost_label: Label = %GachaCostLabel
 @onready var buy_capsule_button: Button = %BuyCapsuleButton
-@onready var result_panel: VBoxContainer = %ResultPanel
+@onready var result_panel: PanelContainer = %ResultPanel
+@onready var capsule_machine_frame: PanelContainer = %CapsuleMachineFrame
+@onready var capsule_machine: TextureRect = %CapsuleMachine
 @onready var rarity_label: Label = %RarityLabel
 @onready var boost_name_label: Label = %BoostNameLabel
 @onready var boost_desc_label: Label = %BoostDescLabel
@@ -155,6 +157,7 @@ func _ready() -> void:
 	_create_sfx_pool()
 	_style_buy_capsule_button()
 	_style_buy_premium_button()
+	_style_boost_station()
 	consumables_tab.visible = GameManager.lifetime_lobsters >= 2500
 
 	# Scroll buttons
@@ -1452,6 +1455,64 @@ func _style_buy_capsule_button() -> void:
 	disabled.content_margin_bottom = 8.0
 	buy_capsule_button.add_theme_stylebox_override("disabled", disabled)
 
+func _style_boost_station() -> void:
+	var machine_style := _make_style(Color("#06131f"), Color("#a56de2"), 10, 2)
+	machine_style.content_margin_left = 8.0
+	machine_style.content_margin_right = 8.0
+	machine_style.content_margin_top = 5.0
+	machine_style.content_margin_bottom = 5.0
+	machine_style.shadow_color = Color(0.65, 0.43, 0.89, 0.2)
+	machine_style.shadow_size = 7
+	capsule_machine_frame.add_theme_stylebox_override("panel", machine_style)
+	capsule_machine.tooltip_text = "The Capsule Catcher"
+	capsule_machine.resized.connect(func(): capsule_machine.pivot_offset = capsule_machine.size * 0.5)
+	capsule_machine.pivot_offset = capsule_machine.size * 0.5
+	_apply_result_rarity_style(Color("#1dd9f2"), "READY")
+
+func _apply_result_rarity_style(color: Color, status: String) -> void:
+	var result_style := _make_style(Color("#071725"), color, 8, 2)
+	result_style.border_width_left = 5
+	result_style.content_margin_left = 14.0
+	result_style.content_margin_right = 14.0
+	result_style.content_margin_top = 10.0
+	result_style.content_margin_bottom = 10.0
+	result_style.shadow_color = Color(color, 0.22)
+	result_style.shadow_size = 6
+	result_panel.add_theme_stylebox_override("panel", result_style)
+	rarity_label.text = status
+	rarity_label.add_theme_color_override("font_color", color)
+
+func _animate_capsule_machine() -> void:
+	if GameManager.reduced_motion:
+		return
+	capsule_machine.pivot_offset = capsule_machine.size * 0.5
+	capsule_machine.rotation_degrees = 0.0
+	capsule_machine.scale = Vector2.ONE
+	var tween := create_tween()
+	tween.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	tween.tween_property(capsule_machine, "rotation_degrees", -3.5, 0.07)
+	tween.tween_property(capsule_machine, "rotation_degrees", 3.5, 0.08)
+	tween.tween_property(capsule_machine, "rotation_degrees", -2.0, 0.07)
+	tween.tween_property(capsule_machine, "rotation_degrees", 2.0, 0.07)
+	tween.tween_property(capsule_machine, "rotation_degrees", 0.0, 0.08)
+	var pulse := create_tween().set_parallel(true)
+	pulse.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	pulse.tween_property(capsule_machine, "scale", Vector2(1.06, 1.06), 0.18)
+	pulse.tween_property(capsule_machine, "modulate", Color("#fff1a8"), 0.18)
+	pulse.chain().tween_property(capsule_machine, "scale", Vector2.ONE, 0.22)
+	pulse.parallel().tween_property(capsule_machine, "modulate", Color.WHITE, 0.22)
+
+func _animate_result_reveal(color: Color) -> void:
+	if GameManager.reduced_motion:
+		return
+	result_panel.pivot_offset = result_panel.size * 0.5
+	result_panel.scale = Vector2(0.88, 0.88)
+	result_panel.modulate = Color(color, 0.72)
+	var tween := create_tween().set_parallel(true)
+	tween.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tween.tween_property(result_panel, "scale", Vector2.ONE, 0.3)
+	tween.tween_property(result_panel, "modulate", Color.WHITE, 0.24)
+
 func _update_gacha_cost() -> void:
 	var cost := GameManager.get_gacha_cost()
 	gacha_cost_label.text = "Capsule Cost: %s" % GameManager.format_number(cost)
@@ -1486,12 +1547,12 @@ func _on_buy_capsule() -> void:
 	_gacha_opening = true
 	_gacha_opening_timer = 0.6
 	result_panel.visible = true
-	rarity_label.text = "Opening..."
-	rarity_label.add_theme_color_override("font_color", Color("#ffffff"))
+	_apply_result_rarity_style(Color("#1dd9f2"), "CAPSULE SPINNING...")
 	boost_name_label.text = "OPENING..."
 	boost_name_label.add_theme_color_override("font_color", Color("#ffffff"))
 	boost_desc_label.text = ""
 	timer_label.text = ""
+	_animate_capsule_machine()
 	_update_gacha_cost()
 
 func _finish_gacha_roll() -> void:
@@ -1501,18 +1562,11 @@ func _finish_gacha_roll() -> void:
 	var rarity: String = result["rarity"]
 	var color := Color(GameManager.RARITY_COLORS[rarity])
 	var rarity_display := rarity.to_upper()
-	if rarity == "legendary":
-		rarity_label.text = rarity_display
-	elif rarity == "rare":
-		rarity_label.text = rarity_display
-	elif rarity == "uncommon":
-		rarity_label.text = rarity_display
-	else:
-		rarity_label.text = rarity_display
-	rarity_label.add_theme_color_override("font_color", color)
+	_apply_result_rarity_style(color, "%s · BOOST ACQUIRED" % rarity_display)
 	boost_name_label.text = result["name"]
 	boost_name_label.add_theme_color_override("font_color", color)
 	boost_desc_label.text = "%s for %ds" % [result["desc"], int(result["duration"])]
+	_animate_result_reveal(color)
 	_update_gacha_cost()
 
 const RARITY_COLORS := {
@@ -1676,6 +1730,13 @@ func _show_premium_options(options: Array) -> void:
 		child.queue_free()
 	premium_options_container.visible = true
 	buy_premium_button.disabled = true
+	var pick_label := Label.new()
+	pick_label.text = "PICK 1 OF 3"
+	pick_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	pick_label.add_theme_font_override("font", UiBoldFont)
+	pick_label.add_theme_font_size_override("font_size", 16)
+	pick_label.add_theme_color_override("font_color", Color("#d7b6ff"))
+	premium_options_container.add_child(pick_label)
 
 	for opt in options:
 		var card := _create_option_card(opt)
@@ -1683,6 +1744,7 @@ func _show_premium_options(options: Array) -> void:
 
 func _create_option_card(boost: Dictionary) -> PanelContainer:
 	var card := PanelContainer.new()
+	card.custom_minimum_size.y = 132.0
 	var rarity: String = boost["rarity"]
 	var rarity_color := Color(GameManager.RARITY_COLORS[rarity])
 
@@ -1698,7 +1760,10 @@ func _create_option_card(boost: Dictionary) -> PanelContainer:
 	style.content_margin_right = 12.0
 	style.content_margin_top = 8.0
 	style.content_margin_bottom = 8.0
+	style.shadow_color = Color(rarity_color, 0.18)
+	style.shadow_size = 5
 	card.add_theme_stylebox_override("panel", style)
+	card.tooltip_text = "%s %s card" % [rarity.capitalize(), boost["name"]]
 
 	var vbox := VBoxContainer.new()
 	vbox.add_theme_constant_override("separation", 4)
@@ -1707,15 +1772,9 @@ func _create_option_card(boost: Dictionary) -> PanelContainer:
 	# Rarity badge
 	var rarity_lbl := Label.new()
 	var rarity_display := rarity.to_upper()
-	if rarity == "legendary":
-		rarity_lbl.text = rarity_display
-	elif rarity == "rare":
-		rarity_lbl.text = rarity_display
-	elif rarity == "uncommon":
-		rarity_lbl.text = rarity_display
-	else:
-		rarity_lbl.text = rarity_display
+	rarity_lbl.text = "%s · LOBSTER CARD" % rarity_display
 	rarity_lbl.add_theme_color_override("font_color", rarity_color)
+	rarity_lbl.add_theme_font_override("font", UiBoldFont)
 	rarity_lbl.add_theme_font_size_override("font_size", 12)
 	vbox.add_child(rarity_lbl)
 
@@ -1723,6 +1782,7 @@ func _create_option_card(boost: Dictionary) -> PanelContainer:
 	var name_lbl := Label.new()
 	name_lbl.text = boost["name"]
 	name_lbl.add_theme_color_override("font_color", rarity_color)
+	name_lbl.add_theme_font_override("font", UiBoldFont)
 	name_lbl.add_theme_font_size_override("font_size", 20)
 	vbox.add_child(name_lbl)
 
@@ -1736,7 +1796,7 @@ func _create_option_card(boost: Dictionary) -> PanelContainer:
 
 	# Select button
 	var select_btn := Button.new()
-	select_btn.text = "SELECT"
+	select_btn.text = "PLAY THIS CARD"
 	select_btn.custom_minimum_size = Vector2(0, 40)
 	select_btn.add_theme_font_size_override("font_size", 18)
 	var btn_style := StyleBoxFlat.new()
@@ -1774,21 +1834,20 @@ func _on_premium_option_selected(boost: Dictionary) -> void:
 
 func _on_premium_boost_activated(boost: Dictionary) -> void:
 	var btype: String = boost["type"]
+	var result_color := Color(GameManager.RARITY_COLORS[boost.get("rarity", "common")])
 	# Show result in the gacha result panel for timed boosts
 	if btype == "building_mult" or btype == "click_mult":
 		result_panel.visible = true
 		var rarity: String = boost["rarity"]
 		var color := Color(GameManager.RARITY_COLORS[rarity])
-		rarity_label.text = rarity.to_upper()
-		rarity_label.add_theme_color_override("font_color", color)
+		_apply_result_rarity_style(color, "%s · CARD SELECTED" % rarity.to_upper())
 		boost_name_label.text = boost["name"]
 		boost_name_label.add_theme_color_override("font_color", color)
 		boost_desc_label.text = "%s for %ds" % [boost["desc"], int(boost["duration"])]
 	elif btype == "flat_lcps":
 		result_panel.visible = true
 		var color := Color(GameManager.RARITY_COLORS[boost["rarity"]])
-		rarity_label.text = "PERMANENT"
-		rarity_label.add_theme_color_override("font_color", color)
+		_apply_result_rarity_style(color, "PERMANENT · CARD SELECTED")
 		boost_name_label.text = boost["name"]
 		boost_name_label.add_theme_color_override("font_color", color)
 		boost_desc_label.text = boost["desc"]
@@ -1797,8 +1856,7 @@ func _on_premium_boost_activated(boost: Dictionary) -> void:
 	elif btype == "free_building":
 		result_panel.visible = true
 		var color := Color(GameManager.RARITY_COLORS[boost["rarity"]])
-		rarity_label.text = "FREE BUILDING"
-		rarity_label.add_theme_color_override("font_color", color)
+		_apply_result_rarity_style(color, "FREE BUILDING · CARD SELECTED")
 		boost_name_label.text = boost["name"]
 		boost_name_label.add_theme_color_override("font_color", color)
 		boost_desc_label.text = boost["desc"]
@@ -1812,10 +1870,11 @@ func _on_premium_boost_activated(boost: Dictionary) -> void:
 		var bname: String = GameManager.building_defs[GameManager.single_building_boost_index]["name"]
 		result_panel.visible = true
 		var color := Color(GameManager.RARITY_COLORS[boost["rarity"]])
-		rarity_label.text = rarity_label.text if not rarity_label.text.is_empty() else boost["rarity"].to_upper()
-		rarity_label.add_theme_color_override("font_color", color)
+		_apply_result_rarity_style(color, "%s · CARD SELECTED" % boost["rarity"].to_upper())
 		boost_name_label.text = "%s -> %s" % [boost["name"], bname]
 		boost_name_label.add_theme_color_override("font_color", color)
 		boost_desc_label.text = "%sx %s for %ds" % [str(boost["mult"]), bname, int(boost["duration"])]
 		timer_label.text = ""
+	if result_panel.visible:
+		_animate_result_reveal(result_color)
 	_update_lps_display()

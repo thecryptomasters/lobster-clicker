@@ -1,9 +1,10 @@
-[gd_scene load_steps=6 format=3 uid="uid://b1main_scene_001"]
+[gd_scene load_steps=7 format=3 uid="uid://b1main_scene_001"]
 
 [ext_resource type="Script" path="res://scenes/main.gd" id="1_script"]
 [ext_resource type="AudioStream" path="res://assets/music/lobster_lounge_loop.ogg" id="2_music"]
 [ext_resource type="Texture2D" path="res://assets/art/ui/claw_animation/claw_pinch_0.png" id="3_hero_claw"]
 [ext_resource type="Script" path="res://scenes/harbor_backdrop.gd" id="4_harbor"]
+[ext_resource type="Texture2D" path="res://assets/art/ui/capsule_dispenser.png" id="5_capsule_dispenser"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel"]
 bg_color = Color(0.0627, 0.1569, 0.2275, 0.96)
@@ -432,14 +433,27 @@ theme_override_constants/separation = 12
 [node name="GachaTitle" type="Label" parent="RootContainer/RightPanel/VBox/ScrollContainer/ConsumablesContainer"]
 unique_name_in_owner = true
 layout_mode = 2
-text = "LOBSTER GACHA"
+text = "CAPSULE CATCHER"
 horizontal_alignment = 1
 theme_override_colors/font_color = Color(0.902, 0.494, 0.133, 1)
 theme_override_font_sizes/font_size = 26
 
+[node name="CapsuleMachineFrame" type="PanelContainer" parent="RootContainer/RightPanel/VBox/ScrollContainer/ConsumablesContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+custom_minimum_size = Vector2(0, 172)
+
+[node name="CapsuleMachine" type="TextureRect" parent="RootContainer/RightPanel/VBox/ScrollContainer/ConsumablesContainer/CapsuleMachineFrame"]
+unique_name_in_owner = true
+layout_mode = 2
+texture = ExtResource("5_capsule_dispenser")
+expand_mode = 1
+stretch_mode = 5
+mouse_filter = 2
+
 [node name="GachaDesc" type="Label" parent="RootContainer/RightPanel/VBox/ScrollContainer/ConsumablesContainer"]
 layout_mode = 2
-text = "Buy capsules for random temporary boosts!"
+text = "Turn the claw, crack a capsule, and light up a temporary boost!"
 horizontal_alignment = 1
 theme_override_colors/font_color = Color(0.5, 0.65, 0.75, 1)
 theme_override_font_sizes/font_size = 14
@@ -459,27 +473,30 @@ custom_minimum_size = Vector2(0, 60)
 text = "BUY CAPSULE"
 theme_override_font_sizes/font_size = 24
 
-[node name="ResultPanel" type="VBoxContainer" parent="RootContainer/RightPanel/VBox/ScrollContainer/ConsumablesContainer"]
+[node name="ResultPanel" type="PanelContainer" parent="RootContainer/RightPanel/VBox/ScrollContainer/ConsumablesContainer"]
 unique_name_in_owner = true
 visible = false
 layout_mode = 2
+
+[node name="ResultVBox" type="VBoxContainer" parent="RootContainer/RightPanel/VBox/ScrollContainer/ConsumablesContainer/ResultPanel"]
+layout_mode = 2
 theme_override_constants/separation = 4
 
-[node name="RarityLabel" type="Label" parent="RootContainer/RightPanel/VBox/ScrollContainer/ConsumablesContainer/ResultPanel"]
+[node name="RarityLabel" type="Label" parent="RootContainer/RightPanel/VBox/ScrollContainer/ConsumablesContainer/ResultPanel/ResultVBox"]
 unique_name_in_owner = true
 layout_mode = 2
-text = "LEGENDARY"
+text = "LEGENDARY · BOOST ACQUIRED"
 horizontal_alignment = 1
 theme_override_font_sizes/font_size = 16
 
-[node name="BoostNameLabel" type="Label" parent="RootContainer/RightPanel/VBox/ScrollContainer/ConsumablesContainer/ResultPanel"]
+[node name="BoostNameLabel" type="Label" parent="RootContainer/RightPanel/VBox/ScrollContainer/ConsumablesContainer/ResultPanel/ResultVBox"]
 unique_name_in_owner = true
 layout_mode = 2
 text = "TSUNAMI"
 horizontal_alignment = 1
 theme_override_font_sizes/font_size = 24
 
-[node name="BoostDescLabel" type="Label" parent="RootContainer/RightPanel/VBox/ScrollContainer/ConsumablesContainer/ResultPanel"]
+[node name="BoostDescLabel" type="Label" parent="RootContainer/RightPanel/VBox/ScrollContainer/ConsumablesContainer/ResultPanel/ResultVBox"]
 unique_name_in_owner = true
 layout_mode = 2
 text = "25x building production for 15s"
@@ -487,7 +504,7 @@ horizontal_alignment = 1
 theme_override_colors/font_color = Color(0.7, 0.7, 0.7, 1)
 theme_override_font_sizes/font_size = 15
 
-[node name="TimerLabel" type="Label" parent="RootContainer/RightPanel/VBox/ScrollContainer/ConsumablesContainer/ResultPanel"]
+[node name="TimerLabel" type="Label" parent="RootContainer/RightPanel/VBox/ScrollContainer/ConsumablesContainer/ResultPanel/ResultVBox"]
 unique_name_in_owner = true
 layout_mode = 2
 text = "14.3s remaining"

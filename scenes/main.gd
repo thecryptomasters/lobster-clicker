@@ -291,8 +291,8 @@ func _apply_layout() -> void:
 		title_label.add_theme_font_size_override("font_size", 22)
 		for tab_button in [buildings_tab, upgrades_tab, consumables_tab, molt_tab]:
 			tab_button.add_theme_font_size_override("font_size", 15)
-		mute_button.offset_left = -80.0
-		mute_button.offset_right = -8.0
+		mute_button.offset_left = -112.0
+		mute_button.offset_right = -16.0
 		mute_button.add_theme_font_size_override("font_size", 11)
 
 func _on_lobsters_changed(total: float) -> void:

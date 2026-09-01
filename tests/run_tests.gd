@@ -259,6 +259,15 @@ func _run() -> void:
 	_expect(main_ui.title_label.get_theme_font("font") != null, "local display typography is applied")
 	main_ui._refresh_molt()
 	_expect(main_ui.molt_progress_bar.value == 0.0, "Molting presentation starts with an empty progress meter")
+	GameManager.reduced_motion = false
+	main_ui._show_molt_celebration(2, 3)
+	_expect(main_ui._celebration_layer != null and main_ui._celebration_layer.name == "MoltCelebration", "Molting triggers the full-screen arcade celebration")
+	_expect(main_ui._celebration_layer.find_child("MoltMarquee", true, false) != null, "Molting celebration includes its permanent-power marquee")
+	main_ui._clear_celebration_layer()
+	await get_tree().process_frame
+	GameManager.reduced_motion = true
+	main_ui._show_molt_celebration(1, 1)
+	_expect(main_ui._celebration_layer == null, "reduced motion skips animated Molting effects")
 	main_ui.mute_button.pressed.emit()
 	_expect(GameManager.music_muted and main_ui.mute_button.text == "UNMUTE", "mute shortcut mutes and updates its label")
 	main_ui.mute_button.pressed.emit()

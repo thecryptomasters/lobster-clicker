@@ -161,6 +161,105 @@ def main() -> int:
             failed = failed or not passed
             results.append({"input": name, "passed": passed, "saved_total": data.get("total_lobsters")})
             context.close()
+
+        # Exercise the real prestige flow with motion enabled. This protects
+        # the theatrical overlay from becoming a screenshot-only flourish:
+        # the same click must still confirm a Molt and persist the new Shells.
+        molt_state = dict(long_state)
+        molt_state.update({
+            "total_lobsters": 10_000_000_000.0,
+            "run_lobsters": 10_000_000_000.0,
+            "shells": 0,
+            "molt_count": 0,
+            "reduced_motion": False,
+            "last_save_time": int(time.time()),
+        })
+        molt_state["building_counts"] = [0 for _ in molt_state.get("building_counts", [])]
+        molt_state["building_counts"][-1] = 1
+        context = browser.new_context(
+            viewport={"width": 1280, "height": 720},
+            storage_state=storage_state(args.url, molt_state),
+        )
+        page = context.new_page()
+        console_errors = []
+        page_errors = []
+        page.on("console", lambda message: console_errors.append(message.text) if message.type == "error" else None)
+        page.on("pageerror", lambda error: page_errors.append(str(error)))
+        page.goto(args.url, wait_until="networkidle")
+        page.wait_for_timeout(2200)
+        for _ in range(3):
+            page.keyboard.press("E")
+            page.wait_for_timeout(120)
+        page.mouse.click(930, 321)
+        page.wait_for_timeout(180)
+        page.keyboard.press("Enter")
+        page.wait_for_timeout(420)
+        celebration_screenshot = screenshot_dir / "molt-celebration.png"
+        page.screenshot(path=str(celebration_screenshot))
+        molt_result = saved_progress(page)
+        passed = (
+            molt_result.get("shells", 0) >= 1
+            and molt_result.get("molt_count") == 1
+            and not console_errors
+            and not page_errors
+        )
+        failed = failed or not passed
+        results.append({
+            "interaction": "molt_celebration",
+            "passed": passed,
+            "shells": molt_result.get("shells"),
+            "molt_count": molt_result.get("molt_count"),
+            "screenshot": str(celebration_screenshot),
+            "console_errors": console_errors,
+            "page_errors": page_errors,
+        })
+        context.close()
+
+        # Repeat the prestige path on the narrow touch layout. The Down control
+        # scrolls the Molt action into view before the confirmation is accepted.
+        context = browser.new_context(
+            viewport={"width": 390, "height": 664},
+            has_touch=True,
+            is_mobile=True,
+            storage_state=storage_state(args.url, molt_state),
+        )
+        page = context.new_page()
+        console_errors = []
+        page_errors = []
+        page.on("console", lambda message: console_errors.append(message.text) if message.type == "error" else None)
+        page.on("pageerror", lambda error: page_errors.append(str(error)))
+        page.goto(args.url, wait_until="networkidle")
+        page.wait_for_timeout(2200)
+        for _ in range(3):
+            page.keyboard.press("E")
+            page.wait_for_timeout(120)
+        for _ in range(4):
+            page.touchscreen.tap(195, 640)
+            page.wait_for_timeout(120)
+        page.touchscreen.tap(195, 576)
+        page.wait_for_timeout(180)
+        page.keyboard.press("Enter")
+        page.wait_for_timeout(420)
+        mobile_celebration_screenshot = screenshot_dir / "molt-celebration-mobile.png"
+        page.screenshot(path=str(mobile_celebration_screenshot))
+        mobile_molt_result = saved_progress(page)
+        passed = (
+            mobile_molt_result.get("shells", 0) >= 1
+            and mobile_molt_result.get("molt_count") == 1
+            and not console_errors
+            and not page_errors
+        )
+        failed = failed or not passed
+        results.append({
+            "interaction": "molt_celebration_mobile",
+            "passed": passed,
+            "shells": mobile_molt_result.get("shells"),
+            "molt_count": mobile_molt_result.get("molt_count"),
+            "screenshot": str(mobile_celebration_screenshot),
+            "console_errors": console_errors,
+            "page_errors": page_errors,
+        })
+        context.close()
         browser.close()
 
     print(json.dumps(results, indent=2))

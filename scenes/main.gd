@@ -91,6 +91,9 @@ var settings_button: Button
 var _music_muted: bool = false
 var _toast_panel: PanelContainer
 var _toast_tween: Tween
+var _celebration_layer: Control
+var _celebration_tween: Tween
+var _score_pulse_tween: Tween
 var _boost_ui_timer: float = 0.0
 var _claw_bump_tween: Tween
 var _sfx_players: Array[AudioStreamPlayer] = []
@@ -207,6 +210,10 @@ func _exit_tree() -> void:
 		_toast_tween.kill()
 	if _claw_bump_tween and _claw_bump_tween.is_valid():
 		_claw_bump_tween.kill()
+	if _celebration_tween and _celebration_tween.is_valid():
+		_celebration_tween.kill()
+	if _score_pulse_tween and _score_pulse_tween.is_valid():
+		_score_pulse_tween.kill()
 	if music_player:
 		music_player.stop()
 		music_player.stream = null
@@ -771,6 +778,7 @@ func _try_click() -> void:
 func _do_click() -> void:
 	var amount := GameManager.click()
 	_play_sfx(ClawSnapSfx)
+	_pulse_score_panel()
 	if GameManager.reduced_motion:
 		return
 	_start_claw_animation()
@@ -805,18 +813,35 @@ func _update_claw_animation(delta: float) -> void:
 
 func _spawn_float_text(amount: float) -> void:
 	var label := Label.new()
-	label.text = "+%s" % GameManager.format_number(amount)
-	label.add_theme_color_override("font_color", Color("#ff6b6b"))
-	label.add_theme_font_size_override("font_size", 32)
-	label.position = Vector2(randf_range(-30, 30), randf_range(-20, 0))
+	label.text = "+%s LC" % GameManager.format_number(amount)
+	label.add_theme_font_override("font", DisplayFont)
+	label.add_theme_color_override("font_color", COIN_GOLD if randi() % 2 == 0 else SEAFOAM)
+	label.add_theme_color_override("font_outline_color", Color("#071725"))
+	label.add_theme_constant_override("outline_size", 5)
+	label.add_theme_font_size_override("font_size", 29)
+	label.position = Vector2(randf_range(-54, 20), randf_range(-24, 0))
 	label.z_index = 10
 	float_text_container.add_child(label)
 
 	var tween := create_tween()
 	tween.set_parallel(true)
-	tween.tween_property(label, "position:y", label.position.y - 80.0, 0.8)
-	tween.tween_property(label, "modulate:a", 0.0, 0.8)
+	tween.set_ease(Tween.EASE_OUT)
+	tween.set_trans(Tween.TRANS_QUAD)
+	tween.tween_property(label, "position:y", label.position.y - 94.0, 0.72)
+	tween.tween_property(label, "scale", Vector2(1.14, 1.14), 0.18)
+	tween.tween_property(label, "modulate:a", 0.0, 0.72).set_delay(0.2)
 	tween.chain().tween_callback(label.queue_free)
+
+func _pulse_score_panel() -> void:
+	if GameManager.reduced_motion or not score_panel:
+		return
+	if _score_pulse_tween and _score_pulse_tween.is_valid():
+		_score_pulse_tween.kill()
+	score_panel.pivot_offset = score_panel.size * 0.5
+	score_panel.scale = Vector2.ONE
+	_score_pulse_tween = create_tween()
+	_score_pulse_tween.tween_property(score_panel, "scale", Vector2(1.025, 1.025), 0.055).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	_score_pulse_tween.tween_property(score_panel, "scale", Vector2.ONE, 0.11).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 
 func _on_offline_ok() -> void:
 	offline_popup.visible = false
@@ -864,7 +889,10 @@ func _update_bulk_buy_styles(mode: int) -> void:
 
 func _on_achievement_unlocked(id: String, title: String, desc: String) -> void:
 	_play_sfx(DiscoSfx if id == "disco_lobster" else AchievementSfx)
-	_show_toast(title, desc)
+	_show_toast("ACHIEVEMENT  •  %s" % title.to_upper(), desc)
+	if not GameManager.reduced_motion:
+		_spawn_arcade_sparks(self, get_viewport_rect().size * Vector2(0.5, 0.18), 18, [COIN_GOLD, SEAFOAM, LOBSTER_CORAL], 150.0)
+		_pulse_score_panel()
 
 func _show_toast(title: String, desc: String) -> void:
 	if _toast_panel and is_instance_valid(_toast_panel):
@@ -895,6 +923,7 @@ func _show_toast(title: String, desc: String) -> void:
 	var title_label := Label.new()
 	title_label.text = title
 	title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title_label.add_theme_font_override("font", UiBoldFont)
 	title_label.add_theme_color_override("font_color", Color("#ffd766"))
 	title_label.add_theme_font_size_override("font_size", 20)
 	var desc_label := Label.new()
@@ -1246,23 +1275,120 @@ func _on_molt_completed(gained: int, total_shells: int) -> void:
 	_refresh_upgrades()
 	_refresh_molt()
 	_switch_tab(Tab.BUILDINGS)
-	_show_molt_flash()
+	_show_molt_celebration(gained, total_shells)
 	_show_toast("Molting Complete", "+%d Shell%s. %d total — every catch is stronger." % [gained, "" if gained == 1 else "s", total_shells])
 
-func _show_molt_flash() -> void:
+func _show_molt_celebration(gained: int, total_shells: int) -> void:
 	if GameManager.reduced_motion:
 		return
-	var flash := ColorRect.new()
-	flash.name = "MoltCelebrationFlash"
-	flash.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	flash.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	flash.color = Color(SEAFOAM, 0.0)
-	flash.z_index = 90
-	add_child(flash)
-	var tween := create_tween()
-	tween.tween_property(flash, "color", Color(SEAFOAM, 0.28), 0.12)
-	tween.tween_property(flash, "color", Color(SEAFOAM, 0.0), 0.65)
-	tween.finished.connect(flash.queue_free)
+	_clear_celebration_layer()
+	_celebration_layer = Control.new()
+	_celebration_layer.name = "MoltCelebration"
+	_celebration_layer.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_celebration_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_celebration_layer.z_index = 90
+	add_child(_celebration_layer)
+
+	var blackout := ColorRect.new()
+	blackout.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	blackout.color = Color(DEEP_HARBOR, 0.88)
+	blackout.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_celebration_layer.add_child(blackout)
+
+	for ring_index in range(2):
+		var ring := Panel.new()
+		ring.name = "EnergyRing%d" % ring_index
+		ring.set_anchors_preset(Control.PRESET_CENTER)
+		ring.position = Vector2(-58, -58)
+		ring.size = Vector2(116, 116)
+		ring.pivot_offset = ring.size * 0.5
+		ring.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var ring_style := _make_style(Color(SEAFOAM, 0.0), SEAFOAM if ring_index == 0 else COIN_GOLD, 58, 4)
+		ring.add_theme_stylebox_override("panel", ring_style)
+		_celebration_layer.add_child(ring)
+		var ring_tween := create_tween()
+		ring_tween.set_parallel(true)
+		ring_tween.tween_property(ring, "scale", Vector2(8.0, 8.0), 0.92 + ring_index * 0.18).set_delay(ring_index * 0.14).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+		ring_tween.tween_property(ring, "modulate:a", 0.0, 0.72).set_delay(0.24 + ring_index * 0.14)
+		ring_tween.chain().tween_callback(ring.queue_free)
+
+	var panel := PanelContainer.new()
+	panel.name = "MoltMarquee"
+	panel.set_anchors_preset(Control.PRESET_CENTER)
+	var viewport_size := get_viewport_rect().size
+	var narrow_celebration := viewport_size.x < 560.0
+	var panel_width := minf(520.0, viewport_size.x - 28.0)
+	var panel_height := 220.0 if narrow_celebration else 264.0
+	panel.position = Vector2(-panel_width * 0.5, -panel_height * 0.5)
+	panel.size = Vector2(panel_width, panel_height)
+	panel.pivot_offset = panel.size * 0.5
+	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var panel_style := _make_style(Color("#071725e8"), SEAFOAM, 12, 4)
+	panel_style.shadow_color = Color(SEAFOAM, 0.42)
+	panel_style.shadow_size = 18
+	panel_style.content_margin_left = 24.0
+	panel_style.content_margin_right = 24.0
+	panel_style.content_margin_top = 20.0
+	panel_style.content_margin_bottom = 20.0
+	panel.add_theme_stylebox_override("panel", panel_style)
+	_celebration_layer.add_child(panel)
+
+	var copy := VBoxContainer.new()
+	copy.alignment = BoxContainer.ALIGNMENT_CENTER
+	copy.add_theme_constant_override("separation", 4)
+	panel.add_child(copy)
+	copy.add_child(_make_celebration_label("NEW RUN  •  PERMANENT POWER", UiBoldFont, 13 if narrow_celebration else 15, COIN_GOLD))
+	copy.add_child(_make_celebration_label("MOLT COMPLETE", DisplayFont, 27 if narrow_celebration else 34, FOAM_WHITE))
+	copy.add_child(_make_celebration_label("+%d SHELL%s" % [gained, "" if gained == 1 else "S"], DisplayFont, 35 if narrow_celebration else 42, SEAFOAM))
+	copy.add_child(_make_celebration_label("%d TOTAL  •  +%d%% PRODUCTION" % [total_shells, int(round(total_shells * GameManager.SHELL_BONUS_PER_SHELL * 100.0))], UiBoldFont, 14 if narrow_celebration else 17, MIST_BLUE))
+
+	_spawn_arcade_sparks(_celebration_layer, get_viewport_rect().size * 0.5, 42, [SEAFOAM, COIN_GOLD, LOBSTER_CORAL, FOAM_WHITE], 310.0)
+	panel.scale = Vector2(0.72, 0.72)
+	panel.modulate.a = 0.0
+	_celebration_tween = create_tween()
+	_celebration_tween.set_parallel(true)
+	_celebration_tween.tween_property(panel, "scale", Vector2.ONE, 0.32).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	_celebration_tween.tween_property(panel, "modulate:a", 1.0, 0.16)
+	_celebration_tween.tween_property(_celebration_layer, "modulate:a", 0.0, 0.48).set_delay(2.05)
+	_celebration_tween.chain().tween_callback(_clear_celebration_layer)
+
+func _make_celebration_label(text_value: String, label_font: Font, font_size: int, color: Color) -> Label:
+	var label := Label.new()
+	label.text = text_value
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.add_theme_font_override("font", label_font)
+	label.add_theme_font_size_override("font_size", font_size)
+	label.add_theme_color_override("font_color", color)
+	label.add_theme_color_override("font_outline_color", DEEP_HARBOR)
+	label.add_theme_constant_override("outline_size", 4)
+	return label
+
+func _clear_celebration_layer() -> void:
+	if _celebration_layer and is_instance_valid(_celebration_layer):
+		_celebration_layer.queue_free()
+	_celebration_layer = null
+
+func _spawn_arcade_sparks(parent: Control, origin: Vector2, count: int, palette: Array, radius: float) -> void:
+	for index in range(count):
+		var spark := ColorRect.new()
+		spark.name = "ArcadeSpark%d" % index
+		spark.color = palette[index % palette.size()]
+		var spark_size := randf_range(5.0, 11.0)
+		spark.size = Vector2(spark_size, spark_size * randf_range(0.45, 1.0))
+		spark.pivot_offset = spark.size * 0.5
+		spark.position = origin - spark.pivot_offset
+		spark.rotation = randf_range(-PI, PI)
+		spark.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		parent.add_child(spark)
+		var angle := TAU * float(index) / float(count) + randf_range(-0.16, 0.16)
+		var distance := randf_range(radius * 0.48, radius)
+		var destination := spark.position + Vector2.from_angle(angle) * distance
+		var spark_tween := create_tween()
+		spark_tween.set_parallel(true)
+		spark_tween.tween_property(spark, "position", destination, randf_range(0.62, 1.05)).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+		spark_tween.tween_property(spark, "rotation", spark.rotation + randf_range(-4.0, 4.0), 0.9)
+		spark_tween.tween_property(spark, "modulate:a", 0.0, 0.42).set_delay(randf_range(0.35, 0.58))
+		spark_tween.chain().tween_callback(spark.queue_free)
 
 func _on_upgrade_unlocked(_building_index: int, _tier: int) -> void:
 	_flash_active = true

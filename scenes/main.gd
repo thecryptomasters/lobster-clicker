@@ -7,6 +7,18 @@ const PurchaseSfx := preload("res://assets/sfx/purchase.wav")
 const AchievementSfx := preload("res://assets/sfx/achievement.wav")
 const DiscoSfx := preload("res://assets/sfx/disco.wav")
 const MoltSfx := preload("res://assets/sfx/molt.wav")
+const UiFont := preload("res://assets/fonts/atkinson-hyperlegible/AtkinsonHyperlegible-Regular.ttf")
+const UiBoldFont := preload("res://assets/fonts/atkinson-hyperlegible/AtkinsonHyperlegible-Bold.ttf")
+const DisplayFont := preload("res://assets/fonts/bungee/Bungee-Regular.ttf")
+
+const DEEP_HARBOR := Color("#071725")
+const DOCK_NAVY := Color("#10283a")
+const LOBSTER_CORAL := Color("#e9553f")
+const SHELL_HIGHLIGHT := Color("#ff846b")
+const COIN_GOLD := Color("#ffd166")
+const SEAFOAM := Color("#55d6be")
+const FOAM_WHITE := Color("#eaf6f8")
+const MIST_BLUE := Color("#94b8c7")
 
 @onready var farm_name_button: Button = %FarmNameButton
 @onready var farm_name_edit: LineEdit = %FarmNameEdit
@@ -14,6 +26,7 @@ const MoltSfx := preload("res://assets/sfx/molt.wav")
 @onready var lps_label: Label = %LpsLabel
 @onready var lifetime_label: Label = %LifetimeLabel
 @onready var claw_button: Button = %ClawButton
+@onready var hero_claw: TextureRect = %HeroClaw
 @onready var left_pincer: Node2D = %LeftPincer
 @onready var right_pincer: Node2D = %RightPincer
 @onready var boost_aura: CPUParticles2D = %BoostAura
@@ -33,6 +46,7 @@ const MoltSfx := preload("res://assets/sfx/molt.wav")
 @onready var shell_count_label: Label = %ShellCountLabel
 @onready var molt_bonus_label: Label = %MoltBonusLabel
 @onready var molt_progress_label: Label = %MoltProgressLabel
+@onready var molt_progress_bar: ProgressBar = %MoltProgressBar
 @onready var molt_next_label: Label = %MoltNextLabel
 @onready var molt_button: Button = %MoltButton
 @onready var gacha_cost_label: Label = %GachaCostLabel
@@ -98,6 +112,7 @@ var _last_width: int = 0
 
 func _ready() -> void:
 	_install_accessible_focus_theme()
+	_install_visual_polish()
 	GameManager.lobsters_changed.connect(_on_lobsters_changed)
 	GameManager.lps_changed.connect(_on_lps_changed)
 	GameManager.upgrade_unlocked.connect(_on_upgrade_unlocked)
@@ -448,9 +463,71 @@ func _install_accessible_focus_theme() -> void:
 	focus_style.corner_radius_bottom_left = 7
 	focus_style.corner_radius_bottom_right = 7
 	var focus_theme := Theme.new()
+	focus_theme.default_font = UiFont
+	focus_theme.default_font_size = 16
 	for control_type in ["Button", "CheckButton", "HSlider", "LineEdit"]:
 		focus_theme.set_stylebox("focus", control_type, focus_style)
 	theme = focus_theme
+
+func _make_style(bg: Color, border: Color, radius: int = 8, border_width: int = 1) -> StyleBoxFlat:
+	var style := StyleBoxFlat.new()
+	style.bg_color = bg
+	style.border_width_left = border_width
+	style.border_width_top = border_width
+	style.border_width_right = border_width
+	style.border_width_bottom = border_width
+	style.border_color = border
+	style.corner_radius_top_left = radius
+	style.corner_radius_top_right = radius
+	style.corner_radius_bottom_left = radius
+	style.corner_radius_bottom_right = radius
+	style.content_margin_left = 10.0
+	style.content_margin_right = 10.0
+	style.content_margin_top = 7.0
+	style.content_margin_bottom = 7.0
+	return style
+
+func _install_visual_polish() -> void:
+	# A small, explicit design system keeps dynamically-created controls in the
+	# same visual language as authored scene controls.
+	theme.set_color("font_color", "Label", FOAM_WHITE)
+	theme.set_color("font_color", "Button", FOAM_WHITE)
+	theme.set_color("font_hover_color", "Button", Color.WHITE)
+	theme.set_color("font_pressed_color", "Button", Color.WHITE)
+	theme.set_color("font_disabled_color", "Button", Color(MIST_BLUE, 0.55))
+	theme.set_font("font", "Button", UiBoldFont)
+	theme.set_stylebox("normal", "Button", _make_style(Color("#173447"), Color("#31566a")))
+	theme.set_stylebox("hover", "Button", _make_style(Color("#20465a"), SHELL_HIGHLIGHT, 8, 2))
+	theme.set_stylebox("pressed", "Button", _make_style(LOBSTER_CORAL.darkened(0.18), SHELL_HIGHLIGHT, 8, 2))
+	theme.set_stylebox("disabled", "Button", _make_style(Color("#102331"), Color("#274555")))
+
+	title_label.add_theme_font_override("font", DisplayFont)
+	lobster_count_label.add_theme_font_override("font", UiBoldFont)
+	shell_count_label.add_theme_font_override("font", UiBoldFont)
+	var molt_title := get_node_or_null("RootContainer/RightPanel/VBox/ScrollContainer/MoltContainer/MoltTitle") as Label
+	if molt_title:
+		molt_title.add_theme_font_override("font", DisplayFont)
+
+	var tab_normal := _make_style(Color("#0b2130"), Color("#23495b"), 6)
+	var tab_hover := _make_style(Color("#173b4d"), Color("#3a7180"), 6)
+	for tab_button in [buildings_tab, upgrades_tab, consumables_tab, molt_tab]:
+		tab_button.flat = false
+		tab_button.add_theme_stylebox_override("normal", tab_normal)
+		tab_button.add_theme_stylebox_override("hover", tab_hover)
+		tab_button.add_theme_stylebox_override("pressed", tab_hover)
+
+	var progress_bg := _make_style(Color("#071725"), Color("#31566a"), 8)
+	progress_bg.content_margin_top = 0.0
+	progress_bg.content_margin_bottom = 0.0
+	var progress_fill := _make_style(SEAFOAM.darkened(0.12), SEAFOAM, 8)
+	progress_fill.content_margin_top = 0.0
+	progress_fill.content_margin_bottom = 0.0
+	molt_progress_bar.add_theme_stylebox_override("background", progress_bg)
+	molt_progress_bar.add_theme_stylebox_override("fill", progress_fill)
+
+	var claw_focus := _make_style(Color(LOBSTER_CORAL, 0.06), COIN_GOLD, 18, 3)
+	claw_button.add_theme_stylebox_override("focus", claw_focus)
+	hero_claw.tooltip_text = "Catch Lobster Coins"
 
 func _start_music() -> void:
 	if _music_muted:
@@ -1077,12 +1154,16 @@ func _cycle_tab(direction: int) -> void:
 		Tab.MOLT: molt_tab.grab_focus()
 
 func _update_tab_styles() -> void:
-	var active_color := Color("#ffd766")
-	var inactive_color := Color("#667788")
+	var active_color := COIN_GOLD
+	var inactive_color := MIST_BLUE.darkened(0.2)
 	buildings_tab.add_theme_color_override("font_color", active_color if current_tab == Tab.BUILDINGS else inactive_color)
 	upgrades_tab.add_theme_color_override("font_color", active_color if current_tab == Tab.UPGRADES else inactive_color)
 	consumables_tab.add_theme_color_override("font_color", active_color if current_tab == Tab.CONSUMABLES else inactive_color)
 	molt_tab.add_theme_color_override("font_color", active_color if current_tab == Tab.MOLT else inactive_color)
+	for entry in [[buildings_tab, Tab.BUILDINGS], [upgrades_tab, Tab.UPGRADES], [consumables_tab, Tab.CONSUMABLES], [molt_tab, Tab.MOLT]]:
+		var button: Button = entry[0]
+		var active: bool = current_tab == int(entry[1])
+		button.add_theme_stylebox_override("normal", _make_style(Color("#173b4d") if active else Color("#0b2130"), SEAFOAM if active else Color("#23495b"), 6, 2 if active else 1))
 
 func _on_molt_tab() -> void:
 	_switch_tab(Tab.MOLT)
@@ -1095,10 +1176,13 @@ func _refresh_molt() -> void:
 	shell_count_label.text = "%d SHELLS" % GameManager.shells
 	molt_bonus_label.text = "Permanent production bonus: +%d%%" % current_bonus
 	molt_progress_label.text = "This run: %s / %s LC" % [GameManager.format_number(GameManager.run_lobsters), GameManager.format_number(GameManager.MOLTING_THRESHOLD)]
+	molt_progress_bar.value = clampf(GameManager.run_lobsters / GameManager.MOLTING_THRESHOLD * 100.0, 0.0, 100.0)
 	if pending > 0:
 		var future_bonus := int(round((GameManager.get_shell_multiplier() + pending * GameManager.SHELL_BONUS_PER_SHELL - 1.0) * 100.0))
 		molt_button.text = "MOLT FOR %d SHELL%s" % [pending, "" if pending == 1 else "S"]
 		molt_button.disabled = not GameManager.can_molt()
+		molt_button.add_theme_stylebox_override("normal", _make_style(SEAFOAM.darkened(0.35), SEAFOAM, 10, 2))
+		molt_button.add_theme_stylebox_override("hover", _make_style(SEAFOAM.darkened(0.18), Color.WHITE, 10, 2))
 		molt_next_label.text = "After molting: +%d%% permanent production. Next extra Shell at %s run LC." % [future_bonus, GameManager.format_number(GameManager.get_next_shell_target())]
 		if GameManager.building_counts[GameManager.MOLTING_BUILDING_INDEX] < 1:
 			molt_next_label.text = "Build at least 1 Immortality to complete this run."

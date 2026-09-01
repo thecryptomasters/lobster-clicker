@@ -13,6 +13,18 @@ The above copyright notice and this permission notice shall be included in all c
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
+## Atkinson Hyperlegible
+
+Copyright 2020 Braille Institute of America, Inc.
+
+Licensed under the SIL Open Font License, Version 1.1. The full license text is included at `assets/fonts/atkinson-hyperlegible/OFL.txt`.
+
+## Bungee
+
+Copyright 2014 The Bungee Project Authors.
+
+Licensed under the SIL Open Font License, Version 1.1. The full license text is included at `assets/fonts/bungee/OFL.txt`.
+
 ## Project Assets
 
-The interface artwork is drawn in the Godot scenes or supplied as original project artwork. The soundtrack and sound effects are original synthesized assets generated for Lobster Clicker. Their provenance is documented in `assets/AUDIO.md` and the repository generation tools.
+The interface artwork is drawn in the Godot scenes or supplied as original project artwork. The hero claw was generated specifically for Lobster Clicker with OpenAI image generation and then locally prepared as a transparent game asset. The soundtrack and sound effects are original synthesized assets generated for Lobster Clicker. Their provenance is documented in `assets/AUDIO.md` and the repository generation tools.

@@ -2,7 +2,7 @@
 
 Last updated: 2026-08-31
 
-Scope: game functionality, code, packaging, and playtesting required for a confident 1.0 build. Steam store-page, submission, and marketing steps are intentionally excluded.
+Scope: game functionality, code, packaging, and playtesting required for a confident 1.0 build. Steam is the public launch target; `docs/steam-launch-checklist.md` is the source of truth for store, SteamPipe, review, and release gates.
 
 Status legend: `[ ]` remaining, `[~]` underway or awaiting human verification, `[x]` complete and verified.
 
@@ -113,7 +113,7 @@ These are worthwhile but should not delay launch unless testing proves they are 
 - Cloud saves and account systems.
 - Additional prestige layers beyond Molting.
 - New buildings, cards, events, monetization, or live-ops systems.
-- Steam store-page, upload, submission, and marketing work.
+- Steam achievements, Cloud Saves, trading cards, Workshop, leaderboards, and other optional platform integrations.
 
 ## Input needed from the team
 

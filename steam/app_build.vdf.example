@@ -1,0 +1,14 @@
+"appbuild"
+{
+	"appid" "__STEAM_APP_ID__"
+	"desc" "Lobster Clicker Windows release candidate"
+	"buildoutput" "../build/steamworks/output"
+	"contentroot" "../build/steam/windows"
+	"setlive" ""
+	"preview" "1"
+
+	"depots"
+	{
+		"__STEAM_WINDOWS_DEPOT_ID__" "depot_build_windows.vdf"
+	}
+}

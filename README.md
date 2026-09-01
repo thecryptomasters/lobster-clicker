@@ -50,3 +50,15 @@ godot --headless --path . --export-release "Windows Desktop" build/windows/Lobst
 godot --headless --path . --export-release macOS build/macos/LobsterClicker.zip
 godot --headless --path . --export-release Linux build/linux/lobster-clicker.x86_64
 ```
+
+## Steam candidate
+
+The public launch target is Steam. The browser deployment remains the rapid QA and playtest channel.
+
+Stage a Windows-first Steam candidate with notices and checksums:
+
+```bash
+bash tools/prepare_steam_windows.sh
+```
+
+SteamPipe templates and the launch checklist live in `steam/` and `docs/steam-launch-checklist.md`. App and depot IDs are intentionally placeholders until the Steamworks application exists.

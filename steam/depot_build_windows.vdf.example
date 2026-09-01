@@ -1,0 +1,15 @@
+"DepotBuildConfig"
+{
+	"DepotID" "__STEAM_WINDOWS_DEPOT_ID__"
+	"ContentRoot" "../build/steam/windows"
+
+	"FileMapping"
+	{
+		"LocalPath" "*"
+		"DepotPath" "."
+		"recursive" "1"
+	}
+
+	"FileExclusion" "*.pdb"
+	"FileExclusion" "*.log"
+}

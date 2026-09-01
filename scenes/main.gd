@@ -31,6 +31,9 @@ const MIST_BLUE := Color("#94b8c7")
 @onready var farm_name_button: Button = %FarmNameButton
 @onready var farm_name_edit: LineEdit = %FarmNameEdit
 @onready var lobster_count_label: Label = %LobsterCountLabel
+@onready var score_panel: PanelContainer = %ScorePanel
+@onready var score_header: Label = %ScoreHeader
+@onready var lobster_word: Label = %LobsterWord
 @onready var lps_label: Label = %LpsLabel
 @onready var lifetime_label: Label = %LifetimeLabel
 @onready var claw_button: Button = %ClawButton
@@ -358,9 +361,9 @@ func _update_lps_display() -> void:
 	else:
 		lps_label.text = "%s LCPS" % GameManager.format_number(effective_lps)
 	if boost_mult > 1.0 or GameManager.single_building_boost_time > 0:
-		lps_label.add_theme_color_override("font_color", Color("#f39c12"))
+		lps_label.add_theme_color_override("font_color", COIN_GOLD)
 	else:
-		lps_label.add_theme_color_override("font_color", Color(0.5, 0.7, 0.8, 1))
+		lps_label.add_theme_color_override("font_color", SEAFOAM)
 
 var _click_debounce: float = 0.0
 const CLICK_DEBOUNCE_TIME := 0.05
@@ -487,7 +490,22 @@ func _install_visual_polish() -> void:
 	theme.set_stylebox("disabled", "Button", _make_style(Color("#102331"), Color("#274555")))
 
 	title_label.add_theme_font_override("font", DisplayFont)
-	lobster_count_label.add_theme_font_override("font", UiBoldFont)
+	lobster_count_label.add_theme_font_override("font", DisplayFont)
+	lobster_count_label.add_theme_constant_override("outline_size", 5)
+	lobster_count_label.add_theme_color_override("font_outline_color", Color("#5d2348"))
+	lobster_count_label.add_theme_constant_override("shadow_offset_x", 0)
+	lobster_count_label.add_theme_constant_override("shadow_offset_y", 4)
+	lobster_count_label.add_theme_color_override("font_shadow_color", Color(0.05, 0.95, 1.0, 0.32))
+	score_header.add_theme_font_override("font", UiBoldFont)
+	lobster_word.add_theme_font_override("font", UiBoldFont)
+	var score_style := _make_style(Color("#06131f"), Color("#1dd9f2"), 5, 2)
+	score_style.content_margin_left = 18.0
+	score_style.content_margin_right = 18.0
+	score_style.content_margin_top = 8.0
+	score_style.content_margin_bottom = 9.0
+	score_style.shadow_color = Color(0.11, 0.85, 0.95, 0.22)
+	score_style.shadow_size = 7
+	score_panel.add_theme_stylebox_override("panel", score_style)
 	shell_count_label.add_theme_font_override("font", UiBoldFont)
 	var molt_title := get_node_or_null("RootContainer/RightPanel/VBox/ScrollContainer/MoltContainer/MoltTitle") as Label
 	if molt_title:

@@ -27,4 +27,4 @@ Licensed under the SIL Open Font License, Version 1.1. The full license text is 
 
 ## Project Assets
 
-The interface artwork is drawn in the Godot scenes or supplied as original project artwork. The hero claw was generated specifically for Lobster Clicker with OpenAI image generation and then locally prepared as a transparent game asset. The soundtrack and sound effects are original synthesized assets generated for Lobster Clicker. Their provenance is documented in `assets/AUDIO.md` and the repository generation tools.
+The interface artwork is drawn in the Godot scenes or supplied as original project artwork. The hero claw and illustrated building icons were generated specifically for Lobster Clicker with OpenAI image generation and then locally prepared as transparent game assets. The soundtrack and sound effects are original synthesized assets generated for Lobster Clicker. Their provenance is documented in `assets/AUDIO.md` and the repository generation tools.

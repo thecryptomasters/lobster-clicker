@@ -1,5 +1,11 @@
 extends PanelContainer
 
+const BUILDING_ICONS: Array[Texture2D] = [
+	preload("res://assets/art/buildings/coin_collecting.png"),
+	preload("res://assets/art/buildings/lobster_memes.png"),
+	preload("res://assets/art/buildings/fishcord_server.png"),
+]
+
 var building_index: int = 0
 
 @onready var name_label: Label = %NameLabel
@@ -10,6 +16,8 @@ var building_index: int = 0
 @onready var buy_button: Button = %BuyButton
 @onready var total_lps_label: Label = %TotalLpsLabel
 @onready var icon_badge: Label = %IconBadge
+@onready var icon_frame: PanelContainer = %IconFrame
+@onready var icon_texture: TextureRect = %IconTexture
 
 var _affordable_style: StyleBoxFlat
 var _unaffordable_style: StyleBoxFlat
@@ -25,69 +33,78 @@ func _ready() -> void:
 	GameManager.purchase_mode_changed.connect(_on_purchase_mode_changed)
 
 	_affordable_style = StyleBoxFlat.new()
-	_affordable_style.bg_color = Color("#e9553f")
-	_affordable_style.border_width_left = 1
-	_affordable_style.border_width_top = 1
-	_affordable_style.border_width_right = 1
-	_affordable_style.border_width_bottom = 1
-	_affordable_style.border_color = Color("#ff846b")
-	_affordable_style.corner_radius_top_left = 6
-	_affordable_style.corner_radius_top_right = 6
-	_affordable_style.corner_radius_bottom_left = 6
-	_affordable_style.corner_radius_bottom_right = 6
+	_affordable_style.bg_color = Color("#d9453d")
+	_affordable_style.border_width_left = 2
+	_affordable_style.border_width_top = 2
+	_affordable_style.border_width_right = 2
+	_affordable_style.border_width_bottom = 2
+	_affordable_style.border_color = Color("#ffd166")
+	_affordable_style.corner_radius_top_left = 4
+	_affordable_style.corner_radius_top_right = 4
+	_affordable_style.corner_radius_bottom_left = 4
+	_affordable_style.corner_radius_bottom_right = 4
 	_affordable_style.content_margin_left = 8.0
 	_affordable_style.content_margin_right = 8.0
 	_affordable_style.content_margin_top = 4.0
 	_affordable_style.content_margin_bottom = 4.0
 
 	_unaffordable_style = StyleBoxFlat.new()
-	_unaffordable_style.bg_color = Color("#173447")
+	_unaffordable_style.bg_color = Color("#102331")
 	_unaffordable_style.border_width_left = 1
 	_unaffordable_style.border_width_top = 1
 	_unaffordable_style.border_width_right = 1
 	_unaffordable_style.border_width_bottom = 1
-	_unaffordable_style.border_color = Color("#31566a")
-	_unaffordable_style.corner_radius_top_left = 6
-	_unaffordable_style.corner_radius_top_right = 6
-	_unaffordable_style.corner_radius_bottom_left = 6
-	_unaffordable_style.corner_radius_bottom_right = 6
+	_unaffordable_style.border_color = Color("#274f62")
+	_unaffordable_style.corner_radius_top_left = 4
+	_unaffordable_style.corner_radius_top_right = 4
+	_unaffordable_style.corner_radius_bottom_left = 4
+	_unaffordable_style.corner_radius_bottom_right = 4
 	_unaffordable_style.content_margin_left = 8.0
 	_unaffordable_style.content_margin_right = 8.0
 	_unaffordable_style.content_margin_top = 4.0
 	_unaffordable_style.content_margin_bottom = 4.0
 
 	_card_style = StyleBoxFlat.new()
-	_card_style.bg_color = Color("#0d2232")
-	_card_style.border_width_left = 1
-	_card_style.border_width_top = 1
-	_card_style.border_width_right = 1
-	_card_style.border_width_bottom = 1
-	_card_style.border_color = Color("#23495b")
-	_card_style.corner_radius_top_left = 10
-	_card_style.corner_radius_top_right = 10
-	_card_style.corner_radius_bottom_left = 10
-	_card_style.corner_radius_bottom_right = 10
+	_card_style.bg_color = Color("#081a28")
+	_card_style.border_width_left = 2
+	_card_style.border_width_top = 2
+	_card_style.border_width_right = 2
+	_card_style.border_width_bottom = 2
+	_card_style.border_color = Color("#1f6075")
+	_card_style.corner_radius_top_left = 5
+	_card_style.corner_radius_top_right = 5
+	_card_style.corner_radius_bottom_left = 5
+	_card_style.corner_radius_bottom_right = 5
+	_card_style.shadow_color = Color(0.02, 0.9, 1.0, 0.08)
+	_card_style.shadow_size = 3
 	_card_style.content_margin_left = 12.0
 	_card_style.content_margin_right = 12.0
 	_card_style.content_margin_top = 8.0
 	_card_style.content_margin_bottom = 8.0
 
 	_card_affordable_style = _card_style.duplicate() as StyleBoxFlat
-	_card_affordable_style.bg_color = Color("#102d3d")
-	_card_affordable_style.border_color = Color("#3a7180")
+	_card_affordable_style.bg_color = Color("#0d2b39")
+	_card_affordable_style.border_color = Color("#55d6be")
+	_card_affordable_style.shadow_color = Color(0.33, 0.84, 0.75, 0.22)
+	_card_affordable_style.shadow_size = 5
 
 	_badge_style = StyleBoxFlat.new()
 	_badge_style.bg_color = Color("#071725")
-	_badge_style.border_width_left = 1
-	_badge_style.border_width_top = 1
-	_badge_style.border_width_right = 1
-	_badge_style.border_width_bottom = 1
-	_badge_style.border_color = Color("#ffd166")
-	_badge_style.corner_radius_top_left = 8
-	_badge_style.corner_radius_top_right = 8
-	_badge_style.corner_radius_bottom_left = 8
-	_badge_style.corner_radius_bottom_right = 8
-	icon_badge.add_theme_stylebox_override("normal", _badge_style)
+	_badge_style.border_width_left = 2
+	_badge_style.border_width_top = 2
+	_badge_style.border_width_right = 2
+	_badge_style.border_width_bottom = 2
+	_badge_style.border_color = Color("#1dd9f2")
+	_badge_style.corner_radius_top_left = 4
+	_badge_style.corner_radius_top_right = 4
+	_badge_style.corner_radius_bottom_left = 4
+	_badge_style.corner_radius_bottom_right = 4
+	_badge_style.content_margin_left = 3.0
+	_badge_style.content_margin_right = 3.0
+	_badge_style.content_margin_top = 3.0
+	_badge_style.content_margin_bottom = 3.0
+	icon_frame.add_theme_stylebox_override("panel", _badge_style)
+	icon_texture.pivot_offset = icon_texture.size * 0.5
 
 	_refresh()
 
@@ -99,6 +116,16 @@ func setup(index: int) -> void:
 func _refresh() -> void:
 	var def: Dictionary = GameManager.building_defs[building_index]
 	icon_badge.text = "%02d" % (building_index + 1)
+	if building_index < BUILDING_ICONS.size():
+		icon_texture.texture = BUILDING_ICONS[building_index]
+		icon_texture.visible = true
+		icon_badge.visible = false
+		icon_frame.tooltip_text = "%s arcade cabinet" % def["name"]
+	else:
+		icon_texture.texture = null
+		icon_texture.visible = false
+		icon_badge.visible = true
+		icon_frame.tooltip_text = "Building %02d" % (building_index + 1)
 	name_label.text = def["name"]
 	desc_label.text = def["desc"]
 	var cost := GameManager.get_selected_building_cost(building_index)
@@ -157,9 +184,15 @@ func _on_building_purchased(index: int) -> void:
 	if index == building_index:
 		_refresh()
 		if not GameManager.reduced_motion:
-			var tween := create_tween()
-			modulate = Color("#ffd166")
-			tween.tween_property(self, "modulate", Color.WHITE, 0.22)
+			icon_texture.pivot_offset = icon_texture.size * 0.5
+			icon_texture.scale = Vector2(0.82, 0.82)
+			icon_texture.modulate = Color("#fff2a8")
+			var tween := create_tween().set_parallel(true)
+			tween.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+			tween.tween_property(icon_texture, "scale", Vector2.ONE, 0.28)
+			tween.tween_property(icon_texture, "modulate", Color.WHITE, 0.24)
+			modulate = Color("#6fffe9")
+			tween.tween_property(self, "modulate", Color.WHITE, 0.3)
 
 func _on_lps_changed(_lps: float) -> void:
 	if is_node_ready():

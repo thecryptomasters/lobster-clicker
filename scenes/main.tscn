@@ -106,7 +106,25 @@ theme_override_font_sizes/font_size = 18
 layout_mode = 2
 custom_minimum_size = Vector2(0, 4)
 
-[node name="LobsterCountLabel" type="Label" parent="RootContainer/LeftSection"]
+[node name="ScorePanel" type="PanelContainer" parent="RootContainer/LeftSection"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 4
+custom_minimum_size = Vector2(310, 0)
+
+[node name="ScoreVBox" type="VBoxContainer" parent="RootContainer/LeftSection/ScorePanel"]
+layout_mode = 2
+theme_override_constants/separation = 0
+
+[node name="ScoreHeader" type="Label" parent="RootContainer/LeftSection/ScorePanel/ScoreVBox"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "PLAYER 1  •  SCORE"
+horizontal_alignment = 1
+theme_override_colors/font_color = Color(0.1137, 0.851, 0.949, 1)
+theme_override_font_sizes/font_size = 13
+
+[node name="LobsterCountLabel" type="Label" parent="RootContainer/LeftSection/ScorePanel/ScoreVBox"]
 unique_name_in_owner = true
 layout_mode = 2
 text = "0"
@@ -114,22 +132,23 @@ horizontal_alignment = 1
 theme_override_colors/font_color = Color(1, 0.8196, 0.4, 1)
 theme_override_font_sizes/font_size = 56
 
-[node name="LobsterWord" type="Label" parent="RootContainer/LeftSection"]
+[node name="LobsterWord" type="Label" parent="RootContainer/LeftSection/ScorePanel/ScoreVBox"]
+unique_name_in_owner = true
 layout_mode = 2
-text = "Lobster Coins"
+text = "LOBSTER COINS"
 horizontal_alignment = 1
-theme_override_colors/font_color = Color(0.9176, 0.9647, 0.9725, 1)
-theme_override_font_sizes/font_size = 22
+theme_override_colors/font_color = Color(1, 0.5137, 0.4196, 1)
+theme_override_font_sizes/font_size = 18
 
-[node name="LpsLabel" type="Label" parent="RootContainer/LeftSection"]
+[node name="LpsLabel" type="Label" parent="RootContainer/LeftSection/ScorePanel/ScoreVBox"]
 unique_name_in_owner = true
 layout_mode = 2
 text = "0 LCPS"
 horizontal_alignment = 1
-theme_override_colors/font_color = Color(0.5, 0.7, 0.8, 1)
+theme_override_colors/font_color = Color(0.3333, 0.8392, 0.7451, 1)
 theme_override_font_sizes/font_size = 18
 
-[node name="BoostHudLabel" type="Label" parent="RootContainer/LeftSection"]
+[node name="BoostHudLabel" type="Label" parent="RootContainer/LeftSection/ScorePanel/ScoreVBox"]
 unique_name_in_owner = true
 visible = false
 layout_mode = 2
@@ -137,7 +156,7 @@ text = ""
 horizontal_alignment = 1
 theme_override_font_sizes/font_size = 14
 
-[node name="LifetimeLabel" type="Label" parent="RootContainer/LeftSection"]
+[node name="LifetimeLabel" type="Label" parent="RootContainer/LeftSection/ScorePanel/ScoreVBox"]
 unique_name_in_owner = true
 layout_mode = 2
 text = "0 lifetime LC"

@@ -65,8 +65,8 @@ var building_upgrades: Array = []
 # {threshold, cost, name, desc}
 var click_upgrade_defs: Array = [
 	{"threshold": 500, "cost": 500, "multiplier": 2, "name": "Iron Claws", "desc": "2x LC per click. (500 lifetime LC)"},
-	{"threshold": 5000, "cost": 5000, "multiplier": 5, "name": "Steel Claws", "desc": "5x LC per click. (5,000 lifetime LC)"},
-	{"threshold": 250000, "cost": 250000, "multiplier": 10, "name": "Diamond Claws", "desc": "10x LC per click. (250,000 lifetime LC)"},
+	{"threshold": 5000, "cost": 5000, "multiplier": 5, "name": "Steel Claws", "desc": "Stacks with Iron Claws: 10x total LC per click. (5,000 lifetime LC)"},
+	{"threshold": 250000, "cost": 250000, "multiplier": 10, "name": "Diamond Claws", "desc": "Stacks with earlier Claws: 100x total LC per click. (250,000 lifetime LC)"},
 ]
 var click_upgrades_purchased: Array[bool] = [false, false, false]
 var lifetime_lobsters: float = 0.0  # Total lobsters ever generated (never decreases)
@@ -999,7 +999,7 @@ func get_save_data() -> Dictionary:
 		"run_lobsters": run_lobsters,
 		"shells": shells,
 		"molt_count": molt_count,
-		"building_counts": building_counts,
+		"building_counts": building_counts.duplicate(),
 		"building_upgrades": upgrades_data,
 		"click_upgrades": click_data,
 		"cps_click_upgrades": cps_click_data,

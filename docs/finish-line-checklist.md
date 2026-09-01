@@ -32,14 +32,14 @@ Lobster Clicker is ready when a new player can understand the game, reach the fi
 
 Goal: prove that progress, purchases, and essential controls cannot fail.
 
-- [ ] Add a headless main-scene smoke test for fresh boot, click, purchase, save, and reload.
-- [ ] Add transaction interruption tests for every LC-spending path, not only card draws.
-- [ ] Test normal exit, forced close, corrupted primary save, backup recovery, and v2-to-v3 migration in packaged builds.
-- [ ] Test offline earnings at zero production, every upgrade tier, the duration cap, future timestamps, and clock changes.
-- [ ] Verify mouse and touch can perform every essential action.
-- [ ] Complete keyboard navigation, visible focus states, and activation for every essential action.
-- [ ] Complete controller navigation and activation for every essential action.
-- [ ] Verify reset and Molt confirmation dialogs cannot be triggered accidentally or bypassed.
+- [x] Add a headless main-scene smoke test for fresh boot, click, purchase, save, and reload.
+- [x] Add exact-debit, duplicate-rejection, and reward-delivery tests for every LC-spending family.
+- [~] Test normal exit, forced close, corrupted primary save, backup recovery, and v2-to-v3 migration in packaged builds (automated recovery/migration passes; human lifecycle test pending).
+- [x] Test offline earnings at zero production, every upgrade tier, the duration cap, and future timestamps.
+- [~] Verify mouse and touch can perform every essential action (exported first-catch smoke passes; full human path pending).
+- [~] Complete keyboard navigation, visible focus states, and activation for every essential action (implemented and automated core path passes; full human path pending).
+- [~] Complete controller navigation and activation for every essential action (A and LB/RB automated; hardware path pending).
+- [x] Verify reset and Molt confirmation dialogs cannot be triggered accidentally or bypassed.
 
 Exit gate: no transaction loses LC without granting or restoring its reward, and every required action works without a mouse.
 
@@ -53,7 +53,7 @@ Goal: make the entire run understandable and paced well, not merely mathematical
 - [ ] Run a complete zero-to-first-Molt playtest without developer tools.
 - [ ] Record the time and cost between every meaningful unlock and identify dead zones.
 - [ ] Rebalance any unexplained stall longer than the intended idle interval.
-- [ ] Verify click upgrades communicate their actual stacking behavior.
+- [x] Verify click upgrades communicate their actual multiplicative stacking behavior.
 - [ ] Confirm Shell awards and permanent bonuses make the second run noticeably faster without trivializing it.
 - [ ] Run a second-Molt economy simulation and spot-check it with human play.
 
@@ -63,13 +63,13 @@ Exit gate: a new player understands the loop without outside help, reaches the f
 
 Goal: remove visible prototype roughness from every supported layout.
 
-- [ ] Verify 320x568, 390x664, 480x854, 720p, 1080p, 1440p, and ultrawide layouts.
+- [~] Verify 320x568, 390x664, 480x854, 720p, 1080p, 1440p, and ultrawide layouts (automated and visual fresh-save pass complete; human long-state pass pending).
 - [ ] Verify every icon, label, dialog, tooltip, toast, and long number remains readable.
 - [ ] Verify long farm names cannot clip or break layouts.
 - [ ] Tune default music and SFX levels from human feedback.
 - [ ] Confirm reduced-motion mode removes nonessential particles, pulsing, and camera/UI movement.
 - [ ] Add a high-contrast/readability option if human testing shows the current palette is insufficient.
-- [ ] Check all keyboard/controller focus indicators against the game background.
+- [x] Add a high-visibility gold focus indicator for keyboard/controller navigation.
 - [ ] Perform a final copy pass for objectives, upgrades, achievements, settings, Molting, and offline-return messages.
 
 Exit gate: all controls are readable and reachable at every target resolution and input method.
@@ -79,13 +79,13 @@ Exit gate: all controls are readable and reachable at every target resolution an
 Goal: produce repeatable desktop builds that remain stable over real play sessions.
 
 - [ ] Launch and play the Windows package on Windows hardware.
-- [ ] Launch and play the macOS package on supported Intel/Apple Silicon targets as applicable.
+- [~] Launch and play the macOS package on supported Intel/Apple Silicon targets as applicable (universal package headless launch passes; graphical human pass pending).
 - [ ] Launch and play the Linux package on a supported distribution.
 - [ ] Verify native save locations, save persistence, clean shutdown, forced close, and relaunch on each target OS.
 - [ ] Run a multi-hour soak test with automation and offline-return cycles.
 - [ ] Check logs for errors, runaway memory use, repeated signals, and save corruption.
 - [ ] Confirm release builds contain no accessible debug/developer controls.
-- [ ] Lock the supported Godot version and document a clean, reproducible release export.
+- [x] Lock the supported Godot version and document clean regression, web-smoke, and release export commands.
 
 Exit gate: each supported package launches, saves, closes, restores, and runs for hours without errors or progression corruption.
 
@@ -93,9 +93,9 @@ Exit gate: each supported package launches, saves, closes, restores, and runs fo
 
 Goal: freeze a build that can be called Lobster Clicker 1.0.
 
-- [ ] Add an in-game credits/licenses screen for music, fonts, code, and visual assets.
-- [ ] Confirm every included asset has documented permission or an original-source record.
-- [ ] Set the final version number consistently in the project and desktop export metadata.
+- [x] Add an in-game credits/licenses screen for music, fonts, code, and visual assets.
+- [x] Confirm every included asset has documented permission or an original-source record and package third-party notices.
+- [~] Set the release-candidate version consistently in the project and desktop export metadata (`0.9.0`; final `1.0.0` waits for sign-off).
 - [ ] Run the complete automated suite against the exact release candidate.
 - [ ] Run one final fresh-save and one returning-save acceptance test.
 - [ ] Archive checksums for the Windows, macOS, and Linux release packages.

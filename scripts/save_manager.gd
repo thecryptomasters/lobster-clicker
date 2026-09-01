@@ -128,17 +128,12 @@ func load_game() -> void:
 	if OS.has_feature("web"):
 		var storage := JavaScriptBridge.get_interface("localStorage")
 		var result = storage.getItem(SAVE_KEY)
-		if result != null:
-			data = _decode_save(str(result))
-		if data.is_empty():
-			var backup = storage.getItem(BACKUP_KEY)
-			if backup != null:
-				data = _decode_save(str(backup))
+		var backup = storage.getItem(BACKUP_KEY)
+		data = select_recoverable_save(str(result) if result != null else "", str(backup) if backup != null else "")
 	else:
-		if FileAccess.file_exists(SAVE_PATH):
-			data = _decode_save(FileAccess.get_file_as_string(SAVE_PATH))
-		if data.is_empty() and FileAccess.file_exists(BACKUP_PATH):
-			data = _decode_save(FileAccess.get_file_as_string(BACKUP_PATH))
+		var primary_text := FileAccess.get_file_as_string(SAVE_PATH) if FileAccess.file_exists(SAVE_PATH) else ""
+		var backup_text := FileAccess.get_file_as_string(BACKUP_PATH) if FileAccess.file_exists(BACKUP_PATH) else ""
+		data = select_recoverable_save(primary_text, backup_text)
 
 	if data.is_empty():
 		return
@@ -156,6 +151,12 @@ func load_game() -> void:
 			GameManager.run_lobsters += offline_earnings
 			GameManager.lobsters_changed.emit(GameManager.total_lobsters)
 			GameManager.unlock_offline_achievement()
+
+func select_recoverable_save(primary_text: String, backup_text: String) -> Dictionary:
+	var primary := _decode_save(primary_text)
+	if not primary.is_empty():
+		return primary
+	return _decode_save(backup_text)
 
 func _decode_save(json_str: String) -> Dictionary:
 	if json_str == "" or json_str == "null":

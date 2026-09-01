@@ -97,6 +97,7 @@ var _is_desktop: bool = true
 var _last_width: int = 0
 
 func _ready() -> void:
+	_install_accessible_focus_theme()
 	GameManager.lobsters_changed.connect(_on_lobsters_changed)
 	GameManager.lps_changed.connect(_on_lps_changed)
 	GameManager.upgrade_unlocked.connect(_on_upgrade_unlocked)
@@ -174,6 +175,20 @@ func _ready() -> void:
 		offline_popup.visible = true
 	else:
 		offline_popup.visible = false
+
+func _exit_tree() -> void:
+	if _toast_tween and _toast_tween.is_valid():
+		_toast_tween.kill()
+	if _claw_bump_tween and _claw_bump_tween.is_valid():
+		_claw_bump_tween.kill()
+	if music_player:
+		music_player.stop()
+		music_player.stream = null
+	for player in _sfx_players:
+		if is_instance_valid(player):
+			player.stop()
+			player.stream = null
+	_sfx_players.clear()
 
 func _process(delta: float) -> void:
 	# Hold-to-click: auto-fire clicks while holding
@@ -376,14 +391,31 @@ func _on_claw_gui_input(event: InputEvent) -> void:
 		return
 
 func _unhandled_input(event: InputEvent) -> void:
+	var focused := get_viewport().gui_get_focus_owner()
+	if event is InputEventKey and event.pressed and not event.echo and not (focused is LineEdit):
+		if event.keycode == KEY_Q or event.keycode == KEY_BRACKETLEFT:
+			get_viewport().set_input_as_handled()
+			_cycle_tab(-1)
+			return
+		if event.keycode == KEY_E or event.keycode == KEY_BRACKETRIGHT:
+			get_viewport().set_input_as_handled()
+			_cycle_tab(1)
+			return
+	if event is InputEventJoypadButton and event.pressed:
+		if event.button_index == JOY_BUTTON_LEFT_SHOULDER:
+			get_viewport().set_input_as_handled()
+			_cycle_tab(-1)
+			return
+		if event.button_index == JOY_BUTTON_RIGHT_SHOULDER:
+			get_viewport().set_input_as_handled()
+			_cycle_tab(1)
+			return
 	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_SPACE:
-		var focused := get_viewport().gui_get_focus_owner()
 		if not (focused is LineEdit) and (not (focused is Button) or focused == claw_button):
 			get_viewport().set_input_as_handled()
 			_try_click()
 		return
 	if event is InputEventJoypadButton and event.pressed and event.button_index == JOY_BUTTON_A:
-		var focused := get_viewport().gui_get_focus_owner()
 		if not (focused is Button) or focused == claw_button:
 			get_viewport().set_input_as_handled()
 			_try_click()
@@ -400,6 +432,23 @@ func _unhandled_input(event: InputEvent) -> void:
 				_hold_click_accumulator = 0.0
 		else:
 			_is_holding = false
+
+func _install_accessible_focus_theme() -> void:
+	var focus_style := StyleBoxFlat.new()
+	focus_style.bg_color = Color(0, 0, 0, 0)
+	focus_style.border_width_left = 3
+	focus_style.border_width_top = 3
+	focus_style.border_width_right = 3
+	focus_style.border_width_bottom = 3
+	focus_style.border_color = Color("#ffd766")
+	focus_style.corner_radius_top_left = 7
+	focus_style.corner_radius_top_right = 7
+	focus_style.corner_radius_bottom_left = 7
+	focus_style.corner_radius_bottom_right = 7
+	var focus_theme := Theme.new()
+	for control_type in ["Button", "CheckButton", "HSlider", "LineEdit"]:
+		focus_theme.set_stylebox("focus", control_type, focus_style)
+	theme = focus_theme
 
 func _start_music() -> void:
 	if _music_muted:
@@ -501,7 +550,7 @@ func _show_settings_dialog() -> void:
 	var dialog := AcceptDialog.new()
 	dialog.title = "Settings"
 	dialog.ok_button_text = "DONE"
-	dialog.min_size = Vector2i(420, 360)
+	dialog.min_size = Vector2i(440, 430)
 	dialog.confirmed.connect(SaveManager.save_game)
 	dialog.confirmed.connect(dialog.queue_free)
 	dialog.close_requested.connect(SaveManager.save_game)
@@ -563,9 +612,46 @@ func _show_settings_dialog() -> void:
 		SaveManager.save_game())
 	box.add_child(motion_toggle)
 
+	var controls_hint := Label.new()
+	controls_hint.text = "Controls: Space/A clicks · Tab/D-pad moves focus · Q/E or LB/RB changes tabs"
+	controls_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	controls_hint.add_theme_color_override("font_color", Color("#b9d7e5"))
+	controls_hint.add_theme_font_size_override("font_size", 13)
+	box.add_child(controls_hint)
+
+	var credits_button := Button.new()
+	credits_button.text = "CREDITS & LICENSES"
+	credits_button.pressed.connect(func():
+		SaveManager.save_game()
+		dialog.hide()
+		dialog.queue_free()
+		call_deferred("_show_credits_dialog"))
+	box.add_child(credits_button)
+
+	var reset_button := Button.new()
+	reset_button.text = "RESET ALL PROGRESS"
+	reset_button.add_theme_color_override("font_color", Color("#ff6b6b"))
+	reset_button.pressed.connect(func():
+		SaveManager.save_game()
+		dialog.hide()
+		dialog.queue_free()
+		call_deferred("_show_reset_confirmation"))
+	box.add_child(reset_button)
+
 	dialog.add_child(box)
 	add_child(dialog)
-	dialog.popup_centered(Vector2i(460, 390))
+	dialog.popup_centered(Vector2i(500, 480))
+	music_slider.grab_focus()
+
+func _show_credits_dialog() -> void:
+	var dialog := AcceptDialog.new()
+	dialog.title = "Credits & Licenses"
+	dialog.ok_button_text = "DONE"
+	dialog.dialog_text = "LOBSTER CLICKER\n\nGame design, code, interface, and code-drawn artwork\nCreated for Lobster Clicker by the project team.\n\nMusic and sound effects\nOriginal synthesized audio generated for this project.\n\nEngine\nBuilt with Godot Engine, licensed under the MIT License.\nFull third-party notices are included with the game files."
+	dialog.close_requested.connect(dialog.queue_free)
+	dialog.confirmed.connect(dialog.queue_free)
+	add_child(dialog)
+	dialog.popup_centered(Vector2i(560, 430))
 
 func _on_mute_button_pressed() -> void:
 	_music_muted = not _music_muted
@@ -715,11 +801,10 @@ func _show_toast(title: String, desc: String) -> void:
 	_toast_panel.add_child(box)
 	add_child(_toast_panel)
 	if GameManager.reduced_motion:
-		var toast_to_remove := _toast_panel
 		_toast_panel.modulate.a = 1.0
-		get_tree().create_timer(3.2).timeout.connect(func():
-			if toast_to_remove and is_instance_valid(toast_to_remove):
-				toast_to_remove.queue_free())
+		_toast_tween = create_tween()
+		_toast_tween.tween_interval(3.2)
+		_toast_tween.tween_callback(_toast_panel.queue_free)
 		return
 	_toast_panel.modulate.a = 0.0
 	_toast_tween = create_tween()
@@ -971,6 +1056,23 @@ func _switch_tab(tab: int) -> void:
 		_update_premium_button_affordability()
 	elif tab == Tab.MOLT:
 		_refresh_molt()
+
+func _cycle_tab(direction: int) -> void:
+	var available_tabs: Array[int] = [Tab.BUILDINGS, Tab.UPGRADES]
+	if consumables_tab.visible:
+		available_tabs.append(Tab.CONSUMABLES)
+	available_tabs.append(Tab.MOLT)
+	var current_index := available_tabs.find(current_tab)
+	if current_index < 0:
+		current_index = 0
+	var next_index := posmod(current_index + direction, available_tabs.size())
+	var next_tab := available_tabs[next_index]
+	_switch_tab(next_tab)
+	match next_tab:
+		Tab.BUILDINGS: buildings_tab.grab_focus()
+		Tab.UPGRADES: upgrades_tab.grab_focus()
+		Tab.CONSUMABLES: consumables_tab.grab_focus()
+		Tab.MOLT: molt_tab.grab_focus()
 
 func _update_tab_styles() -> void:
 	var active_color := Color("#ffd766")

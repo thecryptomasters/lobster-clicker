@@ -18,6 +18,15 @@ Run the regression suite before exporting:
 bash scripts/test.sh
 ```
 
+Run the exported-web resolution/input smoke after serving `export/` locally:
+
+```bash
+python3 -m http.server 8765 --directory export
+python3 tools/web_smoke.py
+```
+
+The web smoke requires the Python Playwright package and its Chromium browser.
+
 ## Deployment
 
 HTML5 export deployed to Vercel.

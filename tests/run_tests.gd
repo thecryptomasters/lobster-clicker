@@ -10,10 +10,42 @@ func _expect(condition: bool, message: String) -> void:
 		failures.append(message)
 		push_error("FAIL: %s" % message)
 
+func _verify_purchase(label: String, cost: float, purchase: Callable) -> void:
+	GameManager.total_lobsters = cost
+	var before := GameManager.total_lobsters
+	_expect(bool(purchase.call()), "%s succeeds when exactly affordable" % label)
+	_expect(is_equal_approx(GameManager.total_lobsters, before - cost), "%s charges the exact displayed cost" % label)
+	var after := GameManager.total_lobsters
+	_expect(not bool(purchase.call()), "%s cannot be purchased twice" % label)
+	_expect(is_equal_approx(GameManager.total_lobsters, after), "rejected duplicate %s does not consume LC" % label)
+
 func _run() -> void:
 	GameManager.reset_progress()
 	_expect(GameManager.format_rate(0.1) == "0.1", "fractional LCPS remains visible")
 	_expect(GameManager.format_number(1250000.0) == "1.25M", "large values use compact readable notation")
+
+	# Every direct upgrade purchase is atomic: exact debit, reward, and duplicate protection.
+	GameManager.reset_progress()
+	_verify_purchase("click upgrade", GameManager.click_upgrade_defs[0]["cost"], func(): return GameManager.buy_click_upgrade(0))
+	GameManager.reset_progress()
+	_verify_purchase("CPS click upgrade", GameManager.cps_click_upgrade_defs[0]["cost"], func(): return GameManager.buy_cps_click_upgrade(0))
+	GameManager.reset_progress()
+	_verify_purchase("hold-click upgrade", GameManager.hold_click_defs[0]["cost"], func(): return GameManager.buy_hold_click_upgrade(0))
+	GameManager.reset_progress()
+	_verify_purchase("offline-rate upgrade", GameManager.offline_rate_defs[0]["cost"], func(): return GameManager.buy_offline_rate_upgrade(0))
+	GameManager.reset_progress()
+	_verify_purchase("offline-duration upgrade", GameManager.offline_duration_defs[0]["cost"], func(): return GameManager.buy_offline_duration_upgrade(0))
+	GameManager.reset_progress()
+	_verify_purchase("gacha cooldown upgrade", GameManager.gacha_cooldown_upgrade_defs[0]["cost"], func(): return GameManager.buy_gacha_cooldown_upgrade(0))
+	GameManager.reset_progress()
+	GameManager.building_counts[0] = GameManager.UPGRADE_THRESHOLDS[0]
+	_verify_purchase("building upgrade", GameManager.get_upgrade_cost_for(0, 0), func(): return GameManager.buy_building_upgrade(0, 0))
+
+	GameManager.reset_progress()
+	GameManager.click_upgrades_purchased.fill(true)
+	GameManager._recalculate_click_power()
+	_expect(is_equal_approx(GameManager.lobsters_per_click, 100.0), "click upgrade descriptions match multiplicative 2x, 5x, 10x stacking")
+	GameManager.reset_progress()
 
 	GameManager.click()
 	_expect(GameManager.achievements.get("first_catch", false), "first click unlocks First Catch")
@@ -80,10 +112,23 @@ func _run() -> void:
 	_expect(SaveManager._decode_save('{"save_version":3,"total_lobsters":1,"click_upgrades":[1]}').is_empty(), "non-boolean upgrade state is rejected")
 	_expect(SaveManager._decode_save('{"save_version":3,"total_lobsters":1,"building_upgrades":[["yes"]]}').is_empty(), "corrupt building-upgrade tier is rejected")
 	_expect(SaveManager._decode_save('{"save_version":3,"total_lobsters":1,"pending_premium_options":[{"name":"Broken"}]}').is_empty(), "malformed paid-card choice is rejected")
+	var valid_primary := '{"save_version":3,"total_lobsters":7}'
+	var valid_backup := '{"save_version":3,"total_lobsters":9}'
+	_expect(float(SaveManager.select_recoverable_save(valid_primary, valid_backup).get("total_lobsters", 0)) == 7.0, "valid primary save is preferred")
+	_expect(float(SaveManager.select_recoverable_save("corrupt", valid_backup).get("total_lobsters", 0)) == 9.0, "corrupted primary recovers from backup")
+	_expect(SaveManager.select_recoverable_save("corrupt", "also corrupt").is_empty(), "two invalid saves fail safely into a fresh state")
 
 	_expect(is_equal_approx(SaveManager.calculate_offline_earnings(100.0, 3600.0, 3600.0, 0.05), 18000.0), "base offline earnings calculate correctly")
 	_expect(is_equal_approx(SaveManager.calculate_offline_earnings(100.0, 7200.0, 3600.0, 0.50), 180000.0), "offline duration cap is enforced")
 	_expect(SaveManager.calculate_offline_earnings(100.0, -60.0, 3600.0, 0.50) == 0.0, "future save timestamps cannot subtract currency")
+	GameManager.reset_progress()
+	for i in range(GameManager.offline_rate_defs.size()):
+		GameManager.offline_rate_purchased[i] = true
+		_expect(is_equal_approx(GameManager.get_offline_rate(), float(GameManager.offline_rate_defs[i]["rate"])), "offline rate tier %d applies its documented rate" % (i + 1))
+	GameManager.reset_progress()
+	for i in range(GameManager.offline_duration_defs.size()):
+		GameManager.offline_duration_purchased[i] = true
+		_expect(is_equal_approx(GameManager.get_offline_max_seconds(), float(GameManager.offline_duration_defs[i]["hours"]) * 3600.0), "offline duration tier %d applies its documented cap" % (i + 1))
 
 	GameManager.reset_progress()
 	GameManager.load_save_data({"save_version": 2, "total_lobsters": 12.0, "lifetime_lobsters": 34.0})
@@ -101,6 +146,17 @@ func _run() -> void:
 	GameManager.total_lobsters = GameManager.get_bulk_building_cost(0, 3)
 	_expect(GameManager.buy_building(0), "Buy Max completes")
 	_expect(GameManager.building_counts[0] == 3, "Buy Max purchases every affordable building")
+	var max_after_purchase := GameManager.total_lobsters
+	_expect(not GameManager.buy_building(0), "Buy Max rejects an empty purchase")
+	_expect(is_equal_approx(GameManager.total_lobsters, max_after_purchase), "rejected Buy Max does not consume LC")
+
+	GameManager.reset_progress()
+	GameManager.total_lobsters = GameManager.get_gacha_cost()
+	_expect(not GameManager.roll_gacha().is_empty(), "capsule purchase always delivers a boost")
+	_expect(is_equal_approx(GameManager.total_lobsters, 0.0), "capsule purchase charges its exact cost")
+	var after_gacha := GameManager.total_lobsters
+	_expect(GameManager.roll_gacha().is_empty(), "active capsule cooldown rejects another purchase")
+	_expect(is_equal_approx(GameManager.total_lobsters, after_gacha), "rejected capsule purchase does not consume LC")
 
 	# Molting resets ordinary progression while preserving permanent state.
 	GameManager.reset_progress()
@@ -155,15 +211,69 @@ func _run() -> void:
 	_expect(main_ui.mute_button.anchor_right < 0.5, "desktop mute control stays inside the left panel and clear of Molt")
 	main_ui._layout_corner_buttons(false)
 	_expect(main_ui.mute_button.anchor_right == 1.0, "mobile mute control stays aligned to the viewport edge")
+	main_ui._switch_tab(main_ui.Tab.BUILDINGS)
+	main_ui._cycle_tab(1)
+	_expect(main_ui.current_tab == main_ui.Tab.UPGRADES and main_ui.upgrades_tab.has_focus(), "keyboard/controller tab cycling advances focus")
+	main_ui.consumables_tab.visible = false
+	main_ui._cycle_tab(1)
+	_expect(main_ui.current_tab == main_ui.Tab.MOLT, "tab cycling skips locked consumables")
+	_expect(main_ui.theme.get_stylebox("focus", "Button") != null, "keyboard/controller focus uses a high-visibility ring")
+	GameManager.reset_progress()
+	main_ui.claw_button.grab_focus()
+	await get_tree().process_frame
+	var joy_click := InputEventJoypadButton.new()
+	joy_click.button_index = JOY_BUTTON_A
+	joy_click.pressed = true
+	main_ui._unhandled_input(joy_click)
+	_expect(GameManager.total_lobsters == 1.0, "controller A activates the focused claw")
 	main_ui._show_settings_dialog()
 	await get_tree().process_frame
 	var found_settings_dialog := false
+	var settings_dialog: AcceptDialog
 	for child in main_ui.get_children():
 		if child is AcceptDialog and child.title == "Settings":
 			found_settings_dialog = true
+			settings_dialog = child
 	_expect(found_settings_dialog, "settings dialog opens from the main scene")
+	if settings_dialog:
+		settings_dialog.queue_free()
+		await get_tree().process_frame
+	main_ui._show_credits_dialog()
+	await get_tree().process_frame
+	var found_credits_dialog := false
+	var credits_dialog: AcceptDialog
+	for child in main_ui.get_children():
+		if child is AcceptDialog and child.title == "Credits & Licenses":
+			found_credits_dialog = true
+			credits_dialog = child
+	_expect(found_credits_dialog, "credits and licenses are available in game")
+	if credits_dialog:
+		credits_dialog.queue_free()
+		await get_tree().process_frame
+	GameManager.total_lobsters = 123.0
+	main_ui._show_reset_confirmation()
+	await get_tree().process_frame
+	var reset_dialog: ConfirmationDialog
+	for child in main_ui.get_children():
+		if child is ConfirmationDialog and child.title == "Reset all progress?":
+			reset_dialog = child
+	_expect(reset_dialog != null, "reset is protected by an explicit confirmation dialog")
+	if reset_dialog:
+		reset_dialog.canceled.emit()
+		await get_tree().process_frame
+	_expect(GameManager.total_lobsters == 123.0, "canceling reset preserves progress")
 	main_ui._do_click()
 	_expect(main_ui.claw_state == main_ui.ClawState.IDLE, "reduced motion skips claw animation")
+	GameManager.reset_progress()
+	GameManager.total_lobsters = GameManager.get_building_cost(0)
+	GameManager.lobsters_changed.emit(GameManager.total_lobsters)
+	var first_building_item = main_ui.building_container.get_child(0)
+	first_building_item.buy_button.pressed.emit()
+	_expect(GameManager.building_counts[0] == 1, "main-scene smoke buys the first building through its real button")
+	var scene_save := GameManager.get_save_data()
+	GameManager.reset_progress()
+	GameManager.load_save_data(scene_save)
+	_expect(GameManager.building_counts[0] == 1, "main-scene smoke restores purchased progress")
 	main_ui.queue_free()
 	await get_tree().process_frame
 	main_ui = null

@@ -80,6 +80,7 @@ var _toast_panel: PanelContainer
 var _toast_tween: Tween
 var _boost_ui_timer: float = 0.0
 var _claw_bump_tween: Tween
+var _claw_pinch_tween: Tween
 var _sfx_players: Array[AudioStreamPlayer] = []
 var _next_sfx_player: int = 0
 
@@ -196,6 +197,8 @@ func _exit_tree() -> void:
 		_toast_tween.kill()
 	if _claw_bump_tween and _claw_bump_tween.is_valid():
 		_claw_bump_tween.kill()
+	if _claw_pinch_tween and _claw_pinch_tween.is_valid():
+		_claw_pinch_tween.kill()
 	if music_player:
 		music_player.stop()
 		music_player.stream = null
@@ -319,6 +322,8 @@ func _apply_layout() -> void:
 		objective_label.add_theme_font_size_override("font_size", 18)
 		for tab_button in [buildings_tab, upgrades_tab, consumables_tab, molt_tab]:
 			tab_button.add_theme_font_size_override("font_size", 22)
+		claw_button.custom_minimum_size = Vector2(300, 350)
+		claw_button.pivot_offset = claw_button.custom_minimum_size * 0.5
 		_layout_corner_buttons(true)
 	else:
 		# Mobile: stacked vertically (VBox), claw compact on top, buildings get more space
@@ -333,6 +338,8 @@ func _apply_layout() -> void:
 		objective_label.add_theme_font_size_override("font_size", 14)
 		for tab_button in [buildings_tab, upgrades_tab, consumables_tab, molt_tab]:
 			tab_button.add_theme_font_size_override("font_size", 15)
+		claw_button.custom_minimum_size = Vector2(240, 265)
+		claw_button.pivot_offset = claw_button.custom_minimum_size * 0.5
 		_layout_corner_buttons(false)
 
 func _layout_corner_buttons(desktop: bool) -> void:
@@ -774,10 +781,17 @@ func _do_click() -> void:
 	particles.emitting = true
 	if _claw_bump_tween and _claw_bump_tween.is_valid():
 		_claw_bump_tween.kill()
-	claw_button.scale = Vector2.ONE
-	_claw_bump_tween = create_tween()
-	_claw_bump_tween.tween_property(claw_button, "scale", Vector2(0.96, 0.96), 0.04)
-	_claw_bump_tween.tween_property(claw_button, "scale", Vector2.ONE, 0.09)
+	if _claw_pinch_tween and _claw_pinch_tween.is_valid():
+		_claw_pinch_tween.kill()
+	var pinch_material := hero_claw.material as ShaderMaterial
+	if pinch_material:
+		pinch_material.set_shader_parameter("pinch_amount", 0.0)
+		_claw_pinch_tween = create_tween()
+		_claw_pinch_tween.set_trans(Tween.TRANS_QUAD)
+		_claw_pinch_tween.set_ease(Tween.EASE_OUT)
+		_claw_pinch_tween.tween_method(func(value: float): pinch_material.set_shader_parameter("pinch_amount", value), 0.0, 0.075, 0.075)
+		_claw_pinch_tween.set_ease(Tween.EASE_IN_OUT)
+		_claw_pinch_tween.tween_method(func(value: float): pinch_material.set_shader_parameter("pinch_amount", value), 0.075, 0.0, 0.16)
 
 func _spawn_float_text(amount: float) -> void:
 	var label := Label.new()

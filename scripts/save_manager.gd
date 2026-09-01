@@ -84,6 +84,7 @@ func _calculate_offline_bonus() -> void:
 			var earned := GameManager.lobsters_per_second * capped_elapsed * GameManager.get_offline_rate()
 			GameManager.total_lobsters += earned
 			GameManager.lifetime_lobsters += earned
+			GameManager.run_lobsters += earned
 			GameManager.lobsters_changed.emit(GameManager.total_lobsters)
 			GameManager.unlock_offline_achievement()
 			# Save the updated total immediately
@@ -147,6 +148,7 @@ func load_game() -> void:
 			offline_earnings = GameManager.lobsters_per_second * capped_elapsed * GameManager.get_offline_rate()
 			GameManager.total_lobsters += offline_earnings
 			GameManager.lifetime_lobsters += offline_earnings
+			GameManager.run_lobsters += offline_earnings
 			GameManager.lobsters_changed.emit(GameManager.total_lobsters)
 			GameManager.unlock_offline_achievement()
 
@@ -185,6 +187,18 @@ func _is_valid_save(data: Dictionary) -> bool:
 				return false
 	if data.has("farm_name") and typeof(data["farm_name"]) != TYPE_STRING:
 		return false
+	for key in ["lifetime_lobsters", "run_lobsters"]:
+		if data.has(key):
+			if typeof(data[key]) != TYPE_FLOAT and typeof(data[key]) != TYPE_INT:
+				return false
+			if not is_finite(float(data[key])) or float(data[key]) < 0.0:
+				return false
+	for key in ["shells", "molt_count"]:
+		if data.has(key):
+			if typeof(data[key]) != TYPE_INT and typeof(data[key]) != TYPE_FLOAT:
+				return false
+			if int(data[key]) < 0:
+				return false
 	return true
 
 func _notification(what: int) -> void:

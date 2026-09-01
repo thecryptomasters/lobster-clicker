@@ -79,6 +79,48 @@ func _run() -> void:
 	_expect(GameManager.buy_building(0), "Buy Max completes")
 	_expect(GameManager.building_counts[0] == 3, "Buy Max purchases every affordable building")
 
+	# Molting resets ordinary progression while preserving permanent state.
+	GameManager.reset_progress()
+	GameManager.farm_name = "Test Reef"
+	GameManager.music_muted = true
+	GameManager.achievements["legacy_test"] = true
+	GameManager.flat_lcps_bonus = 100.0
+	GameManager.total_lobsters = GameManager.MOLTING_THRESHOLD
+	GameManager.run_lobsters = GameManager.MOLTING_THRESHOLD
+	GameManager.lifetime_lobsters = GameManager.MOLTING_THRESHOLD + 123.0
+	GameManager.building_counts[0] = 10
+	GameManager.click_upgrades_purchased[0] = true
+	GameManager._recalculate_click_power()
+	GameManager._recalculate_lps()
+	_expect(GameManager.get_pending_shells() == 1, "first Molt awards one Shell at 10B run LC")
+	_expect(not GameManager.can_molt(), "Molt still requires the final Immortality building")
+	GameManager.building_counts[GameManager.MOLTING_BUILDING_INDEX] = 1
+	_expect(GameManager.can_molt(), "Molt unlocks at the threshold")
+	var pre_molt_lifetime := GameManager.lifetime_lobsters
+	_expect(GameManager.molt() == 1, "Molt completes and reports Shell gain")
+	_expect(GameManager.shells == 1 and GameManager.molt_count == 1, "Molt records permanent Shell and count")
+	_expect(GameManager.total_lobsters == 0.0 and GameManager.run_lobsters == 0.0, "Molt resets current and run LC")
+	_expect(GameManager.lifetime_lobsters == pre_molt_lifetime, "Molt retains global lifetime LC")
+	_expect(GameManager.building_counts[0] == 0 and not GameManager.click_upgrades_purchased[0], "Molt resets buildings and ordinary upgrades")
+	_expect(GameManager.farm_name == "Test Reef" and GameManager.music_muted, "Molt retains farm identity and settings")
+	_expect(GameManager.achievements.get("legacy_test", false), "Molt retains achievements")
+	_expect(GameManager.flat_lcps_bonus == 100.0, "Molt retains permanent card income")
+	_expect(is_equal_approx(GameManager.get_click_value(), 1.1), "Shell bonus applies to clicking")
+	_expect(is_equal_approx(GameManager.lobsters_per_second, 110.0), "Shell bonus applies to all passive production")
+	var molt_save := GameManager.get_save_data()
+	GameManager.reset_progress()
+	GameManager.load_save_data(molt_save)
+	_expect(GameManager.shells == 1 and GameManager.molt_count == 1, "Molting state survives save/load")
+
+	GameManager.run_lobsters = GameManager.MOLTING_THRESHOLD * 4.0
+	GameManager.building_counts[GameManager.MOLTING_BUILDING_INDEX] = 1
+	_expect(GameManager.get_pending_shells() == 2, "longer runs award multiple Shells on square-root curve")
+	GameManager.pending_premium_options = [{"name": "Paid Choice"}]
+	_expect(not GameManager.can_molt(), "unfinished paid card choice blocks Molting")
+	GameManager.pending_premium_options.clear()
+
+	_expect(SaveManager._decode_save('{"save_version":3,"total_lobsters":1,"shells":-1}').is_empty(), "negative Shell count is rejected")
+
 	if failures.is_empty():
 		print("PASS: Lobster Clicker regression suite")
 		get_tree().quit(0)

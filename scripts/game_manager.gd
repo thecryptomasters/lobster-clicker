@@ -13,8 +13,12 @@ signal achievement_unlocked(id: String, title: String, desc: String)
 signal objective_changed(text: String)
 signal rare_event_triggered(event: Dictionary)
 signal purchase_mode_changed(mode: int)
+signal molt_completed(shells_gained: int, total_shells: int)
 
-const SAVE_VERSION := 2
+const SAVE_VERSION := 3
+const MOLTING_THRESHOLD := 10000000000.0
+const SHELL_BONUS_PER_SHELL := 0.10
+const MOLTING_BUILDING_INDEX := 8
 
 var total_lobsters: float = 0.0
 var lobsters_per_click: float = 1.0
@@ -63,6 +67,9 @@ var click_upgrade_defs: Array = [
 ]
 var click_upgrades_purchased: Array[bool] = [false, false, false]
 var lifetime_lobsters: float = 0.0  # Total lobsters ever generated (never decreases)
+var run_lobsters: float = 0.0  # Lobsters generated since the last molt
+var shells: int = 0
+var molt_count: int = 0
 
 # Offline production rate upgrades (base 5%)
 var offline_rate_defs: Array = [
@@ -294,6 +301,9 @@ func get_building_multiplier(index: int) -> float:
 				mult *= TIER_MULTIPLIERS[tier]
 	return mult
 
+func get_shell_multiplier() -> float:
+	return 1.0 + float(shells) * SHELL_BONUS_PER_SHELL
+
 func get_click_value() -> float:
 	var base := lobsters_per_click
 	var cps_bonus_percent := 0.0
@@ -301,8 +311,11 @@ func get_click_value() -> float:
 		if cps_click_upgrades_purchased[i]:
 			cps_bonus_percent += cps_click_upgrade_defs[i]["percent"]
 	if cps_bonus_percent > 0 and lobsters_per_second > 0:
-		base += lobsters_per_second * (cps_bonus_percent / 100.0)
+		# LCPS already includes the Shell bonus; divide it out before applying
+		# the Shell multiplier to the completed click value below.
+		base += (lobsters_per_second / get_shell_multiplier()) * (cps_bonus_percent / 100.0)
 	base *= get_gacha_boost_multiplier("click_mult")
+	base *= get_shell_multiplier()
 	return base
 
 func _unlock_achievement(id: String, title: String, desc: String) -> bool:
@@ -327,7 +340,11 @@ func get_current_objective() -> String:
 		return "Upgrade ready: make Coin Collecting 2x stronger."
 	if not first_rare_event_seen:
 		return "Keep pinching. Something strange is stirring..."
-	return "Grow the lobster empire and unlock the next upgrade."
+	if get_pending_shells() > 0 and building_counts[MOLTING_BUILDING_INDEX] < 1:
+		return "Molting energy reached. Build Immortality to complete the run."
+	if can_molt():
+		return "Molting ready: shed the old farm and return permanently stronger."
+	return "Earn %s LC this run to unlock Molting." % format_number(MOLTING_THRESHOLD)
 
 func _emit_objective() -> void:
 	var objective := get_current_objective()
@@ -350,6 +367,7 @@ func _trigger_disco_lobster() -> void:
 	var bonus := maxf(25.0, next_cost - total_lobsters)
 	total_lobsters += bonus
 	lifetime_lobsters += bonus
+	run_lobsters += bonus
 	active_boost = {
 		"name": "Disco Lobster",
 		"desc": "3x clicking power",
@@ -377,6 +395,7 @@ func click() -> float:
 	var value := get_click_value()
 	total_lobsters += value
 	lifetime_lobsters += value
+	run_lobsters += value
 	lobsters_changed.emit(total_lobsters)
 	_check_first_session_milestones()
 	return value
@@ -417,11 +436,12 @@ func _process(delta: float) -> void:
 		var base_production := lobsters_per_second * get_gacha_boost_multiplier("building_mult") * delta
 		# Add single building boost bonus
 		if single_building_boost_time > 0 and single_building_boost_index >= 0:
-			var boosted_building_lps: float = building_counts[single_building_boost_index] * float(building_defs[single_building_boost_index]["lps"]) * get_building_multiplier(single_building_boost_index)
+			var boosted_building_lps: float = building_counts[single_building_boost_index] * float(building_defs[single_building_boost_index]["lps"]) * get_building_multiplier(single_building_boost_index) * get_shell_multiplier()
 			var bonus: float = boosted_building_lps * (single_building_boost_mult - 1.0)
 			base_production += bonus * get_gacha_boost_multiplier("building_mult") * delta
 		total_lobsters += base_production
 		lifetime_lobsters += base_production
+		run_lobsters += base_production
 		_passive_ui_timer += delta
 		if _passive_ui_timer >= 0.1:
 			_passive_ui_timer = 0.0
@@ -541,7 +561,63 @@ func _recalculate_lps() -> void:
 	for i in range(building_defs.size()):
 		lobsters_per_second += building_counts[i] * building_defs[i]["lps"] * get_building_multiplier(i)
 	lobsters_per_second += flat_lcps_bonus
+	lobsters_per_second *= get_shell_multiplier()
 	lps_changed.emit(lobsters_per_second)
+
+# --- Molting / Prestige ---
+
+func get_pending_shells() -> int:
+	if run_lobsters < MOLTING_THRESHOLD:
+		return 0
+	return maxi(1, int(floor(sqrt(run_lobsters / MOLTING_THRESHOLD))))
+
+func can_molt() -> bool:
+	return get_pending_shells() > 0 and building_counts[MOLTING_BUILDING_INDEX] > 0 and pending_premium_options.is_empty()
+
+func get_next_shell_target() -> float:
+	var next_shell_count := get_pending_shells() + 1
+	return MOLTING_THRESHOLD * float(next_shell_count * next_shell_count)
+
+func molt() -> int:
+	if not can_molt():
+		return 0
+	var gained := get_pending_shells()
+	shells += gained
+	molt_count += 1
+
+	# Reset run progression. Permanent card income, identity, settings,
+	# achievements, global lifetime LC, and Shells survive.
+	total_lobsters = 0.0
+	run_lobsters = 0.0
+	lobsters_per_click = 1.0
+	building_counts.fill(0)
+	click_upgrades_purchased.fill(false)
+	cps_click_upgrades_purchased.fill(false)
+	hold_click_purchased.fill(false)
+	gacha_cooldown_upgrades_purchased.fill(false)
+	offline_rate_purchased.fill(false)
+	offline_duration_purchased.fill(false)
+	active_boost = {}
+	boost_time_remaining = 0.0
+	_boost_end_time = 0.0
+	gacha_cooldown_remaining = 0.0
+	_cooldown_end_time = 0.0
+	single_building_boost_index = -1
+	single_building_boost_mult = 1.0
+	single_building_boost_time = 0.0
+	_single_boost_end_time = 0.0
+	building_purchase_mode = 1
+	_last_objective = ""
+	_init_building_upgrades()
+	_recalculate_click_power()
+	_recalculate_lps()
+	lobsters_changed.emit(total_lobsters)
+	purchase_mode_changed.emit(building_purchase_mode)
+	_unlock_achievement("first_molt", "Fresh Shell", "The farm begins again, stronger than before.")
+	molt_completed.emit(gained, shells)
+	transaction_completed.emit()
+	_emit_objective()
+	return gained
 
 # --- Milestone Upgrades ---
 
@@ -863,6 +939,9 @@ func format_rate(n: float) -> String:
 func reset_progress() -> void:
 	total_lobsters = 0.0
 	lifetime_lobsters = 0.0
+	run_lobsters = 0.0
+	shells = 0
+	molt_count = 0
 	lobsters_per_click = 1.0
 	lobsters_per_second = 0.0
 	farm_name = "My Lobster Farm"
@@ -914,6 +993,9 @@ func get_save_data() -> Dictionary:
 		"save_version": SAVE_VERSION,
 		"total_lobsters": total_lobsters,
 		"lifetime_lobsters": lifetime_lobsters,
+		"run_lobsters": run_lobsters,
+		"shells": shells,
+		"molt_count": molt_count,
 		"building_counts": building_counts,
 		"building_upgrades": upgrades_data,
 		"click_upgrades": click_data,
@@ -954,6 +1036,9 @@ func load_save_data(data: Dictionary) -> void:
 					building_upgrades[bi][tier] = tiers[tier]
 	# Load click upgrades
 	lifetime_lobsters = data.get("lifetime_lobsters", total_lobsters)
+	run_lobsters = data.get("run_lobsters", lifetime_lobsters)
+	shells = maxi(0, int(data.get("shells", 0)))
+	molt_count = maxi(0, int(data.get("molt_count", 0)))
 	var click_data = data.get("click_upgrades", [])
 	for i in range(mini(click_data.size(), click_upgrades_purchased.size())):
 		click_upgrades_purchased[i] = click_data[i]

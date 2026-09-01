@@ -22,7 +22,14 @@ const BuildingUpgradeItemScene := preload("res://scenes/building_upgrade_item.ts
 @onready var buildings_tab: Button = %BuildingsTab
 @onready var upgrades_tab: Button = %UpgradesTab
 @onready var consumables_tab: Button = %ConsumablesTab
+@onready var molt_tab: Button = %MoltTab
 @onready var consumables_container: VBoxContainer = %ConsumablesContainer
+@onready var molt_container: VBoxContainer = %MoltContainer
+@onready var shell_count_label: Label = %ShellCountLabel
+@onready var molt_bonus_label: Label = %MoltBonusLabel
+@onready var molt_progress_label: Label = %MoltProgressLabel
+@onready var molt_next_label: Label = %MoltNextLabel
+@onready var molt_button: Button = %MoltButton
 @onready var gacha_cost_label: Label = %GachaCostLabel
 @onready var buy_capsule_button: Button = %BuyCapsuleButton
 @onready var result_panel: VBoxContainer = %ResultPanel
@@ -64,7 +71,7 @@ enum ClawState { IDLE, SNAPPING, OPENING }
 var claw_state: int = ClawState.IDLE
 var claw_progress: float = 0.0
 
-enum Tab { BUILDINGS, UPGRADES, CONSUMABLES }
+enum Tab { BUILDINGS, UPGRADES, CONSUMABLES, MOLT }
 var current_tab: int = Tab.BUILDINGS
 
 # Gacha animation state
@@ -93,6 +100,8 @@ func _ready() -> void:
 	buildings_tab.pressed.connect(_on_buildings_tab)
 	upgrades_tab.pressed.connect(_on_upgrades_tab)
 	consumables_tab.pressed.connect(_on_consumables_tab)
+	molt_tab.pressed.connect(_on_molt_tab)
+	molt_button.pressed.connect(_show_molt_confirmation)
 	buy_capsule_button.pressed.connect(_on_buy_capsule)
 	buy_premium_button.pressed.connect(_on_buy_premium)
 	GameManager.boost_activated.connect(_on_boost_activated)
@@ -100,6 +109,7 @@ func _ready() -> void:
 	GameManager.premium_boost_activated.connect(_on_premium_boost_activated)
 	GameManager.achievement_unlocked.connect(_on_achievement_unlocked)
 	GameManager.objective_changed.connect(_on_objective_changed)
+	GameManager.molt_completed.connect(_on_molt_completed)
 	buy_one_button.pressed.connect(func(): GameManager.set_building_purchase_mode(1))
 	buy_ten_button.pressed.connect(func(): GameManager.set_building_purchase_mode(10))
 	buy_max_button.pressed.connect(func(): GameManager.set_building_purchase_mode(-1))
@@ -140,9 +150,11 @@ func _ready() -> void:
 	if not GameManager.pending_premium_options.is_empty():
 		_show_premium_options(GameManager.pending_premium_options)
 	_update_bulk_buy_styles(GameManager.building_purchase_mode)
+	_refresh_molt()
 
 	# Apply responsive layout
 	_apply_layout()
+	claw_button.grab_focus()
 
 	# Show offline popup if needed
 	if SaveManager.offline_earnings > 0:
@@ -179,6 +191,8 @@ func _process(delta: float) -> void:
 	# Update gacha cost display when on consumables tab
 	if current_tab == Tab.CONSUMABLES and Engine.get_process_frames() % 30 == 0:
 		_update_gacha_cost()
+	if current_tab == Tab.MOLT and Engine.get_process_frames() % 30 == 0:
+		_refresh_molt()
 
 	# Check for new click upgrades (throttle)
 	if Engine.get_process_frames() % 60 == 0:
@@ -260,6 +274,8 @@ func _apply_layout() -> void:
 		scroll_up_btn.visible = false
 		scroll_down_btn.visible = false
 		title_label.add_theme_font_size_override("font_size", 28)
+		for tab_button in [buildings_tab, upgrades_tab, consumables_tab, molt_tab]:
+			tab_button.add_theme_font_size_override("font_size", 22)
 		mute_button.offset_left = -108.0
 		mute_button.offset_right = -12.0
 		mute_button.add_theme_font_size_override("font_size", 13)
@@ -273,13 +289,16 @@ func _apply_layout() -> void:
 		scroll_up_btn.visible = true
 		scroll_down_btn.visible = true
 		title_label.add_theme_font_size_override("font_size", 22)
+		for tab_button in [buildings_tab, upgrades_tab, consumables_tab, molt_tab]:
+			tab_button.add_theme_font_size_override("font_size", 15)
 		mute_button.offset_left = -80.0
 		mute_button.offset_right = -8.0
 		mute_button.add_theme_font_size_override("font_size", 11)
 
 func _on_lobsters_changed(total: float) -> void:
 	lobster_count_label.text = GameManager.format_number(total)
-	lifetime_label.text = "%s lifetime LC" % GameManager.format_number(GameManager.lifetime_lobsters)
+	var shell_word := "Shell" if GameManager.shells == 1 else "Shells"
+	lifetime_label.text = "%s lifetime LC | %d %s" % [GameManager.format_number(GameManager.lifetime_lobsters), GameManager.shells, shell_word]
 
 func _on_lps_changed(_lps: float) -> void:
 	_update_lps_display()
@@ -291,7 +310,7 @@ func _update_lps_display() -> void:
 	# Add single building boost bonus to display
 	if GameManager.single_building_boost_time > 0 and GameManager.single_building_boost_index >= 0:
 		var bi := GameManager.single_building_boost_index
-		var boosted_lps: float = GameManager.building_counts[bi] * float(GameManager.building_defs[bi]["lps"]) * GameManager.get_building_multiplier(bi)
+		var boosted_lps: float = GameManager.building_counts[bi] * float(GameManager.building_defs[bi]["lps"]) * GameManager.get_building_multiplier(bi) * GameManager.get_shell_multiplier()
 		effective_lps += boosted_lps * (GameManager.single_building_boost_mult - 1.0) * boost_mult
 	if effective_lps < 1.0 and effective_lps > 0:
 		lps_label.text = "%.1f LCPS" % effective_lps
@@ -335,13 +354,15 @@ func _on_claw_gui_input(event: InputEvent) -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_SPACE:
 		var focused := get_viewport().gui_get_focus_owner()
-		if not (focused is LineEdit):
+		if not (focused is LineEdit) and (not (focused is Button) or focused == claw_button):
 			get_viewport().set_input_as_handled()
 			_try_click()
 		return
 	if event is InputEventJoypadButton and event.pressed and event.button_index == JOY_BUTTON_A:
-		get_viewport().set_input_as_handled()
-		_try_click()
+		var focused := get_viewport().gui_get_focus_owner()
+		if not (focused is Button) or focused == claw_button:
+			get_viewport().set_input_as_handled()
+			_try_click()
 		return
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and not event.pressed:
 		_is_holding = false
@@ -370,7 +391,7 @@ func _create_mute_button() -> void:
 	mute_button.text = "MUTE"
 	mute_button.tooltip_text = "Mute music"
 	mute_button.custom_minimum_size = Vector2(96, 34)
-	mute_button.focus_mode = Control.FOCUS_NONE
+	mute_button.focus_mode = Control.FOCUS_ALL
 	mute_button.flat = false
 	mute_button.z_index = 20
 	mute_button.anchor_left = 1.0
@@ -480,13 +501,14 @@ func _on_farm_name_focus_lost() -> void:
 func _apply_farm_name(new_name: String) -> void:
 	new_name = new_name.strip_edges()
 	# Secret dev menu trigger
-	if new_name.to_lower() == "/lobster_raviolli":
+	if OS.is_debug_build() and new_name.to_lower() == "/lobster_raviolli":
 		farm_name_edit.visible = false
 		farm_name_button.visible = true
 		_show_dev_menu()
 		return
 	if new_name.is_empty():
 		new_name = "My Lobster Farm"
+	new_name = new_name.left(32)
 	GameManager.farm_name = new_name
 	farm_name_button.text = new_name
 	farm_name_edit.visible = false
@@ -787,12 +809,15 @@ func _switch_tab(tab: int) -> void:
 	building_container.visible = (tab == Tab.BUILDINGS)
 	upgrade_container.visible = (tab == Tab.UPGRADES)
 	consumables_container.visible = (tab == Tab.CONSUMABLES)
+	molt_container.visible = (tab == Tab.MOLT)
 	bulk_buy_row.visible = (tab == Tab.BUILDINGS)
 	_update_tab_styles()
 	if tab == Tab.CONSUMABLES:
 		_update_gacha_cost()
 		_update_capsule_button_affordability()
 		_update_premium_button_affordability()
+	elif tab == Tab.MOLT:
+		_refresh_molt()
 
 func _update_tab_styles() -> void:
 	var active_color := Color("#ffd766")
@@ -800,6 +825,58 @@ func _update_tab_styles() -> void:
 	buildings_tab.add_theme_color_override("font_color", active_color if current_tab == Tab.BUILDINGS else inactive_color)
 	upgrades_tab.add_theme_color_override("font_color", active_color if current_tab == Tab.UPGRADES else inactive_color)
 	consumables_tab.add_theme_color_override("font_color", active_color if current_tab == Tab.CONSUMABLES else inactive_color)
+	molt_tab.add_theme_color_override("font_color", active_color if current_tab == Tab.MOLT else inactive_color)
+
+func _on_molt_tab() -> void:
+	_switch_tab(Tab.MOLT)
+
+func _refresh_molt() -> void:
+	if not shell_count_label:
+		return
+	var pending := GameManager.get_pending_shells()
+	var current_bonus := int(round((GameManager.get_shell_multiplier() - 1.0) * 100.0))
+	shell_count_label.text = "%d SHELLS" % GameManager.shells
+	molt_bonus_label.text = "Permanent production bonus: +%d%%" % current_bonus
+	molt_progress_label.text = "This run: %s / %s LC" % [GameManager.format_number(GameManager.run_lobsters), GameManager.format_number(GameManager.MOLTING_THRESHOLD)]
+	if pending > 0:
+		var future_bonus := int(round((GameManager.get_shell_multiplier() + pending * GameManager.SHELL_BONUS_PER_SHELL - 1.0) * 100.0))
+		molt_button.text = "MOLT FOR %d SHELL%s" % [pending, "" if pending == 1 else "S"]
+		molt_button.disabled = not GameManager.can_molt()
+		molt_next_label.text = "After molting: +%d%% permanent production. Next extra Shell at %s run LC." % [future_bonus, GameManager.format_number(GameManager.get_next_shell_target())]
+		if GameManager.building_counts[GameManager.MOLTING_BUILDING_INDEX] < 1:
+			molt_next_label.text = "Build at least 1 Immortality to complete this run."
+		elif not GameManager.pending_premium_options.is_empty():
+			molt_next_label.text = "Choose your paid Lobster Card before molting."
+	else:
+		molt_button.text = "MOLT LOCKED"
+		molt_button.disabled = true
+		molt_next_label.text = "%s run LC remaining until your next Shell." % GameManager.format_number(maxf(0.0, GameManager.MOLTING_THRESHOLD - GameManager.run_lobsters))
+
+func _show_molt_confirmation() -> void:
+	if not GameManager.can_molt():
+		return
+	var gained := GameManager.get_pending_shells()
+	var future_shells := GameManager.shells + gained
+	var future_bonus := int(round(float(future_shells) * GameManager.SHELL_BONUS_PER_SHELL * 100.0))
+	var dialog := ConfirmationDialog.new()
+	dialog.title = "Molt this farm?"
+	dialog.dialog_text = "Gain %d Shell%s for +%d%% permanent production.\n\nResets: LC, buildings, ordinary upgrades, and active boosts.\nKeeps: farm name, settings, achievements, lifetime LC, permanent card income, and Shells." % [gained, "" if gained == 1 else "s", future_bonus]
+	dialog.ok_button_text = "MOLT"
+	dialog.cancel_button_text = "KEEP GROWING"
+	dialog.confirmed.connect(func(): GameManager.molt())
+	dialog.canceled.connect(dialog.queue_free)
+	dialog.confirmed.connect(dialog.queue_free)
+	add_child(dialog)
+	dialog.popup_centered(Vector2i(560, 300))
+
+func _on_molt_completed(gained: int, total_shells: int) -> void:
+	for child in building_container.get_children():
+		if child.has_method("_refresh"):
+			child._refresh()
+	_refresh_upgrades()
+	_refresh_molt()
+	_switch_tab(Tab.BUILDINGS)
+	_show_toast("Molting Complete", "+%d Shell%s. %d total — every catch is stronger." % [gained, "" if gained == 1 else "s", total_shells])
 
 func _on_upgrade_unlocked(_building_index: int, _tier: int) -> void:
 	_flash_active = true

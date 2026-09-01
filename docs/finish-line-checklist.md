@@ -9,7 +9,7 @@ Status legend: `[ ]` not started, `[~]` in progress, `[x]` verified.
 - [~] Add save schema versioning, validation, backup recovery, and atomic native writes.
 - [~] Replace unsupported glyphs and verify every control is readable.
 - [~] Add keyboard/controller navigation and desktop export presets.
-- [ ] Define and implement the 1.0 endgame/progression loop.
+- [x] Define and implement the 1.0 Molting endgame/progression loop.
 
 ## First-session experience
 
@@ -24,6 +24,7 @@ Status legend: `[ ]` not started, `[~]` in progress, `[x]` verified.
 - [~] Persist audio/settings state and add music/SFX controls.
 - [x] Add bulk building purchases.
 - [x] Reduce per-frame UI signal work.
+- [x] Guard the internal developer menu from release builds and limit farm names.
 - [~] Add regression tests for economy, saves, offline earnings, boosts, cards, and reset.
 - [ ] Complete desktop/mobile soak and full-progression playtests.
 

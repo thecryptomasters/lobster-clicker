@@ -62,10 +62,10 @@ func _refresh() -> void:
 		buy_button.text = "BUY %d" % GameManager.building_purchase_mode
 	var count := GameManager.building_counts[building_index]
 	count_label.text = "x%d" % count
-	var mult := GameManager.get_building_multiplier(building_index)
+	var mult := GameManager.get_building_multiplier(building_index) * GameManager.get_shell_multiplier()
 	var effective_lps: float = def["lps"] * mult
 	if mult > 1.0:
-		lps_label.text = "+%s/sec (%dx)" % [str(effective_lps), int(mult)]
+		lps_label.text = "+%s/sec (%sx)" % [GameManager.format_rate(effective_lps), GameManager.format_rate(mult)]
 	else:
 		lps_label.text = "+%s/sec" % str(def["lps"])
 	# Total LCPS from this building

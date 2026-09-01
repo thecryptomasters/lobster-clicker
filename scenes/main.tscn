@@ -82,6 +82,7 @@ layout_mode = 2
 custom_minimum_size = Vector2(0, 34)
 horizontal_alignment = 1
 placeholder_text = "Name your farm..."
+max_length = 32
 theme_override_colors/font_color = Color(1, 0.843, 0.4, 1)
 theme_override_colors/caret_color = Color(1, 0.843, 0.4, 1)
 theme_override_font_sizes/font_size = 18
@@ -291,6 +292,16 @@ flat = true
 theme_override_colors/font_color = Color(0.4, 0.467, 0.533, 1)
 theme_override_font_sizes/font_size = 22
 
+[node name="MoltTab" type="Button" parent="RootContainer/RightPanel/VBox/TabBar"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+custom_minimum_size = Vector2(0, 50)
+text = "MOLT"
+flat = true
+theme_override_colors/font_color = Color(0.4, 0.467, 0.533, 1)
+theme_override_font_sizes/font_size = 22
+
 [node name="Separator" type="HSeparator" parent="RootContainer/RightPanel/VBox"]
 layout_mode = 2
 theme_override_colors/separator_color = Color(0.1, 0.29, 0.37, 1)
@@ -464,6 +475,69 @@ unique_name_in_owner = true
 visible = false
 layout_mode = 2
 theme_override_constants/separation = 8
+
+[node name="MoltContainer" type="VBoxContainer" parent="RootContainer/RightPanel/VBox/ScrollContainer"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 14
+
+[node name="MoltTitle" type="Label" parent="RootContainer/RightPanel/VBox/ScrollContainer/MoltContainer"]
+layout_mode = 2
+text = "MOLTING SEASON"
+horizontal_alignment = 1
+theme_override_colors/font_color = Color(0.4, 0.85, 0.75, 1)
+theme_override_font_sizes/font_size = 28
+
+[node name="MoltDesc" type="Label" parent="RootContainer/RightPanel/VBox/ScrollContainer/MoltContainer"]
+layout_mode = 2
+text = "Earn 10B LC in one run and build Immortality, then shed the old farm and begin again stronger. Every Shell permanently boosts claw power and building production by 10%."
+horizontal_alignment = 1
+autowrap_mode = 2
+theme_override_colors/font_color = Color(0.65, 0.78, 0.85, 1)
+theme_override_font_sizes/font_size = 16
+
+[node name="ShellCountLabel" type="Label" parent="RootContainer/RightPanel/VBox/ScrollContainer/MoltContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "0 SHELLS"
+horizontal_alignment = 1
+theme_override_colors/font_color = Color(1, 0.843, 0.4, 1)
+theme_override_font_sizes/font_size = 34
+
+[node name="MoltBonusLabel" type="Label" parent="RootContainer/RightPanel/VBox/ScrollContainer/MoltContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Permanent production bonus: +0%"
+horizontal_alignment = 1
+theme_override_colors/font_color = Color(0.4, 0.85, 0.75, 1)
+theme_override_font_sizes/font_size = 18
+
+[node name="MoltProgressLabel" type="Label" parent="RootContainer/RightPanel/VBox/ScrollContainer/MoltContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "This run: 0 / 10B LC"
+horizontal_alignment = 1
+theme_override_colors/font_color = Color(0.75, 0.82, 0.88, 1)
+theme_override_font_sizes/font_size = 18
+
+[node name="MoltButton" type="Button" parent="RootContainer/RightPanel/VBox/ScrollContainer/MoltContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+custom_minimum_size = Vector2(0, 64)
+text = "MOLT LOCKED"
+disabled = true
+theme_override_font_sizes/font_size = 24
+
+[node name="MoltNextLabel" type="Label" parent="RootContainer/RightPanel/VBox/ScrollContainer/MoltContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "10B run LC remaining until your next Shell."
+horizontal_alignment = 1
+autowrap_mode = 2
+theme_override_colors/font_color = Color(0.5, 0.65, 0.75, 1)
+theme_override_font_sizes/font_size = 15
 
 [node name="ScrollDownButton" type="Button" parent="RootContainer/RightPanel/VBox"]
 unique_name_in_owner = true

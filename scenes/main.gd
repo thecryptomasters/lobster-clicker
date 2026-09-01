@@ -10,6 +10,14 @@ const MoltSfx := preload("res://assets/sfx/molt.wav")
 const UiFont := preload("res://assets/fonts/atkinson-hyperlegible/AtkinsonHyperlegible-Regular.ttf")
 const UiBoldFont := preload("res://assets/fonts/atkinson-hyperlegible/AtkinsonHyperlegible-Bold.ttf")
 const DisplayFont := preload("res://assets/fonts/bungee/Bungee-Regular.ttf")
+const ClawPinchFrames: Array[Texture2D] = [
+	preload("res://assets/art/ui/claw_animation/claw_pinch_0.png"),
+	preload("res://assets/art/ui/claw_animation/claw_pinch_1.png"),
+	preload("res://assets/art/ui/claw_animation/claw_pinch_2.png"),
+	preload("res://assets/art/ui/claw_animation/claw_pinch_3.png"),
+	preload("res://assets/art/ui/claw_animation/claw_pinch_4.png"),
+	preload("res://assets/art/ui/claw_animation/claw_pinch_5.png"),
+]
 
 const DEEP_HARBOR := Color("#071725")
 const DOCK_NAVY := Color("#10283a")
@@ -80,19 +88,17 @@ var _toast_panel: PanelContainer
 var _toast_tween: Tween
 var _boost_ui_timer: float = 0.0
 var _claw_bump_tween: Tween
-var _claw_pinch_tween: Tween
 var _sfx_players: Array[AudioStreamPlayer] = []
 var _next_sfx_player: int = 0
 
-# Animation: move pincers via X position (no rotation!)
-const OPEN_X := 22.0
-const SHUT_X := 3.0
-const SNAP_SPEED := 14.0
-const OPEN_SPEED := 3.5
+# Hand-drawn animation timing: anticipation, close, impact, recoil, recovery, idle.
+const CLAW_FRAME_SEQUENCE: Array[int] = [1, 2, 3, 4, 5, 0]
+const CLAW_FRAME_DURATIONS: Array[float] = [0.055, 0.045, 0.075, 0.055, 0.07, 0.0]
 
 enum ClawState { IDLE, SNAPPING, OPENING }
 var claw_state: int = ClawState.IDLE
 var claw_progress: float = 0.0
+var _claw_animation_index: int = 0
 
 enum Tab { BUILDINGS, UPGRADES, CONSUMABLES, MOLT }
 var current_tab: int = Tab.BUILDINGS
@@ -160,9 +166,7 @@ func _ready() -> void:
 	# Load farm name
 	farm_name_button.text = GameManager.farm_name
 
-	# Set initial open position
-	left_pincer.position.x = -OPEN_X
-	right_pincer.position.x = OPEN_X
+	hero_claw.texture = ClawPinchFrames[0]
 
 	# Populate buildings
 	for i in range(GameManager.building_defs.size()):
@@ -197,8 +201,6 @@ func _exit_tree() -> void:
 		_toast_tween.kill()
 	if _claw_bump_tween and _claw_bump_tween.is_valid():
 		_claw_bump_tween.kill()
-	if _claw_pinch_tween and _claw_pinch_tween.is_valid():
-		_claw_pinch_tween.kill()
 	if music_player:
 		music_player.stop()
 		music_player.stream = null
@@ -250,31 +252,7 @@ func _process(delta: float) -> void:
 			_last_width = real_width
 			_apply_layout()
 
-	# Drive claw animation every frame via position
-	match claw_state:
-		ClawState.SNAPPING:
-			claw_progress += delta * SNAP_SPEED
-			if claw_progress >= 1.0:
-				claw_progress = 0.0
-				claw_state = ClawState.OPENING
-				left_pincer.position.x = -SHUT_X
-				right_pincer.position.x = SHUT_X
-			else:
-				var t := claw_progress
-				left_pincer.position.x = lerpf(-OPEN_X, -SHUT_X, t)
-				right_pincer.position.x = lerpf(OPEN_X, SHUT_X, t)
-
-		ClawState.OPENING:
-			claw_progress += delta * OPEN_SPEED
-			if claw_progress >= 1.0:
-				claw_progress = 0.0
-				claw_state = ClawState.IDLE
-				left_pincer.position.x = -OPEN_X
-				right_pincer.position.x = OPEN_X
-			else:
-				var t := 1.0 - pow(1.0 - claw_progress, 2.0)
-				left_pincer.position.x = lerpf(-SHUT_X, -OPEN_X, t)
-				right_pincer.position.x = lerpf(SHUT_X, OPEN_X, t)
+	_update_claw_animation(delta)
 
 	# Flash upgrades tab
 	if _flash_active:
@@ -774,24 +752,35 @@ func _do_click() -> void:
 	_play_sfx(ClawSnapSfx)
 	if GameManager.reduced_motion:
 		return
-	claw_state = ClawState.SNAPPING
-	claw_progress = 0.0
+	_start_claw_animation()
 	_spawn_float_text(amount)
 	particles.restart()
 	particles.emitting = true
 	if _claw_bump_tween and _claw_bump_tween.is_valid():
 		_claw_bump_tween.kill()
-	if _claw_pinch_tween and _claw_pinch_tween.is_valid():
-		_claw_pinch_tween.kill()
-	var pinch_material := hero_claw.material as ShaderMaterial
-	if pinch_material:
-		pinch_material.set_shader_parameter("pinch_amount", 0.0)
-		_claw_pinch_tween = create_tween()
-		_claw_pinch_tween.set_trans(Tween.TRANS_QUAD)
-		_claw_pinch_tween.set_ease(Tween.EASE_OUT)
-		_claw_pinch_tween.tween_method(func(value: float): pinch_material.set_shader_parameter("pinch_amount", value), 0.0, 0.075, 0.075)
-		_claw_pinch_tween.set_ease(Tween.EASE_IN_OUT)
-		_claw_pinch_tween.tween_method(func(value: float): pinch_material.set_shader_parameter("pinch_amount", value), 0.075, 0.0, 0.16)
+
+func _start_claw_animation() -> void:
+	_claw_animation_index = 0
+	claw_progress = 0.0
+	claw_state = ClawState.SNAPPING
+	hero_claw.texture = ClawPinchFrames[CLAW_FRAME_SEQUENCE[0]]
+
+func _update_claw_animation(delta: float) -> void:
+	if claw_state == ClawState.IDLE:
+		return
+	claw_progress += delta
+	while claw_state != ClawState.IDLE and claw_progress >= CLAW_FRAME_DURATIONS[_claw_animation_index]:
+		claw_progress -= CLAW_FRAME_DURATIONS[_claw_animation_index]
+		_claw_animation_index += 1
+		if _claw_animation_index >= CLAW_FRAME_SEQUENCE.size():
+			_claw_animation_index = 0
+			claw_progress = 0.0
+			claw_state = ClawState.IDLE
+			hero_claw.texture = ClawPinchFrames[0]
+			return
+		if _claw_animation_index >= 3:
+			claw_state = ClawState.OPENING
+		hero_claw.texture = ClawPinchFrames[CLAW_FRAME_SEQUENCE[_claw_animation_index]]
 
 func _spawn_float_text(amount: float) -> void:
 	var label := Label.new()

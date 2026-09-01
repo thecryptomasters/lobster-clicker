@@ -301,6 +301,16 @@ func _run() -> void:
 	_expect(GameManager.total_lobsters == 123.0, "canceling reset preserves progress")
 	main_ui._do_click()
 	_expect(main_ui.claw_state == main_ui.ClawState.IDLE, "reduced motion skips claw animation")
+	GameManager.reduced_motion = false
+	var idle_claw_texture: Texture2D = main_ui.hero_claw.texture
+	main_ui._start_claw_animation()
+	_expect(main_ui.claw_state == main_ui.ClawState.SNAPPING, "drawn claw animation enters its snapping phase")
+	_expect(main_ui.hero_claw.texture != idle_claw_texture, "drawn claw animation replaces the idle artwork with an anticipation frame")
+	main_ui._update_claw_animation(0.07)
+	_expect(main_ui.hero_claw.texture == main_ui.ClawPinchFrames[2], "drawn claw animation reaches its closing frame")
+	main_ui._update_claw_animation(0.25)
+	_expect(main_ui.claw_state == main_ui.ClawState.IDLE, "drawn claw animation returns to idle after recovery")
+	_expect(main_ui.hero_claw.texture == idle_claw_texture, "drawn claw animation restores the idle artwork")
 	GameManager.reset_progress()
 	GameManager.total_lobsters = GameManager.get_building_cost(0)
 	GameManager.lobsters_changed.emit(GameManager.total_lobsters)

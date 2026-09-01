@@ -4,6 +4,9 @@ const BUILDING_ICONS: Array[Texture2D] = [
 	preload("res://assets/art/buildings/coin_collecting.png"),
 	preload("res://assets/art/buildings/lobster_memes.png"),
 	preload("res://assets/art/buildings/fishcord_server.png"),
+	preload("res://assets/art/buildings/seafood_restaurant.png"),
+	preload("res://assets/art/buildings/lobster_anime.png"),
+	preload("res://assets/art/buildings/bitclaw.png"),
 ]
 
 var building_index: int = 0
@@ -184,6 +187,7 @@ func _on_building_purchased(index: int) -> void:
 	if index == building_index:
 		_refresh()
 		if not GameManager.reduced_motion:
+			_spawn_arcade_coin_burst()
 			icon_texture.pivot_offset = icon_texture.size * 0.5
 			icon_texture.scale = Vector2(0.82, 0.82)
 			icon_texture.modulate = Color("#fff2a8")
@@ -193,6 +197,27 @@ func _on_building_purchased(index: int) -> void:
 			tween.tween_property(icon_texture, "modulate", Color.WHITE, 0.24)
 			modulate = Color("#6fffe9")
 			tween.tween_property(self, "modulate", Color.WHITE, 0.3)
+
+func _spawn_arcade_coin_burst() -> void:
+	var burst_layer := Node2D.new()
+	burst_layer.position = icon_frame.size * 0.5
+	burst_layer.z_index = 20
+	icon_frame.add_child(burst_layer)
+	var tween := create_tween().set_parallel(true)
+	for i in range(8):
+		var spark := Label.new()
+		spark.text = "●" if i % 2 == 0 else "◆"
+		spark.position = Vector2(-7, -10)
+		spark.scale = Vector2(0.7, 0.7)
+		spark.add_theme_font_size_override("font_size", 15)
+		spark.add_theme_color_override("font_color", Color("#ffd166") if i % 2 == 0 else Color("#1dd9f2"))
+		burst_layer.add_child(spark)
+		var angle := TAU * float(i) / 8.0
+		var target := Vector2(cos(angle), sin(angle)) * (34.0 + float(i % 3) * 5.0)
+		tween.tween_property(spark, "position", target, 0.38).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+		tween.tween_property(spark, "modulate:a", 0.0, 0.42).set_delay(0.06)
+		tween.tween_property(spark, "scale", Vector2(1.15, 1.15), 0.2)
+	tween.finished.connect(burst_layer.queue_free)
 
 func _on_lps_changed(_lps: float) -> void:
 	if is_node_ready():

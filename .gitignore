@@ -4,3 +4,4 @@ build/
 
 # Exported builds (kept in repo for Vercel auto-deploy)
 # export/
+.vercel

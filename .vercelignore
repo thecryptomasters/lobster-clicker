@@ -1,0 +1,4 @@
+# The Vercel project serves only the committed Godot web export.
+*
+!export
+!export/**

@@ -203,17 +203,23 @@ func _on_building_purchased(index: int) -> void:
 
 func _spawn_arcade_coin_burst() -> void:
 	var burst_layer := Node2D.new()
+	burst_layer.name = "PurchaseBurst"
 	burst_layer.position = icon_frame.size * 0.5
 	burst_layer.z_index = 20
 	icon_frame.add_child(burst_layer)
 	var tween := create_tween().set_parallel(true)
 	for i in range(8):
-		var spark := Label.new()
-		spark.text = "●" if i % 2 == 0 else "◆"
-		spark.position = Vector2(-7, -10)
+		# Draw the burst as geometry instead of font glyphs. Unicode circle/diamond
+		# characters can turn into unrelated fallback-font symbols in Web builds.
+		var spark := Polygon2D.new()
+		spark.name = "CoinChip%d" % i
+		spark.polygon = _coin_polygon(6.0, 10) if i % 2 == 0 else PackedVector2Array([
+			Vector2(0.0, -6.0), Vector2(5.0, 0.0),
+			Vector2(0.0, 6.0), Vector2(-5.0, 0.0),
+		])
+		spark.color = Color("#ffd166") if i % 2 == 0 else Color("#1dd9f2")
+		spark.position = Vector2.ZERO
 		spark.scale = Vector2(0.7, 0.7)
-		spark.add_theme_font_size_override("font_size", 15)
-		spark.add_theme_color_override("font_color", Color("#ffd166") if i % 2 == 0 else Color("#1dd9f2"))
 		burst_layer.add_child(spark)
 		var angle := TAU * float(i) / 8.0
 		var target := Vector2(cos(angle), sin(angle)) * (34.0 + float(i % 3) * 5.0)
@@ -221,6 +227,13 @@ func _spawn_arcade_coin_burst() -> void:
 		tween.tween_property(spark, "modulate:a", 0.0, 0.42).set_delay(0.06)
 		tween.tween_property(spark, "scale", Vector2(1.15, 1.15), 0.2)
 	tween.finished.connect(burst_layer.queue_free)
+
+func _coin_polygon(radius: float, sides: int) -> PackedVector2Array:
+	var points := PackedVector2Array()
+	for point_index in range(sides):
+		var angle := TAU * float(point_index) / float(sides) - PI * 0.5
+		points.append(Vector2.from_angle(angle) * radius)
+	return points
 
 func _on_lps_changed(_lps: float) -> void:
 	if is_node_ready():

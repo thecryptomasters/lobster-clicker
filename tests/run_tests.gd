@@ -255,7 +255,9 @@ func _run() -> void:
 	_expect(arcade_first_building.icon_texture.texture != null and arcade_first_building.icon_badge.visible == false, "first building uses illustrated arcade cabinet art")
 	var final_illustrated_building = main_ui.building_container.get_child(8)
 	_expect(final_illustrated_building.icon_texture.texture != null and final_illustrated_building.icon_badge.visible == false, "all nine buildings use illustrated arcade cabinet art")
-	_expect(main_ui.get_node_or_null("HarborBackdrop") != null, "Midnight Harbor backdrop is present")
+	var harbor_backdrop = main_ui.get_node_or_null("HarborBackdrop")
+	_expect(harbor_backdrop != null, "Midnight Harbor backdrop is present")
+	_expect(harbor_backdrop != null and harbor_backdrop.is_processing(), "living harbor animation is active")
 	_expect(main_ui.title_label.get_theme_font("font") != null, "local display typography is applied")
 	main_ui._refresh_molt()
 	_expect(main_ui.molt_progress_bar.value == 0.0, "Molting presentation starts with an empty progress meter")
@@ -347,6 +349,15 @@ func _run() -> void:
 	var first_building_item = main_ui.building_container.get_child(0)
 	first_building_item.buy_button.pressed.emit()
 	_expect(GameManager.building_counts[0] == 1, "main-scene smoke buys the first building through its real button")
+	var purchase_burst = first_building_item.icon_frame.find_child("PurchaseBurst", false, false)
+	_expect(purchase_burst != null, "building purchase triggers its arcade particle burst")
+	var burst_uses_geometry := purchase_burst != null
+	if purchase_burst:
+		for burst_particle in purchase_burst.get_children():
+			if not burst_particle is Polygon2D:
+				burst_uses_geometry = false
+				break
+	_expect(burst_uses_geometry, "purchase burst uses drawn geometry instead of font-dependent symbols")
 	var scene_save := GameManager.get_save_data()
 	GameManager.reset_progress()
 	GameManager.load_save_data(scene_save)

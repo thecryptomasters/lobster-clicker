@@ -191,17 +191,43 @@ func _run() -> void:
 	GameManager.load_save_data(molt_save)
 	_expect(GameManager.shells == 1 and GameManager.molt_count == 1, "Molting state survives save/load")
 
+	# Accelerated prestige audit: every square-root reward boundary is exact.
+	var molt_boundary_cases := [
+		[GameManager.MOLTING_THRESHOLD - 1.0, 0],
+		[GameManager.MOLTING_THRESHOLD, 1],
+		[GameManager.MOLTING_THRESHOLD * 4.0 - 1.0, 1],
+		[GameManager.MOLTING_THRESHOLD * 4.0, 2],
+		[GameManager.MOLTING_THRESHOLD * 9.0 - 1.0, 2],
+		[GameManager.MOLTING_THRESHOLD * 9.0, 3],
+	]
+	for boundary in molt_boundary_cases:
+		GameManager.run_lobsters = boundary[0]
+		_expect(GameManager.get_pending_shells() == boundary[1], "Molting reward boundary at %s run LC is exact" % GameManager.format_number(boundary[0]))
+
+	# A second accelerated Molt compounds permanent progression and persists it.
 	GameManager.run_lobsters = GameManager.MOLTING_THRESHOLD * 4.0
 	GameManager.building_counts[GameManager.MOLTING_BUILDING_INDEX] = 1
 	_expect(GameManager.get_pending_shells() == 2, "longer runs award multiple Shells on square-root curve")
+	_expect(GameManager.get_next_shell_target() == GameManager.MOLTING_THRESHOLD * 9.0, "two-Shell run points to the exact three-Shell target")
 	GameManager.pending_premium_options = [{"name": "Paid Choice"}]
 	_expect(not GameManager.can_molt(), "unfinished paid card choice blocks Molting")
 	GameManager.pending_premium_options.clear()
+	_expect(GameManager.molt() == 2, "second accelerated Molt awards two Shells")
+	_expect(GameManager.shells == 3 and GameManager.molt_count == 2, "second Molt compounds permanent Shells and count")
+	_expect(is_equal_approx(GameManager.get_shell_multiplier(), 1.3), "three total Shells provide the documented 30% multiplier")
+	_expect(is_equal_approx(GameManager.get_click_value(), 1.3), "second-Molt Shell total applies to clicking")
+	_expect(is_equal_approx(GameManager.lobsters_per_second, 130.0), "second-Molt Shell total applies to retained permanent LCPS")
+	var second_molt_save := GameManager.get_save_data()
+	GameManager.reset_progress()
+	GameManager.load_save_data(second_molt_save)
+	_expect(GameManager.shells == 3 and GameManager.molt_count == 2, "second-Molt state survives save/load")
+	_expect(is_equal_approx(GameManager.get_shell_multiplier(), 1.3), "second-Molt multiplier survives save/load")
 
 	_expect(SaveManager._decode_save('{"save_version":3,"total_lobsters":1,"shells":-1}').is_empty(), "negative Shell count is rejected")
 
 	# Main-scene settings smoke: controls instantiate and reduced motion avoids animation.
 	GameManager.reset_progress()
+	GameManager.music_muted = false
 	GameManager.reduced_motion = true
 	var main_scene: PackedScene = load("res://scenes/main.tscn")
 	var main_ui = main_scene.instantiate()
@@ -211,6 +237,8 @@ func _run() -> void:
 	_expect(main_ui.mute_button.anchor_right < 0.5, "desktop mute control stays inside the left panel and clear of Molt")
 	main_ui._layout_corner_buttons(false)
 	_expect(main_ui.mute_button.anchor_right == 1.0, "mobile mute control stays aligned to the viewport edge")
+	_expect(main_ui.settings_button.custom_minimum_size.x == 72.0 and main_ui.mute_button.custom_minimum_size.x == 72.0, "mobile corner controls leave the title a readable center lane")
+	_expect(main_ui.objective_label.autowrap_mode != TextServer.AUTOWRAP_OFF, "long objectives wrap instead of clipping on narrow layouts")
 	main_ui._switch_tab(main_ui.Tab.BUILDINGS)
 	main_ui._cycle_tab(1)
 	_expect(main_ui.current_tab == main_ui.Tab.UPGRADES and main_ui.upgrades_tab.has_focus(), "keyboard/controller tab cycling advances focus")
@@ -218,6 +246,10 @@ func _run() -> void:
 	main_ui._cycle_tab(1)
 	_expect(main_ui.current_tab == main_ui.Tab.MOLT, "tab cycling skips locked consumables")
 	_expect(main_ui.theme.get_stylebox("focus", "Button") != null, "keyboard/controller focus uses a high-visibility ring")
+	main_ui.mute_button.pressed.emit()
+	_expect(GameManager.music_muted and main_ui.mute_button.text == "UNMUTE", "mute shortcut mutes and updates its label")
+	main_ui.mute_button.pressed.emit()
+	_expect(not GameManager.music_muted and main_ui.mute_button.text == "MUTE", "mute shortcut can unmute through the same control")
 	GameManager.reset_progress()
 	main_ui.claw_button.grab_focus()
 	await get_tree().process_frame

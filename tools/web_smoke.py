@@ -4,7 +4,9 @@
 import argparse
 import json
 import sys
+import time
 from pathlib import Path
+from urllib.parse import urlsplit
 
 from playwright.sync_api import sync_playwright
 
@@ -15,6 +17,46 @@ SIZES = [(320, 568), (390, 664), (480, 854), (1280, 720), (1920, 1080), (2560, 1
 def saved_progress(page):
     raw = page.evaluate("localStorage.getItem('lobster_clicker_save')")
     return json.loads(raw) if raw else {}
+
+
+def storage_state(url, data):
+    parsed = urlsplit(url)
+    origin = f"{parsed.scheme}://{parsed.netloc}"
+    return {"cookies": [], "origins": [{"origin": origin, "localStorage": [{"name": "lobster_clicker_save", "value": json.dumps(data)}]}]}
+
+
+def build_long_state(page):
+    page.keyboard.press("Space")
+    page.wait_for_timeout(250)
+    data = saved_progress(page)
+    if not data:
+        raise RuntimeError("could not create the long-state seed save")
+    data.update({
+        "total_lobsters": 9_876_543_210_000_000.0,
+        "lifetime_lobsters": 9_876_543_210_000_000.0,
+        "run_lobsters": 90_000_000_000.0,
+        "shells": 1234,
+        "molt_count": 42,
+        "farm_name": "The Longest Lobster Farm Name!!!",
+        "music_muted": True,
+        "reduced_motion": True,
+        "achievements": {"first_catch": True, "tiny_fleet": True, "ten_on_deck": True, "disco_lobster": True},
+        "first_rare_event_seen": True,
+        "pending_premium_options": [],
+        "pending_premium_cost": 0.0,
+        "active_boost": {},
+        "boost_end_time": 0.0,
+        "cooldown_end_time": 0.0,
+        "single_building_boost_index": -1,
+        "single_building_boost_mult": 1.0,
+        "single_boost_end_time": 0.0,
+        "last_save_time": int(time.time()),
+    })
+    data["building_counts"] = [100 for _ in data.get("building_counts", [])]
+    data["building_upgrades"] = [[True for _ in tiers] for tiers in data.get("building_upgrades", [])]
+    for key in ("click_upgrades", "cps_click_upgrades", "hold_click_upgrades", "gacha_cooldown_upgrades", "offline_rate_upgrades", "offline_duration_upgrades"):
+        data[key] = [True for _ in data.get(key, [])]
+    return data
 
 
 def main() -> int:
@@ -58,7 +100,49 @@ def main() -> int:
                 "page_errors": page_errors,
                 "screenshot": str(screenshot),
             })
+
+            long_state = build_long_state(page)
             context.close()
+
+            long_context = browser.new_context(
+                viewport={"width": width, "height": height},
+                storage_state=storage_state(args.url, long_state),
+            )
+            page = long_context.new_page()
+            long_console_errors = []
+            long_page_errors = []
+            page.on("console", lambda message, bucket=long_console_errors: bucket.append(message.text) if message.type == "error" else None)
+            page.on("pageerror", lambda error, bucket=long_page_errors: bucket.append(str(error)))
+            page.goto(args.url, wait_until="networkidle")
+            page.wait_for_timeout(2200)
+            tab_screenshots = []
+            for tab_index, tab_name in enumerate(("buildings", "upgrades", "cards", "molt")):
+                if tab_index:
+                    page.keyboard.press("E")
+                    page.wait_for_timeout(350)
+                tab_screenshot = screenshot_dir / f"{width}x{height}-long-{tab_name}.png"
+                page.screenshot(path=str(tab_screenshot))
+                tab_screenshots.append(str(tab_screenshot))
+            restored = saved_progress(page)
+            long_passed = (
+                restored.get("farm_name") == long_state["farm_name"]
+                and restored.get("total_lobsters", 0) >= long_state["total_lobsters"]
+                and restored.get("shells") == long_state["shells"]
+                and not long_console_errors
+                and not long_page_errors
+            )
+            failed = failed or not long_passed
+            results.append({
+                "long_state_size": f"{width}x{height}",
+                "passed": long_passed,
+                "farm_name_length": len(restored.get("farm_name", "")),
+                "total_lobsters": restored.get("total_lobsters"),
+                "shells": restored.get("shells"),
+                "tabs": tab_screenshots,
+                "console_errors": long_console_errors,
+                "page_errors": long_page_errors,
+            })
+            long_context.close()
 
         interaction_cases = [
             ("keyboard", {"viewport": {"width": 1280, "height": 720}}, lambda page: page.keyboard.press("Space")),

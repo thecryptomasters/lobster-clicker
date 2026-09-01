@@ -301,12 +301,10 @@ func _apply_layout() -> void:
 		scroll_up_btn.visible = false
 		scroll_down_btn.visible = false
 		title_label.add_theme_font_size_override("font_size", 28)
+		objective_label.add_theme_font_size_override("font_size", 18)
 		for tab_button in [buildings_tab, upgrades_tab, consumables_tab, molt_tab]:
 			tab_button.add_theme_font_size_override("font_size", 22)
 		_layout_corner_buttons(true)
-		settings_button.offset_left = 12.0
-		settings_button.offset_right = 108.0
-		settings_button.add_theme_font_size_override("font_size", 13)
 	else:
 		# Mobile: stacked vertically (VBox), claw compact on top, buildings get more space
 		root_container.vertical = true
@@ -316,23 +314,27 @@ func _apply_layout() -> void:
 		right_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
 		scroll_up_btn.visible = true
 		scroll_down_btn.visible = true
-		title_label.add_theme_font_size_override("font_size", 22)
+		title_label.add_theme_font_size_override("font_size", 18)
+		objective_label.add_theme_font_size_override("font_size", 14)
 		for tab_button in [buildings_tab, upgrades_tab, consumables_tab, molt_tab]:
 			tab_button.add_theme_font_size_override("font_size", 15)
 		_layout_corner_buttons(false)
-		settings_button.offset_left = 8.0
-		settings_button.offset_right = 104.0
-		settings_button.add_theme_font_size_override("font_size", 11)
 
 func _layout_corner_buttons(desktop: bool) -> void:
 	# On desktop, keep mute inside the left play panel so it never covers the
 	# right panel's Molt tab. Mobile keeps it against the viewport edge.
 	var right_anchor := DESKTOP_LEFT_PANEL_SHARE if desktop else 1.0
+	var button_width := 96.0 if desktop else 72.0
+	settings_button.custom_minimum_size.x = button_width
+	settings_button.offset_left = 12.0 if desktop else 8.0
+	settings_button.offset_right = settings_button.offset_left + button_width
+	settings_button.add_theme_font_size_override("font_size", 13 if desktop else 10)
+	mute_button.custom_minimum_size.x = button_width
 	mute_button.anchor_left = right_anchor
 	mute_button.anchor_right = right_anchor
-	mute_button.offset_left = -108.0 if desktop else -112.0
-	mute_button.offset_right = -12.0 if desktop else -16.0
-	mute_button.add_theme_font_size_override("font_size", 13 if desktop else 11)
+	mute_button.offset_right = -12.0 if desktop else -8.0
+	mute_button.offset_left = mute_button.offset_right - button_width
+	mute_button.add_theme_font_size_override("font_size", 13 if desktop else 10)
 
 func _on_lobsters_changed(total: float) -> void:
 	lobster_count_label.text = GameManager.format_number(total)

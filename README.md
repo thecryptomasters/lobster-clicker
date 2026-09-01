@@ -27,6 +27,14 @@ python3 tools/web_smoke.py
 
 The web smoke requires the Python Playwright package and its Chromium browser.
 
+Run a browser soak with repeated saves, reloads, and accelerated offline-return cycles:
+
+```bash
+python3 tools/web_soak.py http://127.0.0.1:8765/ --duration-seconds 7200
+```
+
+Use a shorter duration only to verify the harness itself; release evidence should use the full two-hour default or longer.
+
 ## Deployment
 
 HTML5 export deployed to Vercel.

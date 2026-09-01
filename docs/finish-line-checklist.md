@@ -55,7 +55,7 @@ Goal: make the entire run understandable and paced well, not merely mathematical
 - [ ] Rebalance any unexplained stall longer than the intended idle interval.
 - [x] Verify click upgrades communicate their actual multiplicative stacking behavior.
 - [ ] Confirm Shell awards and permanent bonuses make the second run noticeably faster without trivializing it.
-- [ ] Run a second-Molt economy simulation and spot-check it with human play.
+- [~] Run a second-Molt economy simulation and spot-check it with human play (exact 1/2/3-Shell boundaries, two-Molt compounding, and persistence pass; full pacing simulation pending).
 
 Exit gate: a new player understands the loop without outside help, reaches the first Molt on the intended timetable, and wants to begin the next run.
 
@@ -63,7 +63,7 @@ Exit gate: a new player understands the loop without outside help, reaches the f
 
 Goal: remove visible prototype roughness from every supported layout.
 
-- [~] Verify 320x568, 390x664, 480x854, 720p, 1080p, 1440p, and ultrawide layouts (automated and visual fresh-save pass complete; human long-state pass pending).
+- [~] Verify 320x568, 390x664, 480x854, 720p, 1080p, 1440p, and ultrawide layouts (automated and visual fresh-save plus synthetic long-state passes complete; human natural-progression pass pending).
 - [ ] Verify every icon, label, dialog, tooltip, toast, and long number remains readable.
 - [ ] Verify long farm names cannot clip or break layouts.
 - [ ] Tune default music and SFX levels from human feedback.
@@ -82,7 +82,7 @@ Goal: produce repeatable desktop builds that remain stable over real play sessio
 - [~] Launch and play the macOS package on supported Intel/Apple Silicon targets as applicable (universal package headless launch passes; graphical human pass pending).
 - [ ] Launch and play the Linux package on a supported distribution.
 - [ ] Verify native save locations, save persistence, clean shutdown, forced close, and relaunch on each target OS.
-- [ ] Run a multi-hour soak test with automation and offline-return cycles.
+- [~] Run a multi-hour soak test with automation and offline-return cycles (repeatable browser harness and accelerated stress proof pass; full-duration result pending).
 - [ ] Check logs for errors, runaway memory use, repeated signals, and save corruption.
 - [ ] Confirm release builds contain no accessible debug/developer controls.
 - [x] Lock the supported Godot version and document clean regression, web-smoke, and release export commands.
@@ -100,7 +100,7 @@ Goal: freeze a build that can be called Lobster Clicker 1.0.
 - [ ] Run one final fresh-save and one returning-save acceptance test.
 - [ ] Archive checksums for the Windows, macOS, and Linux release packages.
 - [ ] Tag the approved release candidate in Git.
-- [ ] Obtain Ross/Conner final gameplay and audio approval.
+- [ ] Obtain Ross's final gameplay and audio approval.
 
 Exit gate: all earlier gates pass, no release-blocking bugs remain, and the exact packaged build receives final approval.
 

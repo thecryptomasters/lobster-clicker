@@ -8,17 +8,25 @@ var is_purchased: bool = false
 @onready var desc_label: Label = %DescLabel
 @onready var cost_label: Label = %CostLabel
 @onready var buy_button: Button = %BuyButton
+@onready var type_badge: Label = %TypeBadge
 
 var _affordable_style: StyleBoxFlat
 var _unaffordable_style: StyleBoxFlat
 var _owned_style: StyleBoxFlat
+var _card_style: StyleBoxFlat
+var _badge_style: StyleBoxFlat
 
 func _ready() -> void:
 	buy_button.pressed.connect(_on_buy)
 	GameManager.lobsters_changed.connect(_on_lobsters_changed)
 
 	_affordable_style = StyleBoxFlat.new()
-	_affordable_style.bg_color = Color("#2d6b4f")
+	_affordable_style.bg_color = Color("#e9553f")
+	_affordable_style.border_width_left = 1
+	_affordable_style.border_width_top = 1
+	_affordable_style.border_width_right = 1
+	_affordable_style.border_width_bottom = 1
+	_affordable_style.border_color = Color("#ff846b")
 	_affordable_style.corner_radius_top_left = 6
 	_affordable_style.corner_radius_top_right = 6
 	_affordable_style.corner_radius_bottom_left = 6
@@ -29,7 +37,7 @@ func _ready() -> void:
 	_affordable_style.content_margin_bottom = 4.0
 
 	_unaffordable_style = StyleBoxFlat.new()
-	_unaffordable_style.bg_color = Color("#333333")
+	_unaffordable_style.bg_color = Color("#173447")
 	_unaffordable_style.corner_radius_top_left = 6
 	_unaffordable_style.corner_radius_top_right = 6
 	_unaffordable_style.corner_radius_bottom_left = 6
@@ -40,7 +48,7 @@ func _ready() -> void:
 	_unaffordable_style.content_margin_bottom = 4.0
 
 	_owned_style = StyleBoxFlat.new()
-	_owned_style.bg_color = Color("#1a4a3a")
+	_owned_style.bg_color = Color("#174b43")
 	_owned_style.corner_radius_top_left = 6
 	_owned_style.corner_radius_top_right = 6
 	_owned_style.corner_radius_bottom_left = 6
@@ -49,6 +57,36 @@ func _ready() -> void:
 	_owned_style.content_margin_right = 8.0
 	_owned_style.content_margin_top = 4.0
 	_owned_style.content_margin_bottom = 4.0
+
+	_card_style = StyleBoxFlat.new()
+	_card_style.bg_color = Color("#0d2232")
+	_card_style.border_width_left = 1
+	_card_style.border_width_top = 1
+	_card_style.border_width_right = 1
+	_card_style.border_width_bottom = 1
+	_card_style.border_color = Color("#23495b")
+	_card_style.corner_radius_top_left = 10
+	_card_style.corner_radius_top_right = 10
+	_card_style.corner_radius_bottom_left = 10
+	_card_style.corner_radius_bottom_right = 10
+	_card_style.content_margin_left = 12.0
+	_card_style.content_margin_right = 12.0
+	_card_style.content_margin_top = 8.0
+	_card_style.content_margin_bottom = 8.0
+	add_theme_stylebox_override("panel", _card_style)
+
+	_badge_style = StyleBoxFlat.new()
+	_badge_style.bg_color = Color("#071725")
+	_badge_style.border_width_left = 1
+	_badge_style.border_width_top = 1
+	_badge_style.border_width_right = 1
+	_badge_style.border_width_bottom = 1
+	_badge_style.border_color = Color("#a56de2")
+	_badge_style.corner_radius_top_left = 7
+	_badge_style.corner_radius_top_right = 7
+	_badge_style.corner_radius_bottom_left = 7
+	_badge_style.corner_radius_bottom_right = 7
+	type_badge.add_theme_stylebox_override("normal", _badge_style)
 
 	_refresh()
 
@@ -121,6 +159,7 @@ func setup_cps_click_upgrade(index: int, purchased: bool) -> void:
 		_refresh_cps_click_upgrade()
 
 func _refresh() -> void:
+	type_badge.text = "TIER"
 	var tier_names := ["I", "II", "III", "IV"]
 	var def: Dictionary = GameManager.building_defs[building_index]
 	name_label.text = "%s Tier %s" % [def["name"], tier_names[tier]]
@@ -161,6 +200,7 @@ func _update_buy_button_style() -> void:
 		buy_button.add_theme_stylebox_override("disabled", _unaffordable_style)
 
 func _refresh_click_upgrade() -> void:
+	type_badge.text = "CLAW"
 	var def: Dictionary = GameManager.click_upgrade_defs[click_upgrade_index]
 	name_label.text = def["name"]
 	desc_label.text = def["desc"]
@@ -179,6 +219,7 @@ func _refresh_click_upgrade() -> void:
 		_update_buy_button_style()
 
 func _refresh_cps_click_upgrade() -> void:
+	type_badge.text = "POWER"
 	var def: Dictionary = GameManager.cps_click_upgrade_defs[cps_click_upgrade_index]
 	name_label.text = def["name"]
 	desc_label.text = def["desc"]
@@ -214,6 +255,7 @@ func _update_cps_click_button_style() -> void:
 		buy_button.add_theme_stylebox_override("disabled", _unaffordable_style)
 
 func _refresh_hold_click_upgrade() -> void:
+	type_badge.text = "AUTO"
 	var def: Dictionary = GameManager.hold_click_defs[hold_click_upgrade_index]
 	name_label.text = def["name"]
 	desc_label.text = def["desc"]
@@ -249,6 +291,7 @@ func _update_hold_click_button_style() -> void:
 		buy_button.add_theme_stylebox_override("disabled", _unaffordable_style)
 
 func _refresh_gacha_cd_upgrade() -> void:
+	type_badge.text = "BOOST"
 	var def: Dictionary = GameManager.gacha_cooldown_upgrade_defs[gacha_cd_upgrade_index]
 	name_label.text = def["name"]
 	desc_label.text = def["desc"]
@@ -284,6 +327,7 @@ func _update_gacha_cd_button_style() -> void:
 		buy_button.add_theme_stylebox_override("disabled", _unaffordable_style)
 
 func _refresh_offline_rate_upgrade() -> void:
+	type_badge.text = "TIDE"
 	var def: Dictionary = GameManager.offline_rate_defs[offline_rate_upgrade_index]
 	name_label.text = def["name"]
 	desc_label.text = def["desc"]
@@ -319,6 +363,7 @@ func _update_offline_rate_button_style() -> void:
 		buy_button.add_theme_stylebox_override("disabled", _unaffordable_style)
 
 func _refresh_offline_duration_upgrade() -> void:
+	type_badge.text = "TIME"
 	var def: Dictionary = GameManager.offline_duration_defs[offline_duration_upgrade_index]
 	name_label.text = def["name"]
 	desc_label.text = def["desc"]

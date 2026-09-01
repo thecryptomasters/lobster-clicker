@@ -156,6 +156,10 @@ func _on_lobsters_changed(_total: float) -> void:
 func _on_building_purchased(index: int) -> void:
 	if index == building_index:
 		_refresh()
+		if not GameManager.reduced_motion:
+			var tween := create_tween()
+			modulate = Color("#ffd166")
+			tween.tween_property(self, "modulate", Color.WHITE, 0.22)
 
 func _on_lps_changed(_lps: float) -> void:
 	if is_node_ready():

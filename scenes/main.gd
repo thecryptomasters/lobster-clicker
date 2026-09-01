@@ -507,6 +507,10 @@ func _install_visual_polish() -> void:
 	var molt_title := get_node_or_null("RootContainer/RightPanel/VBox/ScrollContainer/MoltContainer/MoltTitle") as Label
 	if molt_title:
 		molt_title.add_theme_font_override("font", DisplayFont)
+	for display_label_name in ["GachaTitle", "PremiumTitle"]:
+		var display_label := find_child(display_label_name, true, false) as Label
+		if display_label:
+			display_label.add_theme_font_override("font", DisplayFont)
 
 	var tab_normal := _make_style(Color("#0b2130"), Color("#23495b"), 6)
 	var tab_hover := _make_style(Color("#173b4d"), Color("#3a7180"), 6)
@@ -1218,7 +1222,23 @@ func _on_molt_completed(gained: int, total_shells: int) -> void:
 	_refresh_upgrades()
 	_refresh_molt()
 	_switch_tab(Tab.BUILDINGS)
+	_show_molt_flash()
 	_show_toast("Molting Complete", "+%d Shell%s. %d total — every catch is stronger." % [gained, "" if gained == 1 else "s", total_shells])
+
+func _show_molt_flash() -> void:
+	if GameManager.reduced_motion:
+		return
+	var flash := ColorRect.new()
+	flash.name = "MoltCelebrationFlash"
+	flash.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	flash.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	flash.color = Color(SEAFOAM, 0.0)
+	flash.z_index = 90
+	add_child(flash)
+	var tween := create_tween()
+	tween.tween_property(flash, "color", Color(SEAFOAM, 0.28), 0.12)
+	tween.tween_property(flash, "color", Color(SEAFOAM, 0.0), 0.65)
+	tween.finished.connect(flash.queue_free)
 
 func _on_upgrade_unlocked(_building_index: int, _tier: int) -> void:
 	_flash_active = true
@@ -1275,7 +1295,7 @@ func _refresh_upgrades() -> void:
 			click_items.append(func(item): item.setup_hold_click_upgrade(upg["index"], upg["purchased"]))
 	if not click_items.is_empty():
 		has_any = true
-		_add_collapsible_section("CLICK POWER", "click_power", Color("#ff6b6b"), click_items)
+		_add_collapsible_section("CLICK POWER", "click_power", LOBSTER_CORAL, click_items)
 
 	# Building upgrades
 	var bldg_items: Array = []
@@ -1284,7 +1304,7 @@ func _refresh_upgrades() -> void:
 			bldg_items.append(func(item): item.setup(upg["building_index"], upg["tier"], upg["purchased"]))
 	if not bldg_items.is_empty():
 		has_any = true
-		_add_collapsible_section("BUILDING UPGRADES", "building_upgrades", Color("#ffd766"), bldg_items)
+		_add_collapsible_section("BUILDING UPGRADES", "building_upgrades", COIN_GOLD, bldg_items)
 
 	# Offline upgrades (rate + duration combined)
 	var offline_items: Array = []
@@ -1296,7 +1316,7 @@ func _refresh_upgrades() -> void:
 			offline_items.append(func(item): item.setup_offline_duration_upgrade(upg["index"], upg["purchased"]))
 	if not offline_items.is_empty():
 		has_any = true
-		_add_collapsible_section("OFFLINE PRODUCTION", "offline", Color("#5dade2"), offline_items)
+		_add_collapsible_section("OFFLINE PRODUCTION", "offline", SEAFOAM, offline_items)
 
 	# Gacha cooldown upgrades
 	var gacha_items: Array = []
@@ -1305,7 +1325,7 @@ func _refresh_upgrades() -> void:
 			gacha_items.append(func(item): item.setup_gacha_cd_upgrade(upg["index"], upg["purchased"]))
 	if not gacha_items.is_empty():
 		has_any = true
-		_add_collapsible_section("GACHA UPGRADES", "gacha", Color("#e67e22"), gacha_items)
+		_add_collapsible_section("BOOST UPGRADES", "gacha", Color("#a56de2"), gacha_items)
 
 	if not has_any:
 		var empty_label := Label.new()
@@ -1354,7 +1374,12 @@ func _on_consumables_tab() -> void:
 
 func _style_buy_capsule_button() -> void:
 	var style := StyleBoxFlat.new()
-	style.bg_color = Color("#e67e22")
+	style.bg_color = Color("#7146a3")
+	style.border_width_left = 2
+	style.border_width_top = 2
+	style.border_width_right = 2
+	style.border_width_bottom = 2
+	style.border_color = Color("#a56de2")
 	style.corner_radius_top_left = 8
 	style.corner_radius_top_right = 8
 	style.corner_radius_bottom_left = 8
@@ -1365,7 +1390,12 @@ func _style_buy_capsule_button() -> void:
 	style.content_margin_bottom = 8.0
 	buy_capsule_button.add_theme_stylebox_override("normal", style)
 	var hover := StyleBoxFlat.new()
-	hover.bg_color = Color("#d35400")
+	hover.bg_color = Color("#8658b7")
+	hover.border_width_left = 2
+	hover.border_width_top = 2
+	hover.border_width_right = 2
+	hover.border_width_bottom = 2
+	hover.border_color = Color("#d7b6ff")
 	hover.corner_radius_top_left = 8
 	hover.corner_radius_top_right = 8
 	hover.corner_radius_bottom_left = 8
@@ -1377,7 +1407,7 @@ func _style_buy_capsule_button() -> void:
 	buy_capsule_button.add_theme_stylebox_override("hover", hover)
 	buy_capsule_button.add_theme_stylebox_override("pressed", hover)
 	var disabled := StyleBoxFlat.new()
-	disabled.bg_color = Color("#555555")
+	disabled.bg_color = Color("#172633")
 	disabled.corner_radius_top_left = 8
 	disabled.corner_radius_top_right = 8
 	disabled.corner_radius_bottom_left = 8
@@ -1547,7 +1577,12 @@ func _update_boost_hud_display() -> void:
 
 func _style_buy_premium_button() -> void:
 	var style := StyleBoxFlat.new()
-	style.bg_color = Color("#9b59b6")
+	style.bg_color = Color("#7c4aad")
+	style.border_width_left = 2
+	style.border_width_top = 2
+	style.border_width_right = 2
+	style.border_width_bottom = 2
+	style.border_color = Color("#a56de2")
 	style.corner_radius_top_left = 8
 	style.corner_radius_top_right = 8
 	style.corner_radius_bottom_left = 8
@@ -1558,7 +1593,12 @@ func _style_buy_premium_button() -> void:
 	style.content_margin_bottom = 8.0
 	buy_premium_button.add_theme_stylebox_override("normal", style)
 	var hover := StyleBoxFlat.new()
-	hover.bg_color = Color("#8e44ad")
+	hover.bg_color = Color("#925cc2")
+	hover.border_width_left = 2
+	hover.border_width_top = 2
+	hover.border_width_right = 2
+	hover.border_width_bottom = 2
+	hover.border_color = Color("#d7b6ff")
 	hover.corner_radius_top_left = 8
 	hover.corner_radius_top_right = 8
 	hover.corner_radius_bottom_left = 8
@@ -1570,7 +1610,7 @@ func _style_buy_premium_button() -> void:
 	buy_premium_button.add_theme_stylebox_override("hover", hover)
 	buy_premium_button.add_theme_stylebox_override("pressed", hover)
 	var disabled := StyleBoxFlat.new()
-	disabled.bg_color = Color("#555555")
+	disabled.bg_color = Color("#172633")
 	disabled.corner_radius_top_left = 8
 	disabled.corner_radius_top_right = 8
 	disabled.corner_radius_bottom_left = 8

@@ -92,6 +92,7 @@ var _flash_active: bool = false
 
 # Responsive layout
 const MOBILE_BREAKPOINT := 700  # Below this width = mobile (vertical stack)
+const DESKTOP_LEFT_PANEL_SHARE := 1.0 / 2.2
 var _is_desktop: bool = true
 var _last_width: int = 0
 
@@ -287,9 +288,7 @@ func _apply_layout() -> void:
 		title_label.add_theme_font_size_override("font_size", 28)
 		for tab_button in [buildings_tab, upgrades_tab, consumables_tab, molt_tab]:
 			tab_button.add_theme_font_size_override("font_size", 22)
-		mute_button.offset_left = -108.0
-		mute_button.offset_right = -12.0
-		mute_button.add_theme_font_size_override("font_size", 13)
+		_layout_corner_buttons(true)
 		settings_button.offset_left = 12.0
 		settings_button.offset_right = 108.0
 		settings_button.add_theme_font_size_override("font_size", 13)
@@ -305,12 +304,20 @@ func _apply_layout() -> void:
 		title_label.add_theme_font_size_override("font_size", 22)
 		for tab_button in [buildings_tab, upgrades_tab, consumables_tab, molt_tab]:
 			tab_button.add_theme_font_size_override("font_size", 15)
-		mute_button.offset_left = -112.0
-		mute_button.offset_right = -16.0
-		mute_button.add_theme_font_size_override("font_size", 11)
+		_layout_corner_buttons(false)
 		settings_button.offset_left = 8.0
 		settings_button.offset_right = 104.0
 		settings_button.add_theme_font_size_override("font_size", 11)
+
+func _layout_corner_buttons(desktop: bool) -> void:
+	# On desktop, keep mute inside the left play panel so it never covers the
+	# right panel's Molt tab. Mobile keeps it against the viewport edge.
+	var right_anchor := DESKTOP_LEFT_PANEL_SHARE if desktop else 1.0
+	mute_button.anchor_left = right_anchor
+	mute_button.anchor_right = right_anchor
+	mute_button.offset_left = -108.0 if desktop else -112.0
+	mute_button.offset_right = -12.0 if desktop else -16.0
+	mute_button.add_theme_font_size_override("font_size", 13 if desktop else 11)
 
 func _on_lobsters_changed(total: float) -> void:
 	lobster_count_label.text = GameManager.format_number(total)

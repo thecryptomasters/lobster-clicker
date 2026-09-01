@@ -151,6 +151,10 @@ func _run() -> void:
 	var main_ui = main_scene.instantiate()
 	add_child(main_ui)
 	await get_tree().process_frame
+	main_ui._layout_corner_buttons(true)
+	_expect(main_ui.mute_button.anchor_right < 0.5, "desktop mute control stays inside the left panel and clear of Molt")
+	main_ui._layout_corner_buttons(false)
+	_expect(main_ui.mute_button.anchor_right == 1.0, "mobile mute control stays aligned to the viewport edge")
 	main_ui._show_settings_dialog()
 	await get_tree().process_frame
 	var found_settings_dialog := false

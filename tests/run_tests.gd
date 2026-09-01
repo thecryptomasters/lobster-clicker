@@ -246,6 +246,12 @@ func _run() -> void:
 	main_ui._layout_corner_buttons(false)
 	_expect(main_ui.mute_button.anchor_right == 1.0, "mobile mute control stays aligned to the viewport edge")
 	_expect(main_ui.settings_button.custom_minimum_size.x == 72.0 and main_ui.mute_button.custom_minimum_size.x == 72.0, "mobile corner controls leave the title a readable center lane")
+	main_ui._is_desktop = true
+	main_ui._last_width = 0
+	main_ui._apply_layout()
+	_expect(main_ui.right_panel.custom_minimum_size.y >= 380.0, "mobile inventory drawer reserves enough height for multiple touch targets")
+	_expect(main_ui.content_scroll.custom_minimum_size.y >= 252.0, "mobile inventory list exposes more than two full building rows")
+	_expect(not main_ui.scroll_up_btn.visible and not main_ui.scroll_down_btn.visible, "mobile inventory uses native swipe scrolling without space-hungry arrow controls")
 	_expect(main_ui.objective_label.autowrap_mode != TextServer.AUTOWRAP_OFF, "long objectives wrap instead of clipping on narrow layouts")
 	main_ui._switch_tab(main_ui.Tab.BUILDINGS)
 	main_ui._cycle_tab(1)

@@ -79,6 +79,7 @@ const MIST_BLUE := Color("#94b8c7")
 @onready var boost_hud_label: Label = %BoostHudLabel
 @onready var scroll_up_btn: Button = %ScrollUpButton
 @onready var scroll_down_btn: Button = %ScrollDownButton
+@onready var content_scroll: ScrollContainer = %ScrollContainer
 @onready var root_container: BoxContainer = %RootContainer
 @onready var left_section: VBoxContainer = %LeftSection
 @onready var right_panel: PanelContainer = %RightPanel
@@ -316,6 +317,8 @@ func _apply_layout() -> void:
 		right_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
 		scroll_up_btn.visible = false
 		scroll_down_btn.visible = false
+		right_panel.custom_minimum_size.y = 0.0
+		content_scroll.custom_minimum_size.y = 0.0
 		title_label.add_theme_font_size_override("font_size", 28)
 		objective_label.add_theme_font_size_override("font_size", 18)
 		for tab_button in [buildings_tab, upgrades_tab, consumables_tab, molt_tab]:
@@ -324,19 +327,23 @@ func _apply_layout() -> void:
 		claw_button.pivot_offset = claw_button.custom_minimum_size * 0.5
 		_layout_corner_buttons(true)
 	else:
-		# Mobile: stacked vertically (VBox), claw compact on top, buildings get more space
+		# Mobile: reserve a real touch-sized inventory drawer. The old UP/DOWN
+		# buttons consumed almost half of the useful list viewport on short phones;
+		# native swipe scrolling is both clearer and substantially easier to use.
 		root_container.vertical = true
-		left_section.size_flags_stretch_ratio = 0.5
-		right_panel.size_flags_stretch_ratio = 1.2
+		left_section.size_flags_stretch_ratio = 0.7
+		right_panel.size_flags_stretch_ratio = 1.3
 		left_section.size_flags_vertical = Control.SIZE_EXPAND_FILL
 		right_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
-		scroll_up_btn.visible = true
-		scroll_down_btn.visible = true
+		right_panel.custom_minimum_size.y = 380.0
+		content_scroll.custom_minimum_size.y = 252.0
+		scroll_up_btn.visible = false
+		scroll_down_btn.visible = false
 		title_label.add_theme_font_size_override("font_size", 18)
 		objective_label.add_theme_font_size_override("font_size", 14)
 		for tab_button in [buildings_tab, upgrades_tab, consumables_tab, molt_tab]:
 			tab_button.add_theme_font_size_override("font_size", 15)
-		claw_button.custom_minimum_size = Vector2(240, 265)
+		claw_button.custom_minimum_size = Vector2(220, 235)
 		claw_button.pivot_offset = claw_button.custom_minimum_size * 0.5
 		_layout_corner_buttons(false)
 	var report_half_width := 220.0 if _is_desktop else maxf(148.0, minf(220.0, float(real_width) * 0.5 - 12.0))

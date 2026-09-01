@@ -1,5 +1,7 @@
 extends Node
 
+signal offline_earnings_calculated(earned: float, elapsed_seconds: float)
+
 const SAVE_KEY := "lobster_clicker_save"
 const BACKUP_KEY := "lobster_clicker_save_backup"
 const SAVE_PATH := "user://save.json"
@@ -9,6 +11,7 @@ const SAVE_INTERVAL := 10.0  # Save every 10 seconds (browsers throttle backgrou
 
 var save_timer: float = 0.0
 var offline_earnings: float = 0.0
+var offline_elapsed_seconds: float = 0.0
 var _test_mode: bool = false
 
 # Must keep references to prevent GC of JS callbacks
@@ -88,11 +91,14 @@ func _calculate_offline_bonus() -> void:
 		var elapsed := now - saved_time
 		if elapsed > 5:
 			var earned := calculate_offline_earnings(GameManager.lobsters_per_second, elapsed, GameManager.get_offline_max_seconds(), GameManager.get_offline_rate())
+			offline_earnings = earned
+			offline_elapsed_seconds = minf(float(elapsed), GameManager.get_offline_max_seconds())
 			GameManager.total_lobsters += earned
 			GameManager.lifetime_lobsters += earned
 			GameManager.run_lobsters += earned
 			GameManager.lobsters_changed.emit(GameManager.total_lobsters)
 			GameManager.unlock_offline_achievement()
+			offline_earnings_calculated.emit(earned, offline_elapsed_seconds)
 			# Save the updated total immediately
 			save_game()
 
@@ -145,6 +151,7 @@ func load_game() -> void:
 		var now := int(Time.get_unix_time_from_system())
 		var elapsed := now - saved_time
 		if elapsed > 5 and GameManager.lobsters_per_second > 0:
+			offline_elapsed_seconds = minf(float(elapsed), GameManager.get_offline_max_seconds())
 			offline_earnings = calculate_offline_earnings(GameManager.lobsters_per_second, elapsed, GameManager.get_offline_max_seconds(), GameManager.get_offline_rate())
 			GameManager.total_lobsters += offline_earnings
 			GameManager.lifetime_lobsters += offline_earnings

@@ -10,6 +10,11 @@ const MoltSfx := preload("res://assets/sfx/molt.wav")
 const UiFont := preload("res://assets/fonts/atkinson-hyperlegible/AtkinsonHyperlegible-Regular.ttf")
 const UiBoldFont := preload("res://assets/fonts/atkinson-hyperlegible/AtkinsonHyperlegible-Bold.ttf")
 const DisplayFont := preload("res://assets/fonts/bungee/Bungee-Regular.ttf")
+const ClawPowerIcon := preload("res://assets/art/ui/medallions/claw_power.png")
+const BuildingPowerIcon := preload("res://assets/art/ui/medallions/building_power.png")
+const OfflinePowerIcon := preload("res://assets/art/ui/medallions/offline_power.png")
+const BoostPowerIcon := preload("res://assets/art/ui/medallions/boost_power.png")
+const AchievementMedalIcon := preload("res://assets/art/ui/medallions/achievement_medal.png")
 const ClawPinchFrames: Array[Texture2D] = [
 	preload("res://assets/art/ui/claw_animation/claw_pinch_0.png"),
 	preload("res://assets/art/ui/claw_animation/claw_pinch_1.png"),
@@ -46,6 +51,8 @@ const MIST_BLUE := Color("#94b8c7")
 @onready var particles: CPUParticles2D = %ClickParticles
 @onready var float_text_container: Node2D = %FloatTextContainer
 @onready var offline_popup: PanelContainer = %OfflinePopup
+@onready var offline_icon: TextureRect = %OfflineIcon
+@onready var offline_title: Label = %OfflineTitle
 @onready var offline_label: Label = %OfflineLabel
 @onready var offline_ok_button: Button = %OfflineOkButton
 @onready var buildings_tab: Button = %BuildingsTab
@@ -150,6 +157,7 @@ func _ready() -> void:
 	GameManager.achievement_unlocked.connect(_on_achievement_unlocked)
 	GameManager.objective_changed.connect(_on_objective_changed)
 	GameManager.molt_completed.connect(_on_molt_completed)
+	SaveManager.offline_earnings_calculated.connect(_show_offline_report)
 	buy_one_button.pressed.connect(func(): GameManager.set_building_purchase_mode(1))
 	buy_ten_button.pressed.connect(func(): GameManager.set_building_purchase_mode(10))
 	buy_max_button.pressed.connect(func(): GameManager.set_building_purchase_mode(-1))
@@ -200,8 +208,7 @@ func _ready() -> void:
 
 	# Show offline popup if needed
 	if SaveManager.offline_earnings > 0:
-		offline_label.text = "Welcome back!\nYou earned %s Lobster Coins\nwhile you were away!" % GameManager.format_number(SaveManager.offline_earnings)
-		offline_popup.visible = true
+		_show_offline_report(SaveManager.offline_earnings, SaveManager.offline_elapsed_seconds)
 	else:
 		offline_popup.visible = false
 
@@ -332,6 +339,11 @@ func _apply_layout() -> void:
 		claw_button.custom_minimum_size = Vector2(240, 265)
 		claw_button.pivot_offset = claw_button.custom_minimum_size * 0.5
 		_layout_corner_buttons(false)
+	var report_half_width := 220.0 if _is_desktop else maxf(148.0, minf(220.0, float(real_width) * 0.5 - 12.0))
+	offline_popup.offset_left = -report_half_width
+	offline_popup.offset_right = report_half_width
+	offline_popup.offset_top = -172.0
+	offline_popup.offset_bottom = 172.0
 
 func _layout_corner_buttons(desktop: bool) -> void:
 	# On desktop, keep mute inside the left play panel so it never covers the
@@ -524,6 +536,17 @@ func _install_visual_polish() -> void:
 		var display_label := find_child(display_label_name, true, false) as Label
 		if display_label:
 			display_label.add_theme_font_override("font", DisplayFont)
+	offline_title.add_theme_font_override("font", DisplayFont)
+	var offline_style := _make_style(Color("#071725", 0.985), Color("#1dd9f2"), 14, 2)
+	offline_style.content_margin_left = 20.0
+	offline_style.content_margin_right = 20.0
+	offline_style.content_margin_top = 16.0
+	offline_style.content_margin_bottom = 16.0
+	offline_style.shadow_color = Color("#1dd9f2", 0.22)
+	offline_style.shadow_size = 12
+	offline_popup.add_theme_stylebox_override("panel", offline_style)
+	offline_ok_button.add_theme_stylebox_override("normal", _make_style(LOBSTER_CORAL.darkened(0.18), SHELL_HIGHLIGHT, 8, 2))
+	offline_ok_button.add_theme_stylebox_override("hover", _make_style(LOBSTER_CORAL, COIN_GOLD, 8, 2))
 
 	var tab_normal := _make_style(Color("#0b2130"), Color("#23495b"), 6)
 	var tab_hover := _make_style(Color("#173b4d"), Color("#3a7180"), 6)
@@ -846,6 +869,30 @@ func _pulse_score_panel() -> void:
 func _on_offline_ok() -> void:
 	offline_popup.visible = false
 
+func _format_shift_duration(seconds: float) -> String:
+	var total_minutes := maxi(1, int(round(seconds / 60.0)))
+	var hours := total_minutes / 60
+	var minutes := total_minutes % 60
+	if hours > 0 and minutes > 0:
+		return "%dh %dm" % [hours, minutes]
+	if hours > 0:
+		return "%dh" % hours
+	return "%dm" % minutes
+
+func _show_offline_report(earned: float, elapsed_seconds: float) -> void:
+	if earned <= 0.0:
+		return
+	offline_icon.texture = OfflinePowerIcon
+	offline_title.text = "NIGHT SHIFT REPORT"
+	offline_label.text = "YOUR CREW KEPT THE HARBOR RUNNING\n\n+%s LOBSTER COINS\n%s worked  ·  %d%% efficiency\nCurrent fleet: %s LCPS" % [
+		GameManager.format_number(earned),
+		_format_shift_duration(elapsed_seconds),
+		int(round(GameManager.get_offline_rate() * 100.0)),
+		GameManager.format_number(GameManager.lobsters_per_second),
+	]
+	offline_popup.visible = true
+	offline_popup.move_to_front()
+
 # --- Farm Name ---
 
 func _on_farm_name_clicked() -> void:
@@ -889,12 +936,13 @@ func _update_bulk_buy_styles(mode: int) -> void:
 
 func _on_achievement_unlocked(id: String, title: String, desc: String) -> void:
 	_play_sfx(DiscoSfx if id == "disco_lobster" else AchievementSfx)
-	_show_toast("ACHIEVEMENT  •  %s" % title.to_upper(), desc)
+	var is_harbor_milestone := id in ["harbor_lights", "neon_empire", "full_harbor", "century_wharf"]
+	_show_toast(("HARBOR MILESTONE" if is_harbor_milestone else "ACHIEVEMENT") + "  •  %s" % title.to_upper(), desc, AchievementMedalIcon)
 	if not GameManager.reduced_motion:
-		_spawn_arcade_sparks(self, get_viewport_rect().size * Vector2(0.5, 0.18), 18, [COIN_GOLD, SEAFOAM, LOBSTER_CORAL], 150.0)
+		_spawn_arcade_sparks(self, get_viewport_rect().size * Vector2(0.5, 0.18), 28 if is_harbor_milestone else 18, [COIN_GOLD, SEAFOAM, LOBSTER_CORAL], 190.0 if is_harbor_milestone else 150.0)
 		_pulse_score_panel()
 
-func _show_toast(title: String, desc: String) -> void:
+func _show_toast(title: String, desc: String, icon: Texture2D = AchievementMedalIcon) -> void:
 	if _toast_panel and is_instance_valid(_toast_panel):
 		_toast_panel.queue_free()
 	_toast_panel = PanelContainer.new()
@@ -902,7 +950,7 @@ func _show_toast(title: String, desc: String) -> void:
 	_toast_panel.set_anchors_preset(Control.PRESET_CENTER_TOP)
 	var toast_width := minf(380.0, get_viewport_rect().size.x - 24.0)
 	_toast_panel.position = Vector2(-toast_width / 2.0, 18)
-	_toast_panel.custom_minimum_size = Vector2(toast_width, 88)
+	_toast_panel.custom_minimum_size = Vector2(toast_width, 98)
 	var style := StyleBoxFlat.new()
 	style.bg_color = Color(0.08, 0.12, 0.22, 0.97)
 	style.border_width_left = 2
@@ -919,7 +967,17 @@ func _show_toast(title: String, desc: String) -> void:
 	style.content_margin_top = 10.0
 	style.content_margin_bottom = 10.0
 	_toast_panel.add_theme_stylebox_override("panel", style)
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 10)
+	var icon_rect := TextureRect.new()
+	icon_rect.texture = icon
+	icon_rect.custom_minimum_size = Vector2(64, 64)
+	icon_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	icon_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	icon_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_child(icon_rect)
 	var box := VBoxContainer.new()
+	box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var title_label := Label.new()
 	title_label.text = title
 	title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -934,7 +992,8 @@ func _show_toast(title: String, desc: String) -> void:
 	desc_label.add_theme_font_size_override("font_size", 14)
 	box.add_child(title_label)
 	box.add_child(desc_label)
-	_toast_panel.add_child(box)
+	row.add_child(box)
+	_toast_panel.add_child(row)
 	add_child(_toast_panel)
 	if GameManager.reduced_motion:
 		_toast_panel.modulate.a = 1.0
@@ -1870,7 +1929,7 @@ func _show_premium_options(options: Array) -> void:
 
 func _create_option_card(boost: Dictionary) -> PanelContainer:
 	var card := PanelContainer.new()
-	card.custom_minimum_size.y = 132.0
+	card.custom_minimum_size.y = 156.0
 	var rarity: String = boost["rarity"]
 	var rarity_color := Color(GameManager.RARITY_COLORS[rarity])
 
@@ -1895,6 +1954,19 @@ func _create_option_card(boost: Dictionary) -> PanelContainer:
 	vbox.add_theme_constant_override("separation", 4)
 	card.add_child(vbox)
 
+	var header_row := HBoxContainer.new()
+	header_row.add_theme_constant_override("separation", 10)
+	var card_icon := TextureRect.new()
+	card_icon.texture = _card_icon_for_boost(boost)
+	card_icon.custom_minimum_size = Vector2(58, 58)
+	card_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	card_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	header_row.add_child(card_icon)
+	var header_copy := VBoxContainer.new()
+	header_copy.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	header_row.add_child(header_copy)
+	vbox.add_child(header_row)
+
 	# Rarity badge
 	var rarity_lbl := Label.new()
 	var rarity_display := rarity.to_upper()
@@ -1902,7 +1974,7 @@ func _create_option_card(boost: Dictionary) -> PanelContainer:
 	rarity_lbl.add_theme_color_override("font_color", rarity_color)
 	rarity_lbl.add_theme_font_override("font", UiBoldFont)
 	rarity_lbl.add_theme_font_size_override("font_size", 12)
-	vbox.add_child(rarity_lbl)
+	header_copy.add_child(rarity_lbl)
 
 	# Name
 	var name_lbl := Label.new()
@@ -1910,7 +1982,7 @@ func _create_option_card(boost: Dictionary) -> PanelContainer:
 	name_lbl.add_theme_color_override("font_color", rarity_color)
 	name_lbl.add_theme_font_override("font", UiBoldFont)
 	name_lbl.add_theme_font_size_override("font_size", 20)
-	vbox.add_child(name_lbl)
+	header_copy.add_child(name_lbl)
 
 	# Description
 	var desc_lbl := Label.new()
@@ -1952,6 +2024,17 @@ func _create_option_card(boost: Dictionary) -> PanelContainer:
 	vbox.add_child(select_btn)
 
 	return card
+
+func _card_icon_for_boost(boost: Dictionary) -> Texture2D:
+	match str(boost.get("type", "")):
+		"click_mult":
+			return ClawPowerIcon
+		"building_mult", "single_building_boost", "free_building":
+			return BuildingPowerIcon
+		"flat_lcps":
+			return OfflinePowerIcon
+		_:
+			return BoostPowerIcon
 
 func _on_premium_option_selected(boost: Dictionary) -> void:
 	if GameManager.activate_premium_boost(boost):

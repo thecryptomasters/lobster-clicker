@@ -551,6 +551,7 @@ func buy_building(index: int) -> bool:
 	_unlock_achievement("tiny_fleet", "Tiny Fleet", "Your first automated collector is on deck.")
 	if building_counts[index] >= 10:
 		_unlock_achievement("ten_on_deck", "Ten on Deck", "Ten %s are working the waters." % building_defs[index]["name"])
+	_check_harbor_empire_milestones()
 	# Check if a new upgrade threshold was crossed
 	for tier in range(UPGRADE_THRESHOLDS.size()):
 		if old_count < UPGRADE_THRESHOLDS[tier] and building_counts[index] >= UPGRADE_THRESHOLDS[tier]:
@@ -558,6 +559,22 @@ func buy_building(index: int) -> bool:
 	transaction_completed.emit()
 	_emit_objective()
 	return true
+
+func _check_harbor_empire_milestones() -> void:
+	var active_landmarks := 0
+	var total_buildings := 0
+	for count in building_counts:
+		total_buildings += count
+		if count > 0:
+			active_landmarks += 1
+	if active_landmarks >= 4:
+		_unlock_achievement("harbor_lights", "Harbor Lights", "Four businesses now glow along the waterfront.")
+	if active_landmarks >= 7:
+		_unlock_achievement("neon_empire", "Neon Empire", "The midnight harbor has become an economic spectacle.")
+	if active_landmarks >= building_defs.size():
+		_unlock_achievement("full_harbor", "Full Harbor", "Every corner of the lobster empire is online.")
+	if total_buildings >= 100:
+		_unlock_achievement("century_wharf", "Century Wharf", "One hundred operations are working the water.")
 
 func _recalculate_lps() -> void:
 	lobsters_per_second = 0.0
@@ -879,6 +896,7 @@ func activate_premium_boost(boost: Dictionary) -> bool:
 		_recalculate_lps()
 		_set_cooldown(get_gacha_cooldown())
 		building_purchased.emit(bi)
+		_check_harbor_empire_milestones()
 		for tier in range(UPGRADE_THRESHOLDS.size()):
 			if old_count < UPGRADE_THRESHOLDS[tier] and building_counts[bi] >= UPGRADE_THRESHOLDS[tier]:
 				upgrade_unlocked.emit(bi, tier)

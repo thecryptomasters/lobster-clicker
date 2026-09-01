@@ -1,5 +1,10 @@
 extends PanelContainer
 
+const ClawPowerIcon := preload("res://assets/art/ui/medallions/claw_power.png")
+const BuildingPowerIcon := preload("res://assets/art/ui/medallions/building_power.png")
+const OfflinePowerIcon := preload("res://assets/art/ui/medallions/offline_power.png")
+const BoostPowerIcon := preload("res://assets/art/ui/medallions/boost_power.png")
+
 var building_index: int = 0
 var tier: int = 0
 var is_purchased: bool = false
@@ -9,6 +14,7 @@ var is_purchased: bool = false
 @onready var cost_label: Label = %CostLabel
 @onready var buy_button: Button = %BuyButton
 @onready var type_badge: Label = %TypeBadge
+@onready var icon_texture: TextureRect = %IconTexture
 
 var _affordable_style: StyleBoxFlat
 var _unaffordable_style: StyleBoxFlat
@@ -173,6 +179,7 @@ func setup_cps_click_upgrade(index: int, purchased: bool) -> void:
 		_refresh_cps_click_upgrade()
 
 func _refresh() -> void:
+	icon_texture.texture = BuildingPowerIcon
 	var tier_names := ["I", "II", "III", "IV"]
 	type_badge.text = "TIER %s" % tier_names[tier]
 	_set_badge_accent(Color("#ffd166"))
@@ -230,6 +237,7 @@ func _set_card_state(affordable: bool, owned: bool) -> void:
 		add_theme_stylebox_override("panel", _card_style)
 
 func _refresh_click_upgrade() -> void:
+	icon_texture.texture = ClawPowerIcon
 	type_badge.text = "CLAW"
 	_set_badge_accent(Color("#ff846b"))
 	var def: Dictionary = GameManager.click_upgrade_defs[click_upgrade_index]
@@ -251,6 +259,7 @@ func _refresh_click_upgrade() -> void:
 		_update_buy_button_style()
 
 func _refresh_cps_click_upgrade() -> void:
+	icon_texture.texture = ClawPowerIcon
 	type_badge.text = "POWER"
 	_set_badge_accent(Color("#ffd166"))
 	var def: Dictionary = GameManager.cps_click_upgrade_defs[cps_click_upgrade_index]
@@ -290,6 +299,7 @@ func _update_cps_click_button_style() -> void:
 		buy_button.add_theme_stylebox_override("disabled", _unaffordable_style)
 
 func _refresh_hold_click_upgrade() -> void:
+	icon_texture.texture = ClawPowerIcon
 	type_badge.text = "AUTO"
 	_set_badge_accent(Color("#1dd9f2"))
 	var def: Dictionary = GameManager.hold_click_defs[hold_click_upgrade_index]
@@ -329,6 +339,7 @@ func _update_hold_click_button_style() -> void:
 		buy_button.add_theme_stylebox_override("disabled", _unaffordable_style)
 
 func _refresh_gacha_cd_upgrade() -> void:
+	icon_texture.texture = BoostPowerIcon
 	type_badge.text = "BOOST"
 	_set_badge_accent(Color("#a56de2"))
 	var def: Dictionary = GameManager.gacha_cooldown_upgrade_defs[gacha_cd_upgrade_index]
@@ -368,6 +379,7 @@ func _update_gacha_cd_button_style() -> void:
 		buy_button.add_theme_stylebox_override("disabled", _unaffordable_style)
 
 func _refresh_offline_rate_upgrade() -> void:
+	icon_texture.texture = OfflinePowerIcon
 	type_badge.text = "TIDE"
 	_set_badge_accent(Color("#55d6be"))
 	var def: Dictionary = GameManager.offline_rate_defs[offline_rate_upgrade_index]
@@ -407,6 +419,7 @@ func _update_offline_rate_button_style() -> void:
 		buy_button.add_theme_stylebox_override("disabled", _unaffordable_style)
 
 func _refresh_offline_duration_upgrade() -> void:
+	icon_texture.texture = OfflinePowerIcon
 	type_badge.text = "TIME"
 	_set_badge_accent(Color("#94b8c7"))
 	var def: Dictionary = GameManager.offline_duration_defs[offline_duration_upgrade_index]

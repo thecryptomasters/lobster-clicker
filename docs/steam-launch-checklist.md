@@ -27,13 +27,13 @@ Steam's timing gates may overlap. The honest launch date is the latest of the po
 
 ## 3. Visual polish and store-ready presentation
 
-- [~] Establish the final visual direction in `docs/visual-polish-brief.md`.
-- [ ] Apply the approved palette, typography, UI panels, buttons, tabs, and information hierarchy.
-- [ ] Replace or polish the hero lobster/claw artwork and key animations.
-- [ ] Add coherent building, upgrade, card, achievement, and Molting iconography.
-- [ ] Complete the background/environment and late-game visual treatment.
-- [ ] Capture final gameplay-only screenshots after visual polish is implemented.
-- [ ] Produce every required Steam capsule/library asset with a readable Lobster Clicker title or logo.
+- [x] Establish the final visual direction in `docs/visual-polish-brief.md`.
+- [x] Apply the approved palette, typography, UI panels, buttons, tabs, and information hierarchy.
+- [x] Replace or polish the hero lobster/claw artwork and key animations.
+- [x] Add coherent building, upgrade, card, achievement, and Molting iconography.
+- [x] Complete the background/environment and late-game visual treatment.
+- [x] Capture six final gameplay-only 1920×1080 screenshots after visual polish is implemented.
+- [x] Produce every required Steam capsule/library asset with a readable Lobster Clicker title or logo.
 - [ ] Produce a gameplay trailer only if it improves the page; it is not required for the POC.
 
 ## 4. Windows build and SteamPipe

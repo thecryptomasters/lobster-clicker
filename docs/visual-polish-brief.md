@@ -6,7 +6,7 @@ Last updated: 2026-09-01
 
 Turn the stable prototype into a distinctive small premium Steam game: playful, nautical, readable, and satisfying without looking like a casino, ad-driven mobile game, or generic dashboard.
 
-Working direction: **Midnight Lobster Harbor** — a cozy after-dark fishing port crossed with a slightly ridiculous arcade machine.
+Final direction: **Polished Neo-80s Seaside Arcade** — a cozy Midnight Lobster Harbor crossed with a slightly ridiculous premium arcade machine.
 
 ## Visual principles
 
@@ -38,7 +38,7 @@ All text/background pairs must retain strong contrast. Color is never the only s
 - Large-number suffixes, LCPS, costs, and counts must remain unambiguous at mobile sizes.
 - Final fonts must ship locally with documented commercial redistribution rights, preferably OFL.
 
-Candidate pairing for the first mockup: **Bungee** for display moments and **Atkinson Hyperlegible** for UI/body. Do not add font files until the direction is approved and licenses are included.
+Final pairing: **Bungee** for display moments and **Atkinson Hyperlegible** for UI/body. Both ship locally with their OFL licenses documented.
 
 ## Vertical-slice scope
 
@@ -53,6 +53,8 @@ Polish these surfaces first before applying the system everywhere:
 
 Approval of this slice freezes the design system for the rest of the game.
 
+The slice and full application pass were approved iteratively on 2026-09-01. The launch-candidate freeze is recorded in `docs/visual-freeze-checklist.md`.
+
 ## Art and motion targets
 
 - Replace the current flat geometric lobster with a more expressive illustrated lobster while preserving a large, obvious hit target.
@@ -65,6 +67,8 @@ Approval of this slice freezes the design system for the rest of the game.
 ## Store-art bridge
 
 The in-game hero lobster, logo treatment, palette, and harbor environment should directly generate the Steam capsule family. Store art must represent the shipped game and keep the title readable at small capsule sizes.
+
+The completed capsule/library family is under `steam/assets/final/`; six direct 1920×1080 gameplay captures are under `steam/screenshots/`.
 
 ## Explicit non-goals for this phase
 

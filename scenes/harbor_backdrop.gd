@@ -9,6 +9,7 @@ const GOLD := Color("#ffd166")
 const CORAL := Color("#e9553f")
 const CYAN := Color("#1dd9f2")
 const SEAFOAM := Color("#55d6be")
+const HARBOR_HAZE := Color("#153f4f")
 
 var _elapsed := 0.0
 
@@ -30,6 +31,10 @@ func _draw() -> void:
 	# Broad horizontal bands give the harbor depth without competing with UI.
 	draw_rect(Rect2(Vector2.ZERO, size), SKY)
 	var horizon_y := size.y * 0.55
+	for band_index in range(5):
+		var band_height := size.y * 0.075
+		var band_y := horizon_y - band_height * float(5 - band_index)
+		draw_rect(Rect2(0.0, band_y, size.x, band_height + 1.0), Color(HARBOR_HAZE, 0.025 + float(band_index) * 0.018))
 	draw_rect(Rect2(0, horizon_y, size.x, size.y - horizon_y), WATER)
 	draw_rect(Rect2(0, horizon_y - 2.0, size.x, 3.0), HORIZON)
 
@@ -45,6 +50,20 @@ func _draw() -> void:
 		var star_y := size.y * (0.10 + float((star_index * 7) % 17) * 0.012)
 		var twinkle := 0.42 + 0.36 * (0.5 + 0.5 * sin(motion_time * 1.7 + float(star_index)))
 		draw_circle(Vector2(star_x, star_y), 1.2 + float(star_index % 2), Color(CYAN, twinkle))
+	if size.x >= 700.0:
+		# Tiny gull silhouettes keep the sky nautical without turning it into a focal point.
+		for gull_index in range(2):
+			var gull_origin := Vector2(size.x * (0.30 + float(gull_index) * 0.055), size.y * (0.22 + float(gull_index) * 0.035))
+			draw_line(gull_origin + Vector2(-5.0, 1.5), gull_origin, Color("#8db3be", 0.36), 1.4)
+			draw_line(gull_origin, gull_origin + Vector2(5.0, 1.5), Color("#8db3be", 0.36), 1.4)
+
+	# A second shoreline layer softens the jump from open sky to the working harbor.
+	var headland := PackedVector2Array([
+		Vector2(size.x * 0.30, horizon_y), Vector2(size.x * 0.35, horizon_y - 16.0),
+		Vector2(size.x * 0.40, horizon_y - 26.0), Vector2(size.x * 0.46, horizon_y - 12.0),
+		Vector2(size.x * 0.52, horizon_y),
+	])
+	draw_colored_polygon(headland, Color("#0a202d"))
 
 	# Distant waterfront silhouettes and blinking warm windows.
 	var skyline: Array[Vector2] = [
@@ -58,7 +77,33 @@ func _draw() -> void:
 	var window_ratios := [0.035, 0.105, 0.205, 0.315]
 	for light_index in range(window_ratios.size()):
 		var pulse := 0.62 + 0.38 * (0.5 + 0.5 * sin(motion_time * 1.2 + float(light_index) * 1.9))
-		draw_circle(Vector2(size.x * float(window_ratios[light_index]), horizon_y - 24.0), 2.5, Color(GOLD, pulse))
+		var light_x := size.x * float(window_ratios[light_index])
+		draw_circle(Vector2(light_x, horizon_y - 24.0), 2.5, Color(GOLD, pulse))
+		# Broken vertical reflections make every dock light feel seated in the water.
+		for reflection_index in range(3):
+			var reflection_y := horizon_y + 8.0 + float(reflection_index) * 10.0
+			var reflection_width := 8.0 + float(reflection_index) * 5.0
+			draw_line(Vector2(light_x - reflection_width * 0.5, reflection_y), Vector2(light_x + reflection_width * 0.5, reflection_y), Color(GOLD, pulse * (0.22 - float(reflection_index) * 0.045)), 1.4)
+
+	# The lighthouse gives the horizon a quiet animated landmark and a faint beacon sweep.
+	var lighthouse_x := size.x * (0.82 if size.x < 700.0 else 0.42)
+	var lighthouse_base_y := horizon_y - 2.0
+	var lighthouse_top := lighthouse_base_y - clampf(size.y * 0.10, 34.0, 62.0)
+	draw_colored_polygon(PackedVector2Array([
+		Vector2(lighthouse_x - 8.0, lighthouse_base_y), Vector2(lighthouse_x + 8.0, lighthouse_base_y),
+		Vector2(lighthouse_x + 4.5, lighthouse_top), Vector2(lighthouse_x - 4.5, lighthouse_top),
+	]), Color("#dbe8e6"))
+	draw_rect(Rect2(lighthouse_x - 5.0, lighthouse_top + 13.0, 10.0, 5.0), CORAL.darkened(0.12))
+	draw_rect(Rect2(lighthouse_x - 7.0, lighthouse_top - 6.0, 14.0, 7.0), DOCK)
+	draw_line(Vector2(lighthouse_x - 9.0, lighthouse_top - 7.0), Vector2(lighthouse_x + 9.0, lighthouse_top - 7.0), CORAL, 2.0)
+	var beacon_origin := Vector2(lighthouse_x, lighthouse_top - 3.0)
+	var sweep_direction := Vector2(-1.0, sin(motion_time * 0.42) * 0.30).normalized()
+	var beacon_length := clampf(size.x * 0.18, 90.0, 260.0)
+	var beacon_end := beacon_origin + sweep_direction * beacon_length
+	var beacon_normal := Vector2(-sweep_direction.y, sweep_direction.x) * 12.0
+	draw_colored_polygon(PackedVector2Array([beacon_origin, beacon_end + beacon_normal, beacon_end - beacon_normal]), Color(GOLD, 0.035))
+	var beacon_alpha := 0.66 + 0.34 * (0.5 + 0.5 * sin(motion_time * 2.0))
+	draw_circle(beacon_origin, 3.0, Color(GOLD, beacon_alpha))
 
 	# Water highlights continuously drift and shimmer across the harbor.
 	for i in range(7):
@@ -84,6 +129,8 @@ func _draw() -> void:
 	var boat_light_alpha := 0.58 + 0.42 * (0.5 + 0.5 * sin(motion_time * 2.3))
 	draw_circle(Vector2(boat_x + 1.0, boat_y - 24.0), 2.7, Color(GOLD, boat_light_alpha))
 	draw_line(Vector2(boat_x - 20.0, boat_y + 13.0), Vector2(boat_x + 22.0, boat_y + 13.0), Color(CYAN, 0.28), 2.0)
+	draw_line(Vector2(boat_x - 28.0, boat_y + 10.0), Vector2(boat_x - 52.0, boat_y + 14.0), Color(SEAFOAM, 0.17), 1.5)
+	draw_line(Vector2(boat_x - 31.0, boat_y + 14.0), Vector2(boat_x - 65.0, boat_y + 20.0), Color(CYAN, 0.10), 1.0)
 
 	# Bobbing arcade buoys anchor the foreground water.
 	for buoy_index in range(3):
@@ -103,7 +150,21 @@ func _draw() -> void:
 
 	# Foreground dock posts frame the click zone at large sizes.
 	if size.x >= 700.0:
+		var dock_post_positions: Array[float] = []
 		for ratio in [0.045, 0.405]:
 			var x: float = size.x * float(ratio)
+			dock_post_positions.append(x + 6.0)
 			draw_rect(Rect2(x, size.y * 0.74, 12.0, size.y * 0.26), DOCK)
 			draw_circle(Vector2(x + 6.0, size.y * 0.74), 8.0, CORAL.darkened(0.48))
+			draw_line(Vector2(x + 3.0, size.y * 0.77), Vector2(x + 3.0, size.y * 0.98), Color("#244352", 0.34), 2.0)
+		# A sagging mooring rope frames the interaction space like a tiny arcade diorama.
+		var rope_y := size.y * 0.765
+		var rope_points := 18
+		for rope_index in range(rope_points):
+			var rope_t := float(rope_index) / float(rope_points - 1)
+			var next_t := float(rope_index + 1) / float(rope_points - 1)
+			if rope_index == rope_points - 1:
+				break
+			var rope_start := Vector2(lerpf(dock_post_positions[0], dock_post_positions[1], rope_t), rope_y + sin(rope_t * PI) * 24.0)
+			var rope_end := Vector2(lerpf(dock_post_positions[0], dock_post_positions[1], next_t), rope_y + sin(next_t * PI) * 24.0)
+			draw_line(rope_start, rope_end, Color("#815d3d", 0.60), 2.2)

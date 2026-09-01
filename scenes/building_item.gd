@@ -7,6 +7,9 @@ const BUILDING_ICONS: Array[Texture2D] = [
 	preload("res://assets/art/buildings/seafood_restaurant.png"),
 	preload("res://assets/art/buildings/lobster_anime.png"),
 	preload("res://assets/art/buildings/bitclaw.png"),
+	preload("res://assets/art/buildings/clamazon.png"),
+	preload("res://assets/art/buildings/lobster_ai.png"),
+	preload("res://assets/art/buildings/immortality.png"),
 ]
 
 var building_index: int = 0

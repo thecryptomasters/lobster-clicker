@@ -14,6 +14,8 @@ var _affordable_style: StyleBoxFlat
 var _unaffordable_style: StyleBoxFlat
 var _owned_style: StyleBoxFlat
 var _card_style: StyleBoxFlat
+var _card_affordable_style: StyleBoxFlat
+var _card_owned_style: StyleBoxFlat
 var _badge_style: StyleBoxFlat
 
 func _ready() -> void:
@@ -74,6 +76,18 @@ func _ready() -> void:
 	_card_style.content_margin_top = 8.0
 	_card_style.content_margin_bottom = 8.0
 	add_theme_stylebox_override("panel", _card_style)
+
+	_card_affordable_style = _card_style.duplicate() as StyleBoxFlat
+	_card_affordable_style.bg_color = Color("#102d3b")
+	_card_affordable_style.border_width_left = 3
+	_card_affordable_style.border_color = Color("#55d6be")
+	_card_affordable_style.shadow_color = Color(0.11, 0.85, 0.95, 0.16)
+	_card_affordable_style.shadow_size = 4
+
+	_card_owned_style = _card_style.duplicate() as StyleBoxFlat
+	_card_owned_style.bg_color = Color("#102f2d")
+	_card_owned_style.border_width_left = 3
+	_card_owned_style.border_color = Color("#55d6be")
 
 	_badge_style = StyleBoxFlat.new()
 	_badge_style.bg_color = Color("#071725")
@@ -159,8 +173,9 @@ func setup_cps_click_upgrade(index: int, purchased: bool) -> void:
 		_refresh_cps_click_upgrade()
 
 func _refresh() -> void:
-	type_badge.text = "TIER"
 	var tier_names := ["I", "II", "III", "IV"]
+	type_badge.text = "TIER %s" % tier_names[tier]
+	_set_badge_accent(Color("#ffd166"))
 	var def: Dictionary = GameManager.building_defs[building_index]
 	name_label.text = "%s Tier %s" % [def["name"], tier_names[tier]]
 	var threshold: int = GameManager.UPGRADE_THRESHOLDS[tier]
@@ -169,6 +184,7 @@ func _refresh() -> void:
 	var cost := GameManager.get_upgrade_cost_for(building_index, tier)
 
 	if is_purchased:
+		_set_card_state(false, true)
 		cost_label.text = "OWNED"
 		cost_label.add_theme_color_override("font_color", Color("#66cc88"))
 		buy_button.text = "OWNED \u2713"
@@ -186,6 +202,7 @@ func _update_buy_button_style() -> void:
 	if is_purchased:
 		return
 	var affordable := GameManager.can_afford_building_upgrade(building_index, tier)
+	_set_card_state(affordable, false)
 	buy_button.disabled = not affordable
 	if affordable:
 		buy_button.modulate = Color(1, 1, 1, 1)
@@ -199,12 +216,27 @@ func _update_buy_button_style() -> void:
 		buy_button.add_theme_stylebox_override("pressed", _unaffordable_style)
 		buy_button.add_theme_stylebox_override("disabled", _unaffordable_style)
 
+func _set_badge_accent(color: Color) -> void:
+	_badge_style.border_color = color
+	type_badge.add_theme_color_override("font_color", color)
+	type_badge.add_theme_stylebox_override("normal", _badge_style)
+
+func _set_card_state(affordable: bool, owned: bool) -> void:
+	if owned:
+		add_theme_stylebox_override("panel", _card_owned_style)
+	elif affordable:
+		add_theme_stylebox_override("panel", _card_affordable_style)
+	else:
+		add_theme_stylebox_override("panel", _card_style)
+
 func _refresh_click_upgrade() -> void:
 	type_badge.text = "CLAW"
+	_set_badge_accent(Color("#ff846b"))
 	var def: Dictionary = GameManager.click_upgrade_defs[click_upgrade_index]
 	name_label.text = def["name"]
 	desc_label.text = def["desc"]
 	if is_purchased:
+		_set_card_state(false, true)
 		cost_label.text = "OWNED"
 		cost_label.add_theme_color_override("font_color", Color("#66cc88"))
 		buy_button.text = "OWNED"
@@ -220,10 +252,12 @@ func _refresh_click_upgrade() -> void:
 
 func _refresh_cps_click_upgrade() -> void:
 	type_badge.text = "POWER"
+	_set_badge_accent(Color("#ffd166"))
 	var def: Dictionary = GameManager.cps_click_upgrade_defs[cps_click_upgrade_index]
 	name_label.text = def["name"]
 	desc_label.text = def["desc"]
 	if is_purchased:
+		_set_card_state(false, true)
 		cost_label.text = "OWNED"
 		cost_label.add_theme_color_override("font_color", Color("#66cc88"))
 		buy_button.text = "OWNED"
@@ -241,6 +275,7 @@ func _update_cps_click_button_style() -> void:
 	if is_purchased:
 		return
 	var affordable := GameManager.can_afford_cps_click_upgrade(cps_click_upgrade_index)
+	_set_card_state(affordable, false)
 	buy_button.disabled = not affordable
 	if affordable:
 		buy_button.modulate = Color(1, 1, 1, 1)
@@ -256,10 +291,12 @@ func _update_cps_click_button_style() -> void:
 
 func _refresh_hold_click_upgrade() -> void:
 	type_badge.text = "AUTO"
+	_set_badge_accent(Color("#1dd9f2"))
 	var def: Dictionary = GameManager.hold_click_defs[hold_click_upgrade_index]
 	name_label.text = def["name"]
 	desc_label.text = def["desc"]
 	if is_purchased:
+		_set_card_state(false, true)
 		cost_label.text = "OWNED"
 		cost_label.add_theme_color_override("font_color", Color("#66cc88"))
 		buy_button.text = "OWNED"
@@ -277,6 +314,7 @@ func _update_hold_click_button_style() -> void:
 	if is_purchased:
 		return
 	var affordable := GameManager.can_afford_hold_click_upgrade(hold_click_upgrade_index)
+	_set_card_state(affordable, false)
 	buy_button.disabled = not affordable
 	if affordable:
 		buy_button.modulate = Color(1, 1, 1, 1)
@@ -292,10 +330,12 @@ func _update_hold_click_button_style() -> void:
 
 func _refresh_gacha_cd_upgrade() -> void:
 	type_badge.text = "BOOST"
+	_set_badge_accent(Color("#a56de2"))
 	var def: Dictionary = GameManager.gacha_cooldown_upgrade_defs[gacha_cd_upgrade_index]
 	name_label.text = def["name"]
 	desc_label.text = def["desc"]
 	if is_purchased:
+		_set_card_state(false, true)
 		cost_label.text = "OWNED"
 		cost_label.add_theme_color_override("font_color", Color("#66cc88"))
 		buy_button.text = "OWNED"
@@ -313,6 +353,7 @@ func _update_gacha_cd_button_style() -> void:
 	if is_purchased:
 		return
 	var affordable := GameManager.can_afford_gacha_cooldown_upgrade(gacha_cd_upgrade_index)
+	_set_card_state(affordable, false)
 	buy_button.disabled = not affordable
 	if affordable:
 		buy_button.modulate = Color(1, 1, 1, 1)
@@ -328,10 +369,12 @@ func _update_gacha_cd_button_style() -> void:
 
 func _refresh_offline_rate_upgrade() -> void:
 	type_badge.text = "TIDE"
+	_set_badge_accent(Color("#55d6be"))
 	var def: Dictionary = GameManager.offline_rate_defs[offline_rate_upgrade_index]
 	name_label.text = def["name"]
 	desc_label.text = def["desc"]
 	if is_purchased:
+		_set_card_state(false, true)
 		cost_label.text = "OWNED"
 		cost_label.add_theme_color_override("font_color", Color("#66cc88"))
 		buy_button.text = "OWNED"
@@ -349,6 +392,7 @@ func _update_offline_rate_button_style() -> void:
 	if is_purchased:
 		return
 	var affordable := GameManager.can_afford_offline_rate_upgrade(offline_rate_upgrade_index)
+	_set_card_state(affordable, false)
 	buy_button.disabled = not affordable
 	if affordable:
 		buy_button.modulate = Color(1, 1, 1, 1)
@@ -364,10 +408,12 @@ func _update_offline_rate_button_style() -> void:
 
 func _refresh_offline_duration_upgrade() -> void:
 	type_badge.text = "TIME"
+	_set_badge_accent(Color("#94b8c7"))
 	var def: Dictionary = GameManager.offline_duration_defs[offline_duration_upgrade_index]
 	name_label.text = def["name"]
 	desc_label.text = def["desc"]
 	if is_purchased:
+		_set_card_state(false, true)
 		cost_label.text = "OWNED"
 		cost_label.add_theme_color_override("font_color", Color("#66cc88"))
 		buy_button.text = "OWNED"
@@ -385,6 +431,7 @@ func _update_offline_duration_button_style() -> void:
 	if is_purchased:
 		return
 	var affordable := GameManager.can_afford_offline_duration_upgrade(offline_duration_upgrade_index)
+	_set_card_state(affordable, false)
 	buy_button.disabled = not affordable
 	if affordable:
 		buy_button.modulate = Color(1, 1, 1, 1)
@@ -449,6 +496,7 @@ func _update_buy_button_style_click() -> void:
 	if is_purchased:
 		return
 	var affordable := GameManager.can_afford_click_upgrade(click_upgrade_index)
+	_set_card_state(affordable, false)
 	buy_button.disabled = not affordable
 	if affordable:
 		buy_button.modulate = Color(1, 1, 1, 1)

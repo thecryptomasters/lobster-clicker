@@ -1361,14 +1361,27 @@ func _refresh_upgrades() -> void:
 
 func _add_collapsible_section(title: String, key: String, color: Color, items: Array) -> void:
 	var is_collapsed: bool = _collapsed_sections.get(key, false)
+	var item_count := items.size()
 
-	# Header button
+	# Cabinet-style section marquee with an at-a-glance item count.
 	var header_btn := Button.new()
-	header_btn.text = ("+ " if is_collapsed else "- ") + title
-	header_btn.flat = true
+	header_btn.text = ("+  " if is_collapsed else "-  ") + title + "  ·  %d" % item_count
+	header_btn.flat = false
 	header_btn.add_theme_color_override("font_color", color)
+	header_btn.add_theme_color_override("font_hover_color", Color.WHITE)
 	header_btn.add_theme_font_size_override("font_size", 18)
 	header_btn.alignment = HORIZONTAL_ALIGNMENT_LEFT
+	var header_style := _make_style(Color("#081a28"), Color(color, 0.72), 5, 1)
+	header_style.border_width_left = 4
+	header_style.content_margin_left = 12.0
+	var header_hover := header_style.duplicate() as StyleBoxFlat
+	header_hover.bg_color = Color("#102d3b")
+	header_hover.border_color = color
+	header_hover.shadow_color = Color(color, 0.16)
+	header_hover.shadow_size = 4
+	header_btn.add_theme_stylebox_override("normal", header_style)
+	header_btn.add_theme_stylebox_override("hover", header_hover)
+	header_btn.add_theme_stylebox_override("pressed", header_hover)
 
 	# Items container
 	var items_box := VBoxContainer.new()
@@ -1378,7 +1391,7 @@ func _add_collapsible_section(title: String, key: String, color: Color, items: A
 	header_btn.pressed.connect(func():
 		_collapsed_sections[key] = not _collapsed_sections.get(key, false)
 		items_box.visible = not _collapsed_sections[key]
-		header_btn.text = ("+ " if _collapsed_sections[key] else "- ") + title)
+		header_btn.text = ("+  " if _collapsed_sections[key] else "-  ") + title + "  ·  %d" % item_count)
 
 	upgrade_container.add_child(header_btn)
 	upgrade_container.add_child(items_box)

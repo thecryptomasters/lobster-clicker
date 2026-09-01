@@ -315,6 +315,17 @@ func _run() -> void:
 	_expect(main_ui.hero_claw.texture != idle_claw_texture, "drawn claw animation replaces the idle artwork with an anticipation frame")
 	main_ui._update_claw_animation(0.07)
 	_expect(main_ui.hero_claw.texture == main_ui.ClawPinchFrames[2], "drawn claw animation reaches its closing frame")
+	for frame_index in [1, 2]:
+		var frame_image: Image = main_ui.ClawPinchFrames[frame_index].get_image()
+		var edge_is_clear := true
+		for x in range(24):
+			for y in range(frame_image.get_height()):
+				if frame_image.get_pixel(x, y).a > 0.01:
+					edge_is_clear = false
+					break
+			if not edge_is_clear:
+				break
+		_expect(edge_is_clear, "claw animation frame %d has no neighboring-sprite artifact on its left edge" % frame_index)
 	main_ui._update_claw_animation(0.25)
 	_expect(main_ui.claw_state == main_ui.ClawState.IDLE, "drawn claw animation returns to idle after recovery")
 	_expect(main_ui.hero_claw.texture == idle_claw_texture, "drawn claw animation restores the idle artwork")

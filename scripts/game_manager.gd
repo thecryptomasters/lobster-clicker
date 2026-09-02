@@ -935,16 +935,16 @@ func activate_premium_boost(boost: Dictionary) -> bool:
 	_emit_objective()
 	return true
 
-func format_number(n: float) -> String:
+func format_number(n: float, preserve_compact_decimals: bool = false) -> String:
 	var absolute := absf(n)
 	if absolute >= 1000000000000000.0:
-		return _format_compact(n / 1000000000000000.0, "Q")
+		return _format_compact(n / 1000000000000000.0, "Q", preserve_compact_decimals)
 	if absolute >= 1000000000000.0:
-		return _format_compact(n / 1000000000000.0, "T")
+		return _format_compact(n / 1000000000000.0, "T", preserve_compact_decimals)
 	if absolute >= 1000000000.0:
-		return _format_compact(n / 1000000000.0, "B")
+		return _format_compact(n / 1000000000.0, "B", preserve_compact_decimals)
 	if absolute >= 1000000.0:
-		return _format_compact(n / 1000000.0, "M")
+		return _format_compact(n / 1000000.0, "M", preserve_compact_decimals)
 	var num := int(floor(n))
 	var s := str(num)
 	var result := ""
@@ -956,9 +956,10 @@ func format_number(n: float) -> String:
 		count += 1
 	return result
 
-func _format_compact(value: float, suffix: String) -> String:
+func _format_compact(value: float, suffix: String, preserve_decimals: bool = false) -> String:
 	var formatted := "%.2f" % value
-	formatted = formatted.trim_suffix("0").trim_suffix("0").trim_suffix(".")
+	if not preserve_decimals:
+		formatted = formatted.trim_suffix("0").trim_suffix("0").trim_suffix(".")
 	return formatted + suffix
 
 func format_rate(n: float) -> String:

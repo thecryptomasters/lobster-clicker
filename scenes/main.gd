@@ -457,7 +457,9 @@ func _layout_corner_buttons(desktop: bool) -> void:
 	mute_button.add_theme_font_size_override("font_size", 13 if desktop else 10)
 
 func _on_lobsters_changed(total: float) -> void:
-	lobster_count_label.text = GameManager.format_number(total)
+	# Keep two visible decimals on abbreviated headline totals so late-game
+	# progress continues to feel alive between major digit changes.
+	lobster_count_label.text = GameManager.format_number(total, true)
 	var shell_word := "Shell" if GameManager.shells == 1 else "Shells"
 	lifetime_label.text = "%s lifetime LC | %d %s" % [GameManager.format_number(GameManager.lifetime_lobsters), GameManager.shells, shell_word]
 

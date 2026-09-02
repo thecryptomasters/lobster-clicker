@@ -23,6 +23,7 @@ func _run() -> void:
 	GameManager.reset_progress()
 	_expect(GameManager.format_rate(0.1) == "0.1", "fractional LCPS remains visible")
 	_expect(GameManager.format_number(1250000.0) == "1.25M", "large values use compact readable notation")
+	_expect(GameManager.format_number(1800000000.0, true) == "1.80B", "headline totals retain two decimals so late-game progress stays visible")
 
 	# Every direct upgrade purchase is atomic: exact debit, reward, and duplicate protection.
 	GameManager.reset_progress()

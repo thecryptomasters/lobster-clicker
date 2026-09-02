@@ -249,8 +249,11 @@ func _run() -> void:
 	main_ui._is_desktop = true
 	main_ui._last_width = 0
 	main_ui._apply_layout()
-	_expect(main_ui.right_panel.custom_minimum_size.y >= 380.0, "mobile inventory drawer reserves enough height for multiple touch targets")
-	_expect(main_ui.content_scroll.custom_minimum_size.y >= 252.0, "mobile inventory list exposes more than two full building rows")
+	_expect(main_ui.right_panel.custom_minimum_size.y >= 280.0, "mobile inventory drawer reserves a useful height without clipping the playfield")
+	_expect(main_ui.content_scroll.custom_minimum_size.y >= 164.0, "mobile inventory list keeps a swipeable touch region on short browsers")
+	_expect(main_ui.right_panel.get_theme_stylebox("panel").bg_color.a >= 0.99, "mobile inventory cabinet is opaque over the painted playfield")
+	_expect(main_ui.content_scroll.get_v_scroll_bar().custom_minimum_size.x >= 18.0, "mobile inventory exposes a comfortable visible scroll handle")
+	_expect(main_ui.building_container.find_child("ScrollEndSpacer", false, false) != null, "building list keeps bottom breathing room above mobile browser chrome")
 	_expect(not main_ui.scroll_up_btn.visible and not main_ui.scroll_down_btn.visible, "mobile inventory uses native swipe scrolling without space-hungry arrow controls")
 	_expect(main_ui.objective_label.autowrap_mode != TextServer.AUTOWRAP_OFF, "long objectives wrap instead of clipping on narrow layouts")
 	main_ui._switch_tab(main_ui.Tab.BUILDINGS)

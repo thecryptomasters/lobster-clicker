@@ -134,6 +134,7 @@ const MOBILE_BREAKPOINT := 700  # Below this width = mobile (vertical stack)
 const DESKTOP_LEFT_PANEL_SHARE := 1.0 / 2.2
 var _is_desktop: bool = true
 var _last_width: int = 0
+var _last_height: int = 0
 
 func _ready() -> void:
 	_install_accessible_focus_theme()
@@ -194,6 +195,10 @@ func _ready() -> void:
 		var item := BuildingItemScene.instantiate()
 		building_container.add_child(item)
 		item.setup(i)
+	_add_scroll_end_spacer(building_container)
+	_add_scroll_end_spacer(consumables_container)
+	_add_scroll_end_spacer(molt_container)
+	_style_inventory_scrollbar()
 
 	# Initial display
 	_on_lobsters_changed(GameManager.total_lobsters)
@@ -272,8 +277,10 @@ func _process(delta: float) -> void:
 	# Check for viewport resize (throttle to every 30 frames to avoid JS overhead)
 	if Engine.get_process_frames() % 30 == 0:
 		var real_width := _get_real_width()
-		if real_width != _last_width:
+		var real_height := _get_real_height()
+		if real_width != _last_width or real_height != _last_height:
 			_last_width = real_width
+			_last_height = real_height
 			_apply_layout()
 
 	_update_claw_animation(delta)
@@ -302,12 +309,21 @@ func _get_real_width() -> int:
 	var win_size := DisplayServer.window_get_size()
 	return win_size.x
 
+func _get_real_height() -> int:
+	# visualViewport follows the actually visible area inside iOS/Discord's
+	# collapsing browser chrome more accurately than window.innerHeight.
+	if OS.has_feature("web"):
+		var h = JavaScriptBridge.eval("Math.round(window.visualViewport ? window.visualViewport.height : window.innerHeight);")
+		if h != null:
+			return int(h)
+	return DisplayServer.window_get_size().y
+
 func _apply_layout() -> void:
 	var real_width := _get_real_width()
+	var real_height := _get_real_height()
+	_last_width = real_width
+	_last_height = real_height
 	var should_be_desktop := real_width >= MOBILE_BREAKPOINT
-
-	if should_be_desktop == _is_desktop and _last_width != 0:
-		return  # No change needed
 
 	_is_desktop = should_be_desktop
 
@@ -322,38 +338,102 @@ func _apply_layout() -> void:
 		scroll_down_btn.visible = false
 		right_panel.custom_minimum_size.y = 0.0
 		content_scroll.custom_minimum_size.y = 0.0
+		title_label.visible = true
+		farm_name_button.visible = true
+		score_header.visible = true
 		title_label.add_theme_font_size_override("font_size", 28)
+		farm_name_button.add_theme_font_size_override("font_size", 18)
+		lobster_count_label.add_theme_font_size_override("font_size", 56)
+		lobster_word.add_theme_font_size_override("font_size", 18)
+		lps_label.add_theme_font_size_override("font_size", 18)
+		lifetime_label.add_theme_font_size_override("font_size", 14)
+		score_header.add_theme_font_size_override("font_size", 13)
+		score_panel.custom_minimum_size.x = 310.0
 		objective_label.add_theme_font_size_override("font_size", 18)
+		objective_label.custom_minimum_size.y = 40.0
 		for tab_button in [buildings_tab, upgrades_tab, consumables_tab, molt_tab]:
 			tab_button.add_theme_font_size_override("font_size", 22)
 		claw_button.custom_minimum_size = Vector2(300, 350)
 		claw_button.pivot_offset = claw_button.custom_minimum_size * 0.5
+		_apply_inventory_panel_style(false)
 		_layout_corner_buttons(true)
 	else:
 		# Mobile: reserve a real touch-sized inventory drawer. The old UP/DOWN
 		# buttons consumed almost half of the useful list viewport on short phones;
 		# native swipe scrolling is both clearer and substantially easier to use.
 		root_container.vertical = true
-		left_section.size_flags_stretch_ratio = 0.7
-		right_panel.size_flags_stretch_ratio = 1.3
+		left_section.size_flags_stretch_ratio = 1.0
+		right_panel.size_flags_stretch_ratio = 1.0
 		left_section.size_flags_vertical = Control.SIZE_EXPAND_FILL
 		right_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
-		right_panel.custom_minimum_size.y = 380.0
-		content_scroll.custom_minimum_size.y = 252.0
+		var drawer_height := clampf(float(real_height) * 0.45, 280.0, 410.0)
+		right_panel.custom_minimum_size.y = drawer_height
+		content_scroll.custom_minimum_size.y = maxf(164.0, drawer_height - 118.0)
 		scroll_up_btn.visible = false
 		scroll_down_btn.visible = false
-		title_label.add_theme_font_size_override("font_size", 18)
-		objective_label.add_theme_font_size_override("font_size", 14)
+		var very_short := real_height < 640
+		var compact := real_height < 760
+		title_label.visible = not very_short
+		farm_name_button.visible = not very_short
+		score_header.visible = not very_short
+		title_label.add_theme_font_size_override("font_size", 16 if compact else 18)
+		farm_name_button.add_theme_font_size_override("font_size", 13 if compact else 15)
+		lobster_count_label.add_theme_font_size_override("font_size", 32 if very_short else (38 if compact else 44))
+		lobster_word.add_theme_font_size_override("font_size", 13 if compact else 15)
+		lps_label.add_theme_font_size_override("font_size", 13 if compact else 15)
+		lifetime_label.add_theme_font_size_override("font_size", 10 if compact else 12)
+		score_header.add_theme_font_size_override("font_size", 10 if compact else 11)
+		score_panel.custom_minimum_size.x = 230.0 if very_short else (270.0 if compact else 292.0)
+		objective_label.add_theme_font_size_override("font_size", 13 if compact else 14)
+		objective_label.custom_minimum_size.y = 44.0
 		for tab_button in [buildings_tab, upgrades_tab, consumables_tab, molt_tab]:
 			tab_button.add_theme_font_size_override("font_size", 15)
-		claw_button.custom_minimum_size = Vector2(220, 235)
+		claw_button.custom_minimum_size = Vector2(145, 150) if very_short else (Vector2(170, 180) if compact else Vector2(205, 220))
 		claw_button.pivot_offset = claw_button.custom_minimum_size * 0.5
+		_apply_inventory_panel_style(true)
 		_layout_corner_buttons(false)
 	var report_half_width := 220.0 if _is_desktop else maxf(148.0, minf(220.0, float(real_width) * 0.5 - 12.0))
 	offline_popup.offset_left = -report_half_width
 	offline_popup.offset_right = report_half_width
 	offline_popup.offset_top = -172.0
 	offline_popup.offset_bottom = 172.0
+
+func _apply_inventory_panel_style(mobile: bool) -> void:
+	# The mobile drawer should read as its own arcade cabinet rather than a
+	# translucent continuation of the painted scene behind the claw.
+	var panel_color := Color("#0a2233") if mobile else Color(0.063, 0.157, 0.228, 0.96)
+	var border_color := Color("#2b8193") if mobile else Color("#345f70")
+	var panel_style := _make_style(panel_color, border_color, 16, 2 if mobile else 1)
+	panel_style.content_margin_left = 12.0 if mobile else 16.0
+	panel_style.content_margin_right = 12.0 if mobile else 16.0
+	panel_style.content_margin_top = 10.0 if mobile else 12.0
+	panel_style.content_margin_bottom = 16.0 if mobile else 12.0
+	if mobile:
+		panel_style.shadow_color = Color(0.0, 0.0, 0.0, 0.55)
+		panel_style.shadow_size = 12
+	right_panel.add_theme_stylebox_override("panel", panel_style)
+
+func _style_inventory_scrollbar() -> void:
+	content_scroll.scroll_deadzone = 6
+	var scrollbar := content_scroll.get_v_scroll_bar()
+	scrollbar.custom_minimum_size.x = 18.0
+	var track := _make_style(Color("#071725"), Color("#1d4657"), 8, 1)
+	var grabber := _make_style(Color("#55d6be"), Color("#9af3e3"), 8, 1)
+	var grabber_hover := _make_style(Color("#ffd166"), Color("#fff0aa"), 8, 1)
+	scrollbar.add_theme_stylebox_override("scroll", track)
+	scrollbar.add_theme_stylebox_override("grabber", grabber)
+	scrollbar.add_theme_stylebox_override("grabber_highlight", grabber_hover)
+	scrollbar.add_theme_stylebox_override("grabber_pressed", grabber_hover)
+
+func _add_scroll_end_spacer(container: VBoxContainer) -> void:
+	var existing := container.find_child("ScrollEndSpacer", false, false)
+	if existing and not existing.is_queued_for_deletion():
+		return
+	var spacer := Control.new()
+	spacer.name = "ScrollEndSpacer"
+	spacer.custom_minimum_size = Vector2(0, 30)
+	spacer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	container.add_child(spacer)
 
 func _layout_corner_buttons(desktop: bool) -> void:
 	# On desktop, keep mute inside the left play panel so it never covers the
@@ -1782,6 +1862,7 @@ func _refresh_upgrades() -> void:
 		empty_label.add_theme_color_override("font_color", Color("#667788"))
 		empty_label.add_theme_font_size_override("font_size", 18)
 		upgrade_container.add_child(empty_label)
+	_add_scroll_end_spacer(upgrade_container)
 
 func _add_collapsible_section(title: String, key: String, color: Color, items: Array) -> void:
 	var is_collapsed: bool = _collapsed_sections.get(key, false)

@@ -1,5 +1,7 @@
 extends Control
 
+const HARBOR_PAINTING := preload("res://assets/art/environment/harbor_diorama.png")
+
 const SKY := Color("#071725")
 const HORIZON := Color("#0d2b3b")
 const WATER := Color("#092332")
@@ -28,23 +30,21 @@ func _draw() -> void:
 	if size.x <= 0.0 or size.y <= 0.0:
 		return
 
-	# Broad horizontal bands give the harbor depth without competing with UI.
+	# The painted diorama supplies the material detail that the hero claw and
+	# building cabinets already have. The right-hand slice intentionally avoids
+	# the trophy claw in the source key art while retaining the lighthouse,
+	# waterfront businesses, reflections, dock clutter, and neon skyline.
 	draw_rect(Rect2(Vector2.ZERO, size), SKY)
+	_draw_painted_diorama(size)
 	var horizon_y := size.y * 0.55
 	for band_index in range(5):
 		var band_height := size.y * 0.075
 		var band_y := horizon_y - band_height * float(5 - band_index)
 		draw_rect(Rect2(0.0, band_y, size.x, band_height + 1.0), Color(HARBOR_HAZE, 0.025 + float(band_index) * 0.018))
-	draw_rect(Rect2(0, horizon_y, size.x, size.y - horizon_y), WATER)
-	draw_rect(Rect2(0, horizon_y - 2.0, size.x, 3.0), HORIZON)
 
 	var motion_time := 0.0 if GameManager.reduced_motion else _elapsed
 
-	# A soft moon and a few restrained arcade stars give the sky depth.
-	var moon_x_ratio := 0.90 if size.x < 700.0 else 0.42
-	var moon_position := Vector2(size.x * moon_x_ratio, size.y * 0.16)
-	draw_circle(moon_position, clampf(size.x * 0.018, 10.0, 23.0), Color("#ffe7a6"))
-	draw_circle(moon_position + Vector2(6.0, -3.0), clampf(size.x * 0.017, 9.0, 22.0), SKY)
+	# Sparse animated stars keep the painting alive without competing with the UI.
 	for star_index in range(7):
 		var star_x := size.x * (0.04 + float(star_index) * 0.062)
 		var star_y := size.y * (0.10 + float((star_index * 7) % 17) * 0.012)
@@ -57,23 +57,7 @@ func _draw() -> void:
 			draw_line(gull_origin + Vector2(-5.0, 1.5), gull_origin, Color("#8db3be", 0.36), 1.4)
 			draw_line(gull_origin, gull_origin + Vector2(5.0, 1.5), Color("#8db3be", 0.36), 1.4)
 
-	# A second shoreline layer softens the jump from open sky to the working harbor.
-	var headland := PackedVector2Array([
-		Vector2(size.x * 0.30, horizon_y), Vector2(size.x * 0.35, horizon_y - 16.0),
-		Vector2(size.x * 0.40, horizon_y - 26.0), Vector2(size.x * 0.46, horizon_y - 12.0),
-		Vector2(size.x * 0.52, horizon_y),
-	])
-	draw_colored_polygon(headland, Color("#0a202d"))
-
-	# Distant waterfront silhouettes and blinking warm windows.
-	var skyline: Array[Vector2] = [
-		Vector2(0, horizon_y), Vector2(0, horizon_y - 44), Vector2(size.x * 0.08, horizon_y - 44),
-		Vector2(size.x * 0.08, horizon_y - 72), Vector2(size.x * 0.17, horizon_y - 72),
-		Vector2(size.x * 0.17, horizon_y - 35), Vector2(size.x * 0.28, horizon_y - 35),
-		Vector2(size.x * 0.28, horizon_y - 58), Vector2(size.x * 0.39, horizon_y - 58),
-		Vector2(size.x * 0.39, horizon_y), Vector2(size.x, horizon_y)
-	]
-	draw_colored_polygon(PackedVector2Array(skyline), DOCK)
+	# Blinking windows and broken reflections sit on top of the painted shops.
 	var window_ratios := [0.035, 0.105, 0.205, 0.315]
 	for light_index in range(window_ratios.size()):
 		var pulse := 0.62 + 0.38 * (0.5 + 0.5 * sin(motion_time * 1.2 + float(light_index) * 1.9))
@@ -84,26 +68,6 @@ func _draw() -> void:
 			var reflection_y := horizon_y + 8.0 + float(reflection_index) * 10.0
 			var reflection_width := 8.0 + float(reflection_index) * 5.0
 			draw_line(Vector2(light_x - reflection_width * 0.5, reflection_y), Vector2(light_x + reflection_width * 0.5, reflection_y), Color(GOLD, pulse * (0.22 - float(reflection_index) * 0.045)), 1.4)
-
-	# The lighthouse gives the horizon a quiet animated landmark and a faint beacon sweep.
-	var lighthouse_x := size.x * (0.82 if size.x < 700.0 else 0.42)
-	var lighthouse_base_y := horizon_y - 2.0
-	var lighthouse_top := lighthouse_base_y - clampf(size.y * 0.10, 34.0, 62.0)
-	draw_colored_polygon(PackedVector2Array([
-		Vector2(lighthouse_x - 8.0, lighthouse_base_y), Vector2(lighthouse_x + 8.0, lighthouse_base_y),
-		Vector2(lighthouse_x + 4.5, lighthouse_top), Vector2(lighthouse_x - 4.5, lighthouse_top),
-	]), Color("#dbe8e6"))
-	draw_rect(Rect2(lighthouse_x - 5.0, lighthouse_top + 13.0, 10.0, 5.0), CORAL.darkened(0.12))
-	draw_rect(Rect2(lighthouse_x - 7.0, lighthouse_top - 6.0, 14.0, 7.0), DOCK)
-	draw_line(Vector2(lighthouse_x - 9.0, lighthouse_top - 7.0), Vector2(lighthouse_x + 9.0, lighthouse_top - 7.0), CORAL, 2.0)
-	var beacon_origin := Vector2(lighthouse_x, lighthouse_top - 3.0)
-	var sweep_direction := Vector2(-1.0, sin(motion_time * 0.42) * 0.30).normalized()
-	var beacon_length := clampf(size.x * 0.18, 90.0, 260.0)
-	var beacon_end := beacon_origin + sweep_direction * beacon_length
-	var beacon_normal := Vector2(-sweep_direction.y, sweep_direction.x) * 12.0
-	draw_colored_polygon(PackedVector2Array([beacon_origin, beacon_end + beacon_normal, beacon_end - beacon_normal]), Color(GOLD, 0.035))
-	var beacon_alpha := 0.66 + 0.34 * (0.5 + 0.5 * sin(motion_time * 2.0))
-	draw_circle(beacon_origin, 3.0, Color(GOLD, beacon_alpha))
 
 	# Water highlights continuously drift and shimmer across the harbor.
 	for i in range(7):
@@ -173,6 +137,30 @@ func _draw() -> void:
 			var rope_start := Vector2(lerpf(dock_post_positions[0], dock_post_positions[1], rope_t), rope_y + sin(rope_t * PI) * 24.0)
 			var rope_end := Vector2(lerpf(dock_post_positions[0], dock_post_positions[1], next_t), rope_y + sin(next_t * PI) * 24.0)
 			draw_line(rope_start, rope_end, Color("#815d3d", 0.60), 2.2)
+
+func _draw_painted_diorama(size: Vector2) -> void:
+	var visible_width := size.x if size.x < 700.0 else size.x * 0.455
+	var destination := Rect2(0.0, 0.0, visible_width, size.y)
+	var texture_size := HARBOR_PAINTING.get_size()
+	var destination_aspect := visible_width / maxf(size.y, 1.0)
+	var right_slice_width := texture_size.x * 0.35
+	var source_size := Vector2.ZERO
+
+	if destination_aspect >= right_slice_width / texture_size.y:
+		source_size.x = right_slice_width
+		source_size.y = right_slice_width / destination_aspect
+	else:
+		source_size.y = texture_size.y
+		source_size.x = texture_size.y * destination_aspect
+
+	var source_origin := Vector2(
+		texture_size.x - source_size.x,
+		(texture_size.y - source_size.y) * 0.5
+	)
+	draw_texture_rect_region(HARBOR_PAINTING, destination, Rect2(source_origin, source_size))
+	# A navy glaze keeps labels and the bright hero silhouette readable while
+	# preserving the painting's coral, cyan, violet, and warm-window detail.
+	draw_rect(destination, Color("#04111d", 0.24))
 
 func get_active_landmark_count() -> int:
 	var active := 0

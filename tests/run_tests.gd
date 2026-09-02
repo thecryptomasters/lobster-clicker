@@ -271,6 +271,7 @@ func _run() -> void:
 	_expect(final_illustrated_building.icon_texture.texture != null and final_illustrated_building.icon_badge.visible == false, "all nine buildings use illustrated arcade cabinet art")
 	var harbor_backdrop = main_ui.get_node_or_null("HarborBackdrop")
 	_expect(harbor_backdrop != null, "Midnight Harbor backdrop is present")
+	_expect(ResourceLoader.exists("res://assets/art/environment/harbor_diorama.png"), "painted harbor diorama is packaged")
 	_expect(harbor_backdrop != null and harbor_backdrop.is_processing(), "living harbor animation is active")
 	_expect(harbor_backdrop.get_active_landmark_count() == 0, "fresh harbor starts without earned empire landmarks")
 	GameManager.building_counts[0] = 1

@@ -389,6 +389,17 @@ func _run() -> void:
 		_expect(snap_burst.position.is_equal_approx(expected_impact), "claw impact burst stays centered on the pincer contact point")
 		_expect(snap_burst.find_child("ImpactRing", false, false) is Line2D, "claw impact uses a drawn ring instead of blue square particles")
 		_expect(snap_burst.find_child("SnapRay0", false, false) is Polygon2D, "claw impact rays use engine-drawn arcade geometry")
+	_expect(main_ui.boost_aura is Node2D and not main_ui.boost_aura is CPUParticles2D, "capsule boosts do not use square Web particle sprites")
+	main_ui._spawn_capsule_reward_burst(Color("#a56de2"), "rare")
+	var capsule_burst = main_ui.click_effects.find_child("CapsuleRewardBurst", false, false)
+	_expect(capsule_burst != null, "capsule opening triggers a dedicated nautical arcade reveal")
+	if capsule_burst:
+		var expected_capsule_origin := Vector2(main_ui.claw_button.size.x * 0.5, main_ui.claw_button.size.y * 0.27)
+		_expect(capsule_burst.position.is_equal_approx(expected_capsule_origin), "capsule reveal stays centered on the painted pinch point")
+		_expect(capsule_burst.find_child("CapsuleRewardRing", false, false) is Line2D, "capsule reveal uses a rarity-colored ring")
+		var first_capsule = capsule_burst.find_child("CapsuleSpark0", false, false)
+		var capsule_shell = first_capsule.find_child("CapsuleShell", false, false) if first_capsule else null
+		_expect(capsule_shell != null and capsule_shell.find_child("TopHalf", false, false) is Polygon2D and capsule_shell.find_child("BottomHalf", false, false) is Polygon2D, "capsule reveal uses two-tone drawn capsules instead of blue blocks")
 	GameManager.reset_progress()
 	GameManager.total_lobsters = GameManager.get_building_cost(0)
 	GameManager.lobsters_changed.emit(GameManager.total_lobsters)

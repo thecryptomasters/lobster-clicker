@@ -45,7 +45,7 @@ const MIST_BLUE := Color("#94b8c7")
 @onready var hero_claw: TextureRect = %HeroClaw
 @onready var left_pincer: Node2D = %LeftPincer
 @onready var right_pincer: Node2D = %RightPincer
-@onready var boost_aura: CPUParticles2D = %BoostAura
+@onready var boost_aura: Node2D = %BoostAura
 @onready var building_container: VBoxContainer = %BuildingContainer
 @onready var upgrade_container: VBoxContainer = %UpgradeContainer
 @onready var click_effects: Node2D = %ClickEffects
@@ -879,7 +879,7 @@ func _show_settings_dialog() -> void:
 		if enabled:
 			for active_effect in click_effects.get_children():
 				active_effect.queue_free()
-			boost_aura.emitting = false
+			_clear_boost_aura()
 		SaveManager.save_game())
 	box.add_child(motion_toggle)
 
@@ -1934,6 +1934,118 @@ func _animate_result_reveal(color: Color) -> void:
 	tween.tween_property(result_panel, "scale", Vector2.ONE, 0.3)
 	tween.tween_property(result_panel, "modulate", Color.WHITE, 0.24)
 
+func _spawn_capsule_reward_burst(rarity_color: Color, rarity: String) -> void:
+	if GameManager.reduced_motion or not is_instance_valid(click_effects):
+		return
+	var burst := Node2D.new()
+	burst.name = "CapsuleRewardBurst"
+	# The normalized anchor follows the painted pincer contact point on desktop
+	# and mobile instead of drifting left with the old particle emitter.
+	burst.position = Vector2(claw_button.size.x * 0.5, claw_button.size.y * 0.27)
+	burst.z_index = 11
+	click_effects.add_child(burst)
+
+	var ring := Line2D.new()
+	ring.name = "CapsuleRewardRing"
+	ring.width = 4.0 if rarity == "legendary" else 3.0
+	ring.default_color = rarity_color
+	ring.antialiased = true
+	ring.closed = true
+	for point_index in range(25):
+		ring.add_point(Vector2.from_angle(TAU * float(point_index) / 24.0) * 24.0)
+	ring.scale = Vector2(0.35, 0.35)
+	burst.add_child(ring)
+
+	var core := Polygon2D.new()
+	core.name = "CapsuleRewardCore"
+	core.polygon = PackedVector2Array([
+		Vector2(0, -15), Vector2(4, -5), Vector2(14, -4), Vector2(6, 2),
+		Vector2(10, 12), Vector2(0, 6), Vector2(-10, 12), Vector2(-6, 2),
+		Vector2(-14, -4), Vector2(-4, -5),
+	])
+	core.color = Color(COIN_GOLD, 0.92)
+	burst.add_child(core)
+	var rarity_gem := Polygon2D.new()
+	rarity_gem.name = "RarityGem"
+	rarity_gem.polygon = _regular_polygon(6.0, 12)
+	rarity_gem.color = rarity_color
+	core.add_child(rarity_gem)
+
+	var capsule_count := 14 if rarity == "legendary" else (12 if rarity == "rare" else 10)
+	var palette: Array[Color] = [LOBSTER_CORAL, COIN_GOLD, rarity_color, SEAFOAM, SHELL_HIGHLIGHT]
+	for index in range(capsule_count):
+		var capsule := Node2D.new()
+		capsule.name = "CapsuleSpark%d" % index
+		capsule.rotation = TAU * float(index) / float(capsule_count)
+		burst.add_child(capsule)
+
+		var shell := Node2D.new()
+		shell.name = "CapsuleShell"
+		capsule.add_child(shell)
+		var top_half := Polygon2D.new()
+		top_half.name = "TopHalf"
+		top_half.polygon = PackedVector2Array([
+			Vector2(-7.5, 0), Vector2(-7.5, -6.5), Vector2(-5.0, -11.0),
+			Vector2(0, -13.0), Vector2(5.0, -11.0), Vector2(7.5, -6.5), Vector2(7.5, 0),
+		])
+		top_half.color = palette[index % palette.size()]
+		shell.add_child(top_half)
+		var bottom_half := Polygon2D.new()
+		bottom_half.name = "BottomHalf"
+		bottom_half.polygon = PackedVector2Array([
+			Vector2(-7.5, 0), Vector2(-7.5, 6.5), Vector2(-5.0, 11.0),
+			Vector2(0, 13.0), Vector2(5.0, 11.0), Vector2(7.5, 6.5), Vector2(7.5, 0),
+		])
+		bottom_half.color = rarity_color if index % 2 == 0 else LOBSTER_CORAL
+		shell.add_child(bottom_half)
+
+		var capsule_band := Polygon2D.new()
+		capsule_band.name = "CapsuleBand"
+		capsule_band.polygon = PackedVector2Array([
+			Vector2(-8.0, -2.2), Vector2(8.0, -2.2),
+			Vector2(8.0, 2.2), Vector2(-8.0, 2.2),
+		])
+		capsule_band.color = COIN_GOLD
+		capsule.add_child(capsule_band)
+		capsule.scale = Vector2(0.72, 0.72)
+
+		var direction := Vector2.from_angle(capsule.rotation - PI * 0.5)
+		var distance := 72.0 + float(index % 3) * 18.0
+		var capsule_tween := create_tween().set_parallel(true)
+		capsule_tween.tween_property(capsule, "position", direction * distance, 0.58).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+		capsule_tween.tween_property(capsule, "rotation", capsule.rotation + (-1.4 if index % 2 == 0 else 1.4), 0.58)
+		capsule_tween.tween_property(capsule, "scale", Vector2(1.12, 1.12), 0.30).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+		capsule_tween.tween_property(capsule, "modulate:a", 0.0, 0.24).set_delay(0.34)
+
+	for bubble_index in range(5):
+		var bubble := Line2D.new()
+		bubble.name = "HarborBubble%d" % bubble_index
+		bubble.width = 2.0
+		bubble.default_color = Color(SEAFOAM, 0.85)
+		bubble.antialiased = true
+		bubble.closed = true
+		var bubble_radius := 4.5 + float(bubble_index % 3) * 2.0
+		for point_index in range(13):
+			bubble.add_point(Vector2.from_angle(TAU * float(point_index) / 12.0) * bubble_radius)
+		bubble.position = Vector2((float(bubble_index) - 2.0) * 13.0, 5.0)
+		burst.add_child(bubble)
+		var bubble_tween := create_tween().set_parallel(true)
+		bubble_tween.tween_property(bubble, "position", bubble.position + Vector2(randf_range(-8.0, 8.0), -62.0 - bubble_index * 7.0), 0.72).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+		bubble_tween.tween_property(bubble, "modulate:a", 0.0, 0.30).set_delay(0.38)
+
+	var burst_tween := create_tween().set_parallel(true)
+	burst_tween.tween_property(ring, "scale", Vector2(2.4, 2.4), 0.52).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	burst_tween.tween_property(ring, "modulate:a", 0.0, 0.24).set_delay(0.28)
+	burst_tween.tween_property(core, "scale", Vector2(2.0, 2.0), 0.24).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	burst_tween.tween_property(core, "modulate:a", 0.0, 0.22).set_delay(0.10)
+	burst_tween.chain().tween_callback(burst.queue_free)
+
+func _regular_polygon(radius: float, points: int) -> PackedVector2Array:
+	var polygon := PackedVector2Array()
+	for point_index in range(points):
+		polygon.append(Vector2.from_angle(TAU * float(point_index) / float(points)) * radius)
+	return polygon
+
 func _update_gacha_cost() -> void:
 	var cost := GameManager.get_gacha_cost()
 	gacha_cost_label.text = "Capsule Cost: %s" % GameManager.format_number(cost)
@@ -1988,6 +2100,7 @@ func _finish_gacha_roll() -> void:
 	boost_name_label.add_theme_color_override("font_color", color)
 	boost_desc_label.text = "%s for %ds" % [result["desc"], int(result["duration"])]
 	_animate_result_reveal(color)
+	_spawn_capsule_reward_burst(color, rarity)
 	_update_gacha_cost()
 
 const RARITY_COLORS := {
@@ -2002,46 +2115,20 @@ func _on_boost_activated(boost: Dictionary) -> void:
 	_update_lps_display()
 	if boost.get("name", "") != "Disco Lobster":
 		_play_sfx(AchievementSfx)
-	if GameManager.reduced_motion:
-		boost_aura.emitting = false
-		return
-	# Activate aura
-	var rarity: String = boost.get("rarity", "common")
-	var aura_color: Color = RARITY_COLORS.get(rarity, RARITY_COLORS["common"])
-	boost_aura.color = aura_color
-	# Scale intensity by rarity
-	if rarity == "legendary":
-		boost_aura.amount = 60
-		boost_aura.scale_amount_min = 10.0
-		boost_aura.scale_amount_max = 20.0
-		boost_aura.initial_velocity_max = 70.0
-		boost_aura.emission_sphere_radius = 100.0
-	elif rarity == "rare":
-		boost_aura.amount = 50
-		boost_aura.scale_amount_min = 8.0
-		boost_aura.scale_amount_max = 16.0
-		boost_aura.initial_velocity_max = 60.0
-		boost_aura.emission_sphere_radius = 90.0
-	elif rarity == "uncommon":
-		boost_aura.amount = 40
-		boost_aura.scale_amount_min = 6.0
-		boost_aura.scale_amount_max = 14.0
-		boost_aura.initial_velocity_max = 50.0
-		boost_aura.emission_sphere_radius = 80.0
-	else:
-		boost_aura.amount = 35
-		boost_aura.scale_amount_min = 5.0
-		boost_aura.scale_amount_max = 12.0
-		boost_aura.initial_velocity_max = 45.0
-		boost_aura.emission_sphere_radius = 75.0
-	boost_aura.restart()
-	boost_aura.emitting = true
+	# The old CPUParticles2D aura rendered as blue square blocks in Web builds.
+	# The capsule reveal is now a short, centered, hand-drawn effect when the
+	# result lands; the active-boost HUD carries the ongoing state.
+	_clear_boost_aura()
+
+func _clear_boost_aura() -> void:
+	for child in boost_aura.get_children():
+		child.queue_free()
 
 func _on_boost_expired() -> void:
 	_update_boost_hud_display()
 	_update_lps_display()
 	if GameManager.active_boost.is_empty() and GameManager.boost_time_remaining <= 0:
-		boost_aura.emitting = false
+		_clear_boost_aura()
 	if result_panel.visible and GameManager.boost_time_remaining <= 0:
 		timer_label.text = "Expired!"
 		timer_label.add_theme_color_override("font_color", Color("#667788"))

@@ -396,6 +396,15 @@ func _run() -> void:
 	_expect(GameManager.building_counts[0] == 1, "main-scene smoke buys the first building through its real button")
 	var purchase_burst = first_building_item.icon_frame.find_child("PurchaseBurst", false, false)
 	_expect(purchase_burst != null, "building purchase triggers its arcade particle burst")
+	var milestone_popup = main_ui.find_child("MilestonePopup", false, false)
+	_expect(milestone_popup != null, "earned milestones remain visible as a readable popup")
+	if milestone_popup:
+		var close_milestone_button = milestone_popup.find_child("CloseMilestoneButton", true, false)
+		_expect(close_milestone_button is Button, "milestone popup provides a large explicit close button")
+		if close_milestone_button:
+			close_milestone_button.pressed.emit()
+			await get_tree().process_frame
+			_expect(not is_instance_valid(milestone_popup), "milestone popup closes only after player dismissal")
 	var burst_uses_geometry := purchase_burst != null
 	if purchase_burst:
 		for burst_particle in purchase_burst.get_children():

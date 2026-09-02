@@ -99,6 +99,7 @@ var settings_button: Button
 var _music_muted: bool = false
 var _toast_panel: PanelContainer
 var _toast_tween: Tween
+var _toast_queue: Array[Dictionary] = []
 var _celebration_layer: Control
 var _celebration_tween: Tween
 var _score_pulse_tween: Tween
@@ -1027,8 +1028,15 @@ func _on_achievement_unlocked(id: String, title: String, desc: String) -> void:
 
 func _show_toast(title: String, desc: String, icon: Texture2D = AchievementMedalIcon) -> void:
 	if _toast_panel and is_instance_valid(_toast_panel):
-		_toast_panel.queue_free()
+		_toast_queue.append({"title": title, "desc": desc, "icon": icon})
+		return
+	_build_toast(title, desc, icon)
+
+func _build_toast(title: String, desc: String, icon: Texture2D) -> void:
+	if _toast_tween and _toast_tween.is_valid():
+		_toast_tween.kill()
 	_toast_panel = PanelContainer.new()
+	_toast_panel.name = "MilestonePopup"
 	_toast_panel.z_index = 100
 	_toast_panel.set_anchors_preset(Control.PRESET_CENTER_TOP)
 	var toast_width := minf(380.0, get_viewport_rect().size.x - 24.0)
@@ -1076,20 +1084,37 @@ func _show_toast(title: String, desc: String, icon: Texture2D = AchievementMedal
 	box.add_child(title_label)
 	box.add_child(desc_label)
 	row.add_child(box)
+	var close_button := Button.new()
+	close_button.name = "CloseMilestoneButton"
+	close_button.text = "X"
+	close_button.tooltip_text = "Close milestone"
+	close_button.custom_minimum_size = Vector2(44, 44)
+	close_button.focus_mode = Control.FOCUS_ALL
+	close_button.add_theme_font_override("font", UiBoldFont)
+	close_button.add_theme_font_size_override("font_size", 18)
+	close_button.add_theme_color_override("font_color", Color("#ffd766"))
+	close_button.add_theme_color_override("font_hover_color", Color.WHITE)
+	close_button.add_theme_color_override("font_pressed_color", LOBSTER_CORAL)
+	close_button.pressed.connect(_dismiss_toast)
+	row.add_child(close_button)
 	_toast_panel.add_child(row)
 	add_child(_toast_panel)
 	if GameManager.reduced_motion:
 		_toast_panel.modulate.a = 1.0
-		_toast_tween = create_tween()
-		_toast_tween.tween_interval(3.2)
-		_toast_tween.tween_callback(_toast_panel.queue_free)
 		return
 	_toast_panel.modulate.a = 0.0
 	_toast_tween = create_tween()
 	_toast_tween.tween_property(_toast_panel, "modulate:a", 1.0, 0.18)
-	_toast_tween.tween_interval(2.8)
-	_toast_tween.tween_property(_toast_panel, "modulate:a", 0.0, 0.35)
-	_toast_tween.tween_callback(_toast_panel.queue_free)
+
+func _dismiss_toast() -> void:
+	if _toast_tween and _toast_tween.is_valid():
+		_toast_tween.kill()
+	if _toast_panel and is_instance_valid(_toast_panel):
+		_toast_panel.queue_free()
+	_toast_panel = null
+	if not _toast_queue.is_empty():
+		var next_toast: Dictionary = _toast_queue.pop_front()
+		call_deferred("_build_toast", next_toast["title"], next_toast["desc"], next_toast["icon"])
 
 # --- Dev Menu ---
 

@@ -194,7 +194,9 @@ func _refresh() -> void:
 		_set_card_state(false, true)
 		cost_label.text = "OWNED"
 		cost_label.add_theme_color_override("font_color", Color("#66cc88"))
-		buy_button.text = "OWNED \u2713"
+		# Keep status text inside the arcade font's supported glyph set. The
+		# Unicode checkmark rendered as a missing-glyph box in web exports.
+		buy_button.text = "OWNED"
 		buy_button.disabled = true
 		buy_button.add_theme_stylebox_override("normal", _owned_style)
 		buy_button.add_theme_stylebox_override("disabled", _owned_style)

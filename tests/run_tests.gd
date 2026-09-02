@@ -415,6 +415,8 @@ func _run() -> void:
 	var milestone_popup = main_ui.find_child("MilestonePopup", false, false)
 	_expect(milestone_popup != null, "earned milestones remain visible as a readable popup")
 	if milestone_popup:
+		await get_tree().process_frame
+		_expect(milestone_popup.size.x <= main_ui.get_viewport_rect().size.x - 24.0 + 0.5, "milestone popup stays inside the narrow viewport")
 		var close_milestone_button = milestone_popup.find_child("CloseMilestoneButton", true, false)
 		_expect(close_milestone_button is Button, "milestone popup provides a large explicit close button")
 		if close_milestone_button:

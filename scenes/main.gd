@@ -1243,13 +1243,14 @@ func _show_toast(title: String, desc: String, icon: Texture2D = AchievementMedal
 func _build_toast(title: String, desc: String, icon: Texture2D) -> void:
 	if _toast_tween and _toast_tween.is_valid():
 		_toast_tween.kill()
+	var compact_toast := _get_real_width() < MOBILE_BREAKPOINT
 	_toast_panel = PanelContainer.new()
 	_toast_panel.name = "MilestonePopup"
 	_toast_panel.z_index = 100
 	_toast_panel.set_anchors_preset(Control.PRESET_CENTER_TOP)
 	var toast_width := minf(380.0, get_viewport_rect().size.x - 24.0)
 	_toast_panel.position = Vector2(-toast_width / 2.0, 18)
-	_toast_panel.custom_minimum_size = Vector2(toast_width, 108)
+	_toast_panel.custom_minimum_size = Vector2(toast_width, 96 if compact_toast else 108)
 	var style := StyleBoxFlat.new()
 	style.bg_color = Color(0.08, 0.12, 0.22, 0.97)
 	style.border_width_left = 2
@@ -1261,16 +1262,17 @@ func _build_toast(title: String, desc: String, icon: Texture2D) -> void:
 	style.corner_radius_top_right = 10
 	style.corner_radius_bottom_left = 10
 	style.corner_radius_bottom_right = 10
-	style.content_margin_left = 14.0
-	style.content_margin_right = 14.0
+	style.content_margin_left = 10.0 if compact_toast else 14.0
+	style.content_margin_right = 10.0 if compact_toast else 14.0
 	style.content_margin_top = 10.0
 	style.content_margin_bottom = 10.0
 	_toast_panel.add_theme_stylebox_override("panel", style)
 	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 10)
+	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_theme_constant_override("separation", 6 if compact_toast else 10)
 	var icon_rect := TextureRect.new()
 	icon_rect.texture = icon
-	icon_rect.custom_minimum_size = Vector2(74, 74)
+	icon_rect.custom_minimum_size = Vector2(58, 58) if compact_toast else Vector2(74, 74)
 	icon_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	icon_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	icon_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -1280,9 +1282,11 @@ func _build_toast(title: String, desc: String, icon: Texture2D) -> void:
 	var title_label := Label.new()
 	title_label.text = title
 	title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	title_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	title_label.add_theme_font_override("font", UiBoldFont)
 	title_label.add_theme_color_override("font_color", Color("#ffd766"))
-	title_label.add_theme_font_size_override("font_size", 20)
+	title_label.add_theme_font_size_override("font_size", 16 if compact_toast else 20)
 	var desc_label := Label.new()
 	desc_label.text = desc
 	desc_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -1296,7 +1300,7 @@ func _build_toast(title: String, desc: String, icon: Texture2D) -> void:
 	close_button.name = "CloseMilestoneButton"
 	close_button.text = "X"
 	close_button.tooltip_text = "Close milestone"
-	close_button.custom_minimum_size = Vector2(44, 44)
+	close_button.custom_minimum_size = Vector2(40, 40) if compact_toast else Vector2(44, 44)
 	close_button.focus_mode = Control.FOCUS_ALL
 	close_button.add_theme_font_override("font", UiBoldFont)
 	close_button.add_theme_font_size_override("font_size", 18)

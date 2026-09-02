@@ -1,10 +1,11 @@
-[gd_scene load_steps=7 format=3 uid="uid://b1main_scene_001"]
+[gd_scene load_steps=8 format=3 uid="uid://b1main_scene_001"]
 
 [ext_resource type="Script" path="res://scenes/main.gd" id="1_script"]
 [ext_resource type="AudioStream" path="res://assets/music/midnight_harbor_arcade_loop.ogg" id="2_music"]
 [ext_resource type="Texture2D" path="res://assets/art/ui/claw_animation/claw_pinch_0.png" id="3_hero_claw"]
 [ext_resource type="Script" path="res://scenes/harbor_backdrop.gd" id="4_harbor"]
 [ext_resource type="Texture2D" path="res://assets/art/ui/capsule_dispenser.png" id="5_capsule_dispenser"]
+[ext_resource type="Texture2D" path="res://assets/art/ui/hamburger_menu.svg" id="6_hamburger_menu"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel"]
 bg_color = Color(0.0627, 0.1569, 0.2275, 0.96)
@@ -83,18 +84,25 @@ theme_override_constants/shadow_offset_x = 0
 theme_override_constants/shadow_offset_y = 3
 theme_override_font_sizes/font_size = 28
 
-[node name="FarmNameButton" type="Button" parent="RootContainer/LeftSection"]
+[node name="FarmHeaderRow" type="HBoxContainer" parent="RootContainer/LeftSection"]
 unique_name_in_owner = true
 layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="FarmNameButton" type="Button" parent="RootContainer/LeftSection/FarmHeaderRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
 flat = true
 text = "My Lobster Farm"
 theme_override_colors/font_color = Color(0.5804, 0.7216, 0.7804, 1)
 theme_override_font_sizes/font_size = 18
 
-[node name="FarmNameEdit" type="LineEdit" parent="RootContainer/LeftSection"]
+[node name="FarmNameEdit" type="LineEdit" parent="RootContainer/LeftSection/FarmHeaderRow"]
 unique_name_in_owner = true
 visible = false
 layout_mode = 2
+size_flags_horizontal = 3
 custom_minimum_size = Vector2(0, 34)
 horizontal_alignment = 1
 placeholder_text = "Name your farm..."
@@ -102,6 +110,18 @@ max_length = 32
 theme_override_colors/font_color = Color(1, 0.8196, 0.4, 1)
 theme_override_colors/caret_color = Color(1, 0.843, 0.4, 1)
 theme_override_font_sizes/font_size = 18
+
+[node name="MobileMenuButton" type="MenuButton" parent="RootContainer/LeftSection/FarmHeaderRow"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+custom_minimum_size = Vector2(108, 40)
+text = "MENU"
+icon = ExtResource("6_hamburger_menu")
+icon_max_width = 18
+expand_icon = true
+tooltip_text = "Open game menu"
+theme_override_font_sizes/font_size = 13
 
 [node name="Spacer1" type="Control" parent="RootContainer/LeftSection"]
 layout_mode = 2

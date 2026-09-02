@@ -246,10 +246,18 @@ func _run() -> void:
 	_expect(main_ui.mute_button.anchor_right < 0.5, "desktop mute control stays inside the left panel and clear of Molt")
 	main_ui._layout_corner_buttons(false)
 	_expect(main_ui.mute_button.anchor_right == 1.0, "mobile mute control stays aligned to the viewport edge")
-	_expect(main_ui.settings_button.custom_minimum_size.x == 72.0 and main_ui.mute_button.custom_minimum_size.x == 72.0, "mobile corner controls leave the title a readable center lane")
 	main_ui._is_desktop = true
 	main_ui._last_width = 0
 	main_ui._apply_layout()
+	_expect(main_ui.mobile_menu_button.visible, "mobile utilities collapse into an in-flow menu beside the editable farm name")
+	_expect(not main_ui.settings_button.visible and not main_ui.milestones_button.visible and not main_ui.mute_button.visible, "mobile utility shortcuts cannot cover the farm name")
+	_expect(main_ui.mobile_menu_button.get_popup().item_count == 4, "mobile menu exposes settings, milestones, and mute actions")
+	_expect(main_ui.farm_name_button.visible, "farm name remains editable on short mobile viewports")
+	main_ui._on_farm_name_clicked()
+	_expect(main_ui.farm_name_edit.visible and main_ui.farm_name_edit.has_focus(), "mobile farm name opens its inline editor")
+	main_ui.farm_name_edit.text = "Mobile Test Harbor"
+	main_ui._on_farm_name_submitted("Mobile Test Harbor")
+	_expect(main_ui.farm_name_button.visible and main_ui.farm_name_button.text == "Mobile Test Harbor", "mobile farm name edit applies without utility controls in the way")
 	_expect(main_ui.right_panel.custom_minimum_size.y >= 280.0, "mobile inventory drawer reserves a useful height without clipping the playfield")
 	_expect(main_ui.content_scroll.custom_minimum_size.y >= 164.0, "mobile inventory list keeps a swipeable touch region on short browsers")
 	_expect(main_ui.right_panel.get_theme_stylebox("panel").bg_color.a >= 0.99, "mobile inventory cabinet is opaque over the painted playfield")

@@ -35,6 +35,7 @@ const MIST_BLUE := Color("#94b8c7")
 
 @onready var farm_name_button: Button = %FarmNameButton
 @onready var farm_name_edit: LineEdit = %FarmNameEdit
+@onready var mobile_menu_button: MenuButton = %MobileMenuButton
 @onready var lobster_count_label: Label = %LobsterCountLabel
 @onready var score_panel: PanelContainer = %ScorePanel
 @onready var score_header: Label = %ScoreHeader
@@ -132,6 +133,9 @@ var _flash_active: bool = false
 # Responsive layout
 const MOBILE_BREAKPOINT := 700  # Below this width = mobile (vertical stack)
 const DESKTOP_LEFT_PANEL_SHARE := 1.0 / 2.2
+const MOBILE_MENU_SETTINGS := 0
+const MOBILE_MENU_MILESTONES := 1
+const MOBILE_MENU_MUTE := 2
 var _is_desktop: bool = true
 var _last_width: int = 0
 var _last_height: int = 0
@@ -170,6 +174,7 @@ func _ready() -> void:
 	_create_mute_button()
 	_create_settings_button()
 	_create_milestones_button()
+	_setup_mobile_menu()
 	_create_sfx_pool()
 	_style_buy_capsule_button()
 	_style_buy_premium_button()
@@ -340,6 +345,10 @@ func _apply_layout() -> void:
 		content_scroll.custom_minimum_size.y = 0.0
 		title_label.visible = true
 		farm_name_button.visible = true
+		mobile_menu_button.visible = false
+		settings_button.visible = true
+		milestones_button.visible = true
+		mute_button.visible = true
 		score_header.visible = true
 		title_label.add_theme_font_size_override("font_size", 28)
 		farm_name_button.add_theme_font_size_override("font_size", 18)
@@ -374,7 +383,11 @@ func _apply_layout() -> void:
 		var very_short := real_height < 640
 		var compact := real_height < 760
 		title_label.visible = not very_short
-		farm_name_button.visible = not very_short
+		farm_name_button.visible = true
+		mobile_menu_button.visible = true
+		settings_button.visible = false
+		milestones_button.visible = false
+		mute_button.visible = false
 		score_header.visible = not very_short
 		title_label.add_theme_font_size_override("font_size", 16 if compact else 18)
 		farm_name_button.add_theme_font_size_override("font_size", 13 if compact else 15)
@@ -455,6 +468,44 @@ func _layout_corner_buttons(desktop: bool) -> void:
 	mute_button.offset_right = -12.0 if desktop else -8.0
 	mute_button.offset_left = mute_button.offset_right - button_width
 	mute_button.add_theme_font_size_override("font_size", 13 if desktop else 10)
+
+func _setup_mobile_menu() -> void:
+	var popup := mobile_menu_button.get_popup()
+	popup.add_item("SETTINGS", MOBILE_MENU_SETTINGS)
+	popup.add_item("MILESTONES", MOBILE_MENU_MILESTONES)
+	popup.add_separator()
+	popup.add_check_item("MUTE MUSIC", MOBILE_MENU_MUTE)
+	popup.add_theme_font_override("font", UiBoldFont)
+	popup.add_theme_font_size_override("font_size", 15)
+	popup.add_theme_color_override("font_color", FOAM_WHITE)
+	popup.add_theme_color_override("font_hover_color", Color.WHITE)
+	popup.add_theme_color_override("font_separator_color", MIST_BLUE)
+	popup.add_theme_stylebox_override("panel", _make_style(Color("#0a2233"), Color("#2b8193"), 9, 2))
+	popup.add_theme_stylebox_override("hover", _make_style(Color("#20465a"), SEAFOAM, 6, 1))
+	popup.add_theme_stylebox_override("separator", _make_style(Color("#173447"), Color("#31566a"), 0, 0))
+	popup.add_theme_constant_override("item_start_padding", 12)
+	popup.add_theme_constant_override("item_end_padding", 12)
+	popup.add_theme_constant_override("v_separation", 6)
+	popup.id_pressed.connect(_on_mobile_menu_item_pressed)
+	_update_mobile_menu()
+
+func _on_mobile_menu_item_pressed(id: int) -> void:
+	match id:
+		MOBILE_MENU_SETTINGS:
+			_show_settings_dialog()
+		MOBILE_MENU_MILESTONES:
+			_show_milestones_dialog()
+		MOBILE_MENU_MUTE:
+			_on_mute_button_pressed()
+
+func _update_mobile_menu() -> void:
+	if not mobile_menu_button:
+		return
+	var popup := mobile_menu_button.get_popup()
+	var mute_index := popup.get_item_index(MOBILE_MENU_MUTE)
+	if mute_index >= 0:
+		popup.set_item_checked(mute_index, _music_muted)
+		popup.set_item_text(mute_index, "UNMUTE MUSIC" if _music_muted else "MUTE MUSIC")
 
 func _on_lobsters_changed(total: float) -> void:
 	# Keep two visible decimals on abbreviated headline totals so late-game
@@ -1024,6 +1075,7 @@ func _update_mute_button() -> void:
 		return
 	mute_button.text = "UNMUTE" if _music_muted else "MUTE"
 	mute_button.tooltip_text = "Unmute music" if _music_muted else "Mute music"
+	_update_mobile_menu()
 
 func _try_click() -> void:
 	var now := Time.get_ticks_msec() / 1000.0

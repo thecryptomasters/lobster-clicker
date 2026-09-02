@@ -10,6 +10,19 @@ signal premium_options_ready(options: Array)
 signal premium_boost_activated(boost: Dictionary)
 signal transaction_completed()
 signal achievement_unlocked(id: String, title: String, desc: String)
+
+const ACHIEVEMENT_DEFS: Array[Dictionary] = [
+	{"id": "first_catch", "title": "First Catch", "desc": "The lobster empire begins.", "hint": "Catch your first Lobster Coin."},
+	{"id": "tiny_fleet", "title": "Tiny Fleet", "desc": "Your first automated collector is on deck.", "hint": "Buy your first business."},
+	{"id": "ten_on_deck", "title": "Ten on Deck", "desc": "A full crew is working the waters.", "hint": "Own ten of one business."},
+	{"id": "disco_lobster", "title": "Disco Lobster", "desc": "The beat boosts your claw and funds the next purchase.", "hint": "Keep pinching. Something strange is stirring..."},
+	{"id": "night_shift", "title": "Night Shift", "desc": "Your crew kept working while you were away.", "hint": "Return after your harbor has worked offline."},
+	{"id": "harbor_lights", "title": "Harbor Lights", "desc": "Four businesses now glow along the waterfront.", "hint": "Operate four kinds of business."},
+	{"id": "neon_empire", "title": "Neon Empire", "desc": "The midnight harbor has become an economic spectacle.", "hint": "Operate seven kinds of business."},
+	{"id": "full_harbor", "title": "Full Harbor", "desc": "Every corner of the lobster empire is online.", "hint": "Operate every kind of business."},
+	{"id": "century_wharf", "title": "Century Wharf", "desc": "One hundred operations are working the water.", "hint": "Own one hundred businesses in total."},
+	{"id": "first_molt", "title": "Fresh Shell", "desc": "The farm begins again, stronger than before.", "hint": "Complete your first Molt."},
+]
 signal objective_changed(text: String)
 signal rare_event_triggered(event: Dictionary)
 signal purchase_mode_changed(mode: int)

@@ -405,6 +405,17 @@ func _run() -> void:
 			close_milestone_button.pressed.emit()
 			await get_tree().process_frame
 			_expect(not is_instance_valid(milestone_popup), "milestone popup closes only after player dismissal")
+	_expect(main_ui.milestones_button != null and main_ui.milestones_button.text == "MILESTONES", "milestone collection is discoverable from the main HUD")
+	main_ui._show_milestones_dialog()
+	var milestones_dialog = main_ui.find_child("MilestonesDialog", false, false)
+	_expect(milestones_dialog != null and milestones_dialog.visible, "milestone cabinet opens from the player interface")
+	if milestones_dialog:
+		var milestone_list = milestones_dialog.find_child("MilestoneList", true, false)
+		_expect(milestone_list != null and milestone_list.get_child_count() == GameManager.ACHIEVEMENT_DEFS.size(), "milestone cabinet shows every tracked achievement")
+		var tiny_fleet_card = milestones_dialog.find_child("Milestone_tiny_fleet", true, false)
+		_expect(tiny_fleet_card != null, "earned milestone appears in the cabinet")
+		milestones_dialog.queue_free()
+		await get_tree().process_frame
 	var burst_uses_geometry := purchase_burst != null
 	if purchase_burst:
 		for burst_particle in purchase_burst.get_children():

@@ -96,6 +96,7 @@ const MIST_BLUE := Color("#94b8c7")
 
 var mute_button: Button
 var settings_button: Button
+var milestones_button: Button
 var _music_muted: bool = false
 var _toast_panel: PanelContainer
 var _toast_tween: Tween
@@ -167,6 +168,7 @@ func _ready() -> void:
 	_music_muted = GameManager.music_muted
 	_create_mute_button()
 	_create_settings_button()
+	_create_milestones_button()
 	_create_sfx_pool()
 	_style_buy_capsule_button()
 	_style_buy_premium_button()
@@ -362,6 +364,11 @@ func _layout_corner_buttons(desktop: bool) -> void:
 	settings_button.offset_left = 12.0 if desktop else 8.0
 	settings_button.offset_right = settings_button.offset_left + button_width
 	settings_button.add_theme_font_size_override("font_size", 13 if desktop else 10)
+	var milestone_width := 116.0 if desktop else 88.0
+	milestones_button.custom_minimum_size.x = milestone_width
+	milestones_button.offset_left = settings_button.offset_right + (8.0 if desktop else 6.0)
+	milestones_button.offset_right = milestones_button.offset_left + milestone_width
+	milestones_button.add_theme_font_size_override("font_size", 12 if desktop else 9)
 	mute_button.custom_minimum_size.x = button_width
 	mute_button.anchor_left = right_anchor
 	mute_button.anchor_right = right_anchor
@@ -687,6 +694,127 @@ func _create_settings_button() -> void:
 	settings_button.add_theme_font_size_override("font_size", 13)
 	settings_button.pressed.connect(_show_settings_dialog)
 	add_child(settings_button)
+
+func _create_milestones_button() -> void:
+	milestones_button = Button.new()
+	milestones_button.name = "MilestonesButton"
+	milestones_button.text = "MILESTONES"
+	milestones_button.tooltip_text = "View earned and locked milestones"
+	milestones_button.custom_minimum_size = Vector2(116, 34)
+	milestones_button.focus_mode = Control.FOCUS_ALL
+	milestones_button.z_index = 20
+	milestones_button.anchor_left = 0.0
+	milestones_button.anchor_right = 0.0
+	milestones_button.anchor_top = 0.0
+	milestones_button.anchor_bottom = 0.0
+	milestones_button.offset_left = 116.0
+	milestones_button.offset_right = 232.0
+	milestones_button.offset_top = 10.0
+	milestones_button.offset_bottom = 44.0
+	milestones_button.add_theme_font_size_override("font_size", 12)
+	milestones_button.pressed.connect(_show_milestones_dialog)
+	add_child(milestones_button)
+
+func _show_milestones_dialog() -> void:
+	var dialog := AcceptDialog.new()
+	dialog.name = "MilestonesDialog"
+	dialog.title = "Milestones"
+	dialog.ok_button_text = "DONE"
+	dialog.close_requested.connect(dialog.queue_free)
+	dialog.confirmed.connect(dialog.queue_free)
+
+	var outer := VBoxContainer.new()
+	outer.add_theme_constant_override("separation", 10)
+	var earned_count := 0
+	for achievement in GameManager.ACHIEVEMENT_DEFS:
+		if GameManager.achievements.get(achievement["id"], false):
+			earned_count += 1
+	var progress := Label.new()
+	progress.name = "MilestoneProgress"
+	progress.text = "%d / %d EARNED" % [earned_count, GameManager.ACHIEVEMENT_DEFS.size()]
+	progress.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	progress.add_theme_font_override("font", DisplayFont)
+	progress.add_theme_font_size_override("font_size", 22)
+	progress.add_theme_color_override("font_color", COIN_GOLD)
+	outer.add_child(progress)
+
+	var intro := Label.new()
+	intro.text = "Your permanent Harbor Hall of Fame"
+	intro.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	intro.add_theme_color_override("font_color", SEAFOAM)
+	outer.add_child(intro)
+
+	var scroll := ScrollContainer.new()
+	scroll.name = "MilestoneScroll"
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.custom_minimum_size = Vector2(0, minf(440.0, get_viewport_rect().size.y - 180.0))
+	outer.add_child(scroll)
+	var list := VBoxContainer.new()
+	list.name = "MilestoneList"
+	list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	list.add_theme_constant_override("separation", 8)
+	scroll.add_child(list)
+
+	for achievement in GameManager.ACHIEVEMENT_DEFS:
+		var earned: bool = GameManager.achievements.get(achievement["id"], false)
+		var card := PanelContainer.new()
+		card.name = "Milestone_%s" % achievement["id"]
+		var card_style := StyleBoxFlat.new()
+		card_style.bg_color = Color(0.06, 0.11, 0.19, 0.97) if earned else Color(0.035, 0.055, 0.09, 0.94)
+		card_style.border_width_left = 2
+		card_style.border_width_top = 2
+		card_style.border_width_right = 2
+		card_style.border_width_bottom = 2
+		card_style.border_color = COIN_GOLD if earned else Color(0.20, 0.29, 0.36, 0.9)
+		card_style.corner_radius_top_left = 9
+		card_style.corner_radius_top_right = 9
+		card_style.corner_radius_bottom_left = 9
+		card_style.corner_radius_bottom_right = 9
+		card_style.content_margin_left = 10.0
+		card_style.content_margin_right = 10.0
+		card_style.content_margin_top = 8.0
+		card_style.content_margin_bottom = 8.0
+		card.add_theme_stylebox_override("panel", card_style)
+		var row := HBoxContainer.new()
+		row.add_theme_constant_override("separation", 10)
+		var medal := TextureRect.new()
+		medal.texture = AchievementMedalIcon
+		medal.custom_minimum_size = Vector2(58, 58)
+		medal.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		medal.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		medal.modulate = Color.WHITE if earned else Color(0.25, 0.31, 0.38, 0.6)
+		medal.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		row.add_child(medal)
+		var text_box := VBoxContainer.new()
+		text_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		var name_label := Label.new()
+		name_label.text = achievement["title"]
+		name_label.add_theme_font_override("font", UiBoldFont)
+		name_label.add_theme_font_size_override("font_size", 17)
+		name_label.add_theme_color_override("font_color", COIN_GOLD if earned else Color("#8aa0ad"))
+		text_box.add_child(name_label)
+		var detail := Label.new()
+		detail.text = achievement["desc"] if earned else achievement["hint"]
+		detail.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		detail.add_theme_font_size_override("font_size", 13)
+		detail.add_theme_color_override("font_color", Color("#d8edf4") if earned else Color("#78909c"))
+		text_box.add_child(detail)
+		row.add_child(text_box)
+		var state := Label.new()
+		state.text = "EARNED" if earned else "LOCKED"
+		state.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		state.add_theme_font_override("font", UiBoldFont)
+		state.add_theme_font_size_override("font_size", 12)
+		state.add_theme_color_override("font_color", SEAFOAM if earned else Color("#667788"))
+		row.add_child(state)
+		card.add_child(row)
+		list.add_child(card)
+
+	dialog.add_child(outer)
+	add_child(dialog)
+	var viewport_size := get_viewport_rect().size
+	dialog.popup_centered(Vector2i(mini(620, int(viewport_size.x) - 24), mini(620, int(viewport_size.y) - 32)))
+	dialog.get_ok_button().grab_focus()
 
 func _show_settings_dialog() -> void:
 	var dialog := AcceptDialog.new()

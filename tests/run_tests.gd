@@ -377,6 +377,7 @@ func _run() -> void:
 	GameManager.total_lobsters = GameManager.get_building_cost(0)
 	GameManager.lobsters_changed.emit(GameManager.total_lobsters)
 	var first_building_item = main_ui.building_container.get_child(0)
+	_expect(first_building_item.icon_frame.custom_minimum_size == Vector2(68, 68), "Building artwork keeps its enlarged showcase size")
 	first_building_item.buy_button.pressed.emit()
 	_expect(GameManager.building_counts[0] == 1, "main-scene smoke buys the first building through its real button")
 	var purchase_burst = first_building_item.icon_frame.find_child("PurchaseBurst", false, false)

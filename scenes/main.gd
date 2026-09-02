@@ -957,7 +957,7 @@ func _show_toast(title: String, desc: String, icon: Texture2D = AchievementMedal
 	_toast_panel.set_anchors_preset(Control.PRESET_CENTER_TOP)
 	var toast_width := minf(380.0, get_viewport_rect().size.x - 24.0)
 	_toast_panel.position = Vector2(-toast_width / 2.0, 18)
-	_toast_panel.custom_minimum_size = Vector2(toast_width, 98)
+	_toast_panel.custom_minimum_size = Vector2(toast_width, 108)
 	var style := StyleBoxFlat.new()
 	style.bg_color = Color(0.08, 0.12, 0.22, 0.97)
 	style.border_width_left = 2
@@ -978,7 +978,7 @@ func _show_toast(title: String, desc: String, icon: Texture2D = AchievementMedal
 	row.add_theme_constant_override("separation", 10)
 	var icon_rect := TextureRect.new()
 	icon_rect.texture = icon
-	icon_rect.custom_minimum_size = Vector2(64, 64)
+	icon_rect.custom_minimum_size = Vector2(74, 74)
 	icon_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	icon_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	icon_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -1936,7 +1936,7 @@ func _show_premium_options(options: Array) -> void:
 
 func _create_option_card(boost: Dictionary) -> PanelContainer:
 	var card := PanelContainer.new()
-	card.custom_minimum_size.y = 156.0
+	card.custom_minimum_size.y = 166.0
 	var rarity: String = boost["rarity"]
 	var rarity_color := Color(GameManager.RARITY_COLORS[rarity])
 
@@ -1965,7 +1965,7 @@ func _create_option_card(boost: Dictionary) -> PanelContainer:
 	header_row.add_theme_constant_override("separation", 10)
 	var card_icon := TextureRect.new()
 	card_icon.texture = _card_icon_for_boost(boost)
-	card_icon.custom_minimum_size = Vector2(58, 58)
+	card_icon.custom_minimum_size = Vector2(70, 70)
 	card_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	card_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	header_row.add_child(card_icon)

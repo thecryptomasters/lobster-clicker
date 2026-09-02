@@ -215,8 +215,9 @@ def main() -> int:
         })
         context.close()
 
-        # Repeat the prestige path on the narrow touch layout. The Down control
-        # scrolls the Molt action into view before the confirmation is accepted.
+        # Repeat the prestige path on the narrow touch layout. Mobile now uses
+        # native list scrolling instead of dedicated Up/Down controls, so move
+        # the ScrollContainer to its action area before tapping the Molt button.
         context = browser.new_context(
             viewport={"width": 390, "height": 664},
             has_touch=True,
@@ -233,10 +234,22 @@ def main() -> int:
         for _ in range(3):
             page.keyboard.press("E")
             page.wait_for_timeout(120)
+        touch_client = context.new_cdp_session(page)
         for _ in range(4):
-            page.touchscreen.tap(195, 640)
+            touch_client.send("Input.dispatchTouchEvent", {
+                "type": "touchStart",
+                "touchPoints": [{"x": 195, "y": 600}],
+            })
+            touch_client.send("Input.dispatchTouchEvent", {
+                "type": "touchMove",
+                "touchPoints": [{"x": 195, "y": 440}],
+            })
+            touch_client.send("Input.dispatchTouchEvent", {
+                "type": "touchEnd",
+                "touchPoints": [],
+            })
             page.wait_for_timeout(120)
-        page.touchscreen.tap(195, 576)
+        page.touchscreen.tap(195, 620)
         page.wait_for_timeout(180)
         page.keyboard.press("Enter")
         page.wait_for_timeout(420)

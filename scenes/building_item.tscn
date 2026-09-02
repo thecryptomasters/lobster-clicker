@@ -3,7 +3,7 @@
 [ext_resource type="Script" path="res://scenes/building_item.gd" id="1_script"]
 
 [node name="BuildingItem" type="PanelContainer"]
-custom_minimum_size = Vector2(0, 108)
+custom_minimum_size = Vector2(0, 116)
 size_flags_horizontal = 3
 script = ExtResource("1_script")
 
@@ -18,7 +18,7 @@ theme_override_constants/separation = 10
 [node name="IconFrame" type="PanelContainer" parent="VBox/TopRow"]
 unique_name_in_owner = true
 layout_mode = 2
-custom_minimum_size = Vector2(58, 58)
+custom_minimum_size = Vector2(68, 68)
 
 [node name="IconTexture" type="TextureRect" parent="VBox/TopRow/IconFrame"]
 unique_name_in_owner = true

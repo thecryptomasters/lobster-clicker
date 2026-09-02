@@ -3,7 +3,7 @@
 [ext_resource type="Script" path="res://scenes/building_upgrade_item.gd" id="1_script"]
 
 [node name="BuildingUpgradeItem" type="PanelContainer"]
-custom_minimum_size = Vector2(0, 82)
+custom_minimum_size = Vector2(0, 92)
 size_flags_horizontal = 3
 script = ExtResource("1_script")
 
@@ -17,7 +17,7 @@ theme_override_constants/separation = 10
 
 [node name="IconTexture" type="TextureRect" parent="VBox/TopRow"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(42, 42)
+custom_minimum_size = Vector2(52, 52)
 layout_mode = 2
 texture_filter = 1
 expand_mode = 3

@@ -48,7 +48,7 @@ const MIST_BLUE := Color("#94b8c7")
 @onready var boost_aura: CPUParticles2D = %BoostAura
 @onready var building_container: VBoxContainer = %BuildingContainer
 @onready var upgrade_container: VBoxContainer = %UpgradeContainer
-@onready var particles: CPUParticles2D = %ClickParticles
+@onready var click_effects: Node2D = %ClickEffects
 @onready var float_text_container: Node2D = %FloatTextContainer
 @onready var offline_popup: PanelContainer = %OfflinePopup
 @onready var offline_icon: TextureRect = %OfflineIcon
@@ -748,7 +748,8 @@ func _show_settings_dialog() -> void:
 	motion_toggle.toggled.connect(func(enabled: bool):
 		GameManager.reduced_motion = enabled
 		if enabled:
-			particles.emitting = false
+			for active_effect in click_effects.get_children():
+				active_effect.queue_free()
 			boost_aura.emitting = false
 		SaveManager.save_game())
 	box.add_child(motion_toggle)
@@ -828,10 +829,70 @@ func _do_click() -> void:
 		return
 	_start_claw_animation()
 	_spawn_float_text(amount)
-	particles.restart()
-	particles.emitting = true
+	_schedule_claw_snap_effect()
 	if _claw_bump_tween and _claw_bump_tween.is_valid():
 		_claw_bump_tween.kill()
+
+func _schedule_claw_snap_effect() -> void:
+	# Anticipation + closing ends at the exact contact frame.
+	var impact_timer := get_tree().create_timer(CLAW_FRAME_DURATIONS[0] + CLAW_FRAME_DURATIONS[1])
+	impact_timer.timeout.connect(_spawn_claw_snap_effect)
+
+func _spawn_claw_snap_effect() -> void:
+	if not is_instance_valid(click_effects) or GameManager.reduced_motion:
+		return
+	var burst := Node2D.new()
+	burst.name = "ClawSnapBurst"
+	# The texture is aspect-fitted inside the button. This normalized anchor is
+	# the meeting point of the painted pincers at both responsive sizes.
+	burst.position = Vector2(claw_button.size.x * 0.5, claw_button.size.y * 0.27)
+	burst.z_index = 12
+	click_effects.add_child(burst)
+
+	var ring := Line2D.new()
+	ring.name = "ImpactRing"
+	ring.width = 3.5
+	ring.default_color = COIN_GOLD
+	ring.antialiased = true
+	ring.closed = true
+	for point_index in range(17):
+		var angle := TAU * float(point_index) / 16.0
+		ring.add_point(Vector2.from_angle(angle) * 13.0)
+	ring.scale = Vector2(0.45, 0.45)
+	burst.add_child(ring)
+
+	var flash := Polygon2D.new()
+	flash.name = "PinchFlash"
+	flash.polygon = PackedVector2Array([
+		Vector2(0, -8), Vector2(5, -3), Vector2(11, 0), Vector2(5, 3),
+		Vector2(0, 8), Vector2(-5, 3), Vector2(-11, 0), Vector2(-5, -3),
+	])
+	flash.color = FOAM_WHITE
+	burst.add_child(flash)
+
+	var palette: Array[Color] = [COIN_GOLD, LOBSTER_CORAL, FOAM_WHITE, SHELL_HIGHLIGHT]
+	for ray_index in range(8):
+		var ray := Polygon2D.new()
+		ray.name = "SnapRay%d" % ray_index
+		ray.polygon = PackedVector2Array([
+			Vector2(-2.5, -4), Vector2(2.5, -4), Vector2(1.4, -18), Vector2(-1.4, -18),
+		])
+		ray.color = palette[ray_index % palette.size()]
+		ray.rotation = TAU * float(ray_index) / 8.0
+		ray.position = Vector2.from_angle(ray.rotation - PI * 0.5) * 5.0
+		burst.add_child(ray)
+		var ray_destination := Vector2.from_angle(ray.rotation - PI * 0.5) * 18.0
+		var ray_tween := create_tween().set_parallel(true)
+		ray_tween.tween_property(ray, "position", ray_destination, 0.20).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+		ray_tween.tween_property(ray, "modulate:a", 0.0, 0.17).set_delay(0.06)
+		ray_tween.tween_property(ray, "scale", Vector2(0.72, 1.18), 0.20)
+
+	var burst_tween := create_tween().set_parallel(true)
+	burst_tween.tween_property(ring, "scale", Vector2(1.55, 1.55), 0.24).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	burst_tween.tween_property(ring, "modulate:a", 0.0, 0.18).set_delay(0.07)
+	burst_tween.tween_property(flash, "scale", Vector2(0.55, 0.55), 0.18).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	burst_tween.tween_property(flash, "modulate:a", 0.0, 0.14).set_delay(0.04)
+	burst_tween.chain().tween_callback(burst.queue_free)
 
 func _start_claw_animation() -> void:
 	_claw_animation_index = 0

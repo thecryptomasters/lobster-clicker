@@ -1,7 +1,6 @@
 extends Control
 
 const HARBOR_PAINTING := preload("res://assets/art/environment/harbor_environment_clean.png")
-const LIGHTHOUSE_PAINTING := preload("res://assets/art/environment/lighthouse.png")
 
 const SKY := Color("#071725")
 const GOLD := Color("#ffd166")
@@ -31,7 +30,6 @@ func _draw() -> void:
 	# waterfront businesses, reflections, dock clutter, and neon skyline.
 	draw_rect(Rect2(Vector2.ZERO, size), SKY)
 	_draw_painted_diorama(size)
-	_draw_feature_landmarks(size)
 	var horizon_y := size.y * 0.55
 	for band_index in range(5):
 		var band_height := size.y * 0.075
@@ -96,31 +94,6 @@ func _draw_painted_diorama(size: Vector2) -> void:
 	# A navy glaze keeps labels and the bright hero silhouette readable while
 	# preserving the painting's coral, cyan, violet, and warm-window detail.
 	draw_rect(destination, Color("#04111d", 0.24))
-
-func _draw_feature_landmarks(size: Vector2) -> void:
-	# These two focal points are separate from the wide painting so responsive
-	# crops can never hide them behind the scoreboard or the clickable claw.
-	var stage_width := size.x if size.x < 700.0 else size.x * 0.455
-	var moon_radius := clampf(stage_width * 0.035, 14.0, 28.0)
-	var moon_center := Vector2(stage_width * 0.12, maxf(moon_radius + 18.0, size.y * 0.105))
-	draw_circle(moon_center, moon_radius * 1.45, Color(GOLD, 0.055))
-	draw_circle(moon_center, moon_radius, Color("#ffe39a"))
-	draw_circle(moon_center + Vector2(moon_radius * 0.42, -moon_radius * 0.18), moon_radius * 0.88, Color("#061725"))
-
-	var lighthouse_height := clampf(size.y * (0.26 if size.x < 700.0 else 0.38), 160.0, 420.0)
-	var lighthouse_width := lighthouse_height * LIGHTHOUSE_PAINTING.get_width() / LIGHTHOUSE_PAINTING.get_height()
-	var lighthouse_left := stage_width - lighthouse_width - maxf(16.0, stage_width * 0.035)
-	var lighthouse_top := size.y * (0.25 if size.x < 700.0 else 0.39)
-	var lantern := Vector2(lighthouse_left + lighthouse_width * 0.5, lighthouse_top + lighthouse_height * 0.15)
-	var beam_length := minf(stage_width * 0.48, lantern.x - 8.0)
-	draw_colored_polygon(PackedVector2Array([
-		lantern + Vector2(-lighthouse_width * 0.08, -4.0),
-		lantern + Vector2(-beam_length, -size.y * 0.035),
-		lantern + Vector2(-beam_length, size.y * 0.035),
-		lantern + Vector2(-lighthouse_width * 0.08, 4.0),
-	]), Color(GOLD, 0.085))
-	draw_texture_rect(LIGHTHOUSE_PAINTING, Rect2(lighthouse_left, lighthouse_top, lighthouse_width, lighthouse_height), false)
-
 func get_active_landmark_count() -> int:
 	# Retained as the progression-facing count used by milestone QA. The painted
 	# diorama now carries the visual world; old flat landmark drawings were

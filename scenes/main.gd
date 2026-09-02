@@ -535,6 +535,21 @@ func _install_visual_polish() -> void:
 	score_style.shadow_color = Color(0.11, 0.85, 0.95, 0.22)
 	score_style.shadow_size = 7
 	score_panel.add_theme_stylebox_override("panel", score_style)
+	# Keep the current objective readable over every painted-harbor crop. This
+	# behaves like a compact arcade instruction plate instead of bare text laid
+	# directly over the brightest water and storefront highlights.
+	var objective_style := _make_style(Color(0.025, 0.075, 0.115, 0.92), Color(0.11, 0.58, 0.68, 0.82), 8, 1)
+	objective_style.content_margin_left = 14.0
+	objective_style.content_margin_right = 14.0
+	objective_style.content_margin_top = 8.0
+	objective_style.content_margin_bottom = 8.0
+	objective_style.shadow_color = Color(0.0, 0.0, 0.0, 0.42)
+	objective_style.shadow_size = 5
+	objective_label.add_theme_stylebox_override("normal", objective_style)
+	objective_label.add_theme_font_override("font", UiBoldFont)
+	objective_label.add_theme_color_override("font_color", FOAM_WHITE)
+	objective_label.add_theme_color_override("font_outline_color", Color("#03101a"))
+	objective_label.add_theme_constant_override("outline_size", 2)
 	shell_count_label.add_theme_font_override("font", UiBoldFont)
 	var molt_title := get_node_or_null("RootContainer/RightPanel/VBox/ScrollContainer/MoltContainer/MoltTitle") as Label
 	if molt_title:

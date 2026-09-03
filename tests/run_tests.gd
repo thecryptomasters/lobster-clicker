@@ -304,6 +304,8 @@ func _run() -> void:
 	_expect(ResourceLoader.exists("res://assets/art/ui/medallions/achievement_medal.png"), "achievement medallion is packaged")
 	var soundtrack = load("res://assets/music/midnight_harbor_arcade_loop.ogg")
 	_expect(soundtrack is AudioStreamOggVorbis and soundtrack.loop, "original Midnight Harbor arcade soundtrack is packaged as a seamless loop")
+	var neon_soundtrack = load("res://assets/music/neon_coast_espionage_loop.ogg")
+	_expect(neon_soundtrack is AudioStreamOggVorbis and neon_soundtrack.loop, "original Neon Coast espionage soundtrack is packaged as a seamless loop")
 	main_ui._show_offline_report(12345.0, 3660.0)
 	_expect(main_ui.offline_popup.visible and "NIGHT SHIFT REPORT" in main_ui.offline_title.text, "offline earnings use the arcade harbor report")
 	_expect("12,345" in main_ui.offline_label.text and "1h 1m" in main_ui.offline_label.text, "offline report explains earnings and elapsed shift")
